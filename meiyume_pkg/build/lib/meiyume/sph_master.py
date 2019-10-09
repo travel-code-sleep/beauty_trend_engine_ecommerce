@@ -23,8 +23,7 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
-#import meiyume
-
+from .utils import nan_equal
 np.random.seed(42)
 
 class MeiyumeException(Exception):
@@ -35,6 +34,9 @@ class Meiyume(object):
     """parent class. the methods in this class will
        be inherited by all the child classes. 
        define global methods only"""    
+    def __init__(self):
+        self.nan_equal = nan_equal
+
     def show_missing_value(self, dataframe, viz_type='matrix'):
         """pass"""
         if viz_type=='matrix':
@@ -45,40 +47,6 @@ class Meiyume(object):
             return msno.dendrogram(dataframe, figsize=(12,8))
         else:
             return dataframe.isna().sum()
-    
-    def nan_equal(self,a,b):
-        """pass"""
-        try:
-            np.testing.assert_equal(a,b)
-        except AssertionError:
-            return False
-        return True
-
-class Logger(Meiyume):
-    """ pass """
-    def __init__(self, task_name):
-        self.filename = f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
-    
-    def if_exist(self):
-        try:
-            os.remove(filename)
-        except OSError:
-            pass
-    
-    def set_log(self):
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.INFO)
-        logger.propagate = False
-        formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
-        file_handler = logging.FileHandler(self.filename)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
-        stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(formatter)
-        stream_handler.setLevel(logging.WARNING)
-        logger.addHandler(stream_handler)
-        return logger
-        
 
 
 
@@ -104,15 +72,7 @@ class Cleaner(Meiyume): ## add category translation to meta data cleaning
             raise MeiyumeException("Unable to determine data definition. Please provide correct file names.")
                 
         self.file = os.path.join(file_path, file_name)
-        
-    def nan_equal(self,a,b):
-        """pass"""
-        try:
-            np.testing.assert_equal(a,b)
-        except AssertionError:
-            return False
-        return True
-        
+                
     def read_data(self):
         """pass"""
         if self.file_type == 'xlsx':
