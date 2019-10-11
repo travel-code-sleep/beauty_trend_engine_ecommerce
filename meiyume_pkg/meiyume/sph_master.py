@@ -4,7 +4,7 @@ import time
 import pandas as pd
 import numpy as np
 import os
-import missingno as msno
+
 import ast
 from datetime import datetime, timedelta
 import matplotlib
@@ -23,7 +23,7 @@ from sklearn.model_selection import cross_val_score, cross_val_predict
 from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
-from .utils import nan_equal
+from .utils import nan_equal, show_missing_value
 np.random.seed(42)
 
 class MeiyumeException(Exception):
@@ -36,20 +36,9 @@ class Meiyume(object):
        define global methods only"""    
     def __init__(self):
         self.nan_equal = nan_equal
+        self.show_missing_value = show_missing_value
 
-    def show_missing_value(self, dataframe, viz_type='matrix'):
-        """pass"""
-        if viz_type=='matrix':
-            return msno.matrix(dataframe, figsize=(12,4))
-        elif viz_type=='percentage':
-            return dataframe.isna().mean() * 100
-        elif viz_type=='dendrogram':
-            return msno.dendrogram(dataframe, figsize=(12,8))
-        else:
-            return dataframe.isna().sum()
-
-
-
+    
 class Cleaner(Meiyume): ## add category translation to meta data cleaning 
     """ pass """
     def __init__(self, file_name, file_path=os.getcwd()):

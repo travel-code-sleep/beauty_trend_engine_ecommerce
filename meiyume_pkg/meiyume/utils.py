@@ -3,6 +3,10 @@ import logging
 import time
 import numpy as np 
 import os 
+import missingno as msno
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+
 class Logger(object):
     """ pass """
     def __init__(self, task_name):
@@ -35,3 +39,30 @@ def nan_equal(a,b):
         except AssertionError:
             return False
         return True
+
+
+def show_missing_value(dataframe, viz_type=None):
+        """pass"""
+        if viz_type=='matrix':
+            return msno.matrix(dataframe, figsize=(12,4))
+        elif viz_type=='percentage':
+            return dataframe.isna().mean() * 100
+        elif viz_type=='dendrogram':
+            return msno.dendrogram(dataframe, figsize=(12,8))
+        else:
+            return dataframe.isna().sum()
+
+
+class Browser():
+    """ pass """
+    def __init__(self, driver_path):
+        """ pass """
+        self.driver_path = driver_path
+
+    def open_browser(self, show=False):
+        if show:
+            return webdriver.Chrome(executable_path=self.driver_path)
+        else:
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
