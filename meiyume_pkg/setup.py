@@ -9,11 +9,11 @@ setup(
     # Needed to actually package something
     packages=['meiyume'],
     # Needed for dependencies
-    install_requires=['numpy', 'logging', 'pandas',
-                      'missingno', 'matplotlib',
+    install_requires=['numpy', 'logging', 'pandas', 'selenium', 
+                      'missingno', 'matplotlib', 'tldextract',
                       'tqdm', 'plotly', 'seaborn', 'sklearn'],
     # *strongly* suggested for sharing
-    version='0.3',
+    version='0.4',
     # The license can be anything you like
     license='MIT',
     description='Contains all codes for data scraping and cleaning.',
