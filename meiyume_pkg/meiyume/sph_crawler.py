@@ -7,7 +7,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from .utils import Logger, Browser
+from meiyume.utils import Logger, Browser
 
 
 class Metadata(Browser):
@@ -27,9 +27,9 @@ class Metadata(Browser):
         #self.url = base_url
         self.logger = Logger("sph_prod_metadata_extraction").set_log()
     
-    def get_categories(self):
+    def get_product_type_urls(self):
         """ pass """
-        drv  = self.begin_extraction()
+        drv  = self.create_driver(url=self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
         for c in cats:
@@ -46,29 +46,34 @@ class Metadata(Browser):
             if len(sub_cats)>0:
                 for s in sub_cats: 
                     sub_cat_urls.append((cat_name, s.get_attribute("href").split("/")[-1], s.get_attribute("href")))
-                    self.logger.info(str.encode(f'Subcategory:- name:{s.get_attribute("href").split("/")[-1]} , url:{s.get_attribute("href")}', "utf-8", "ignore"))
+                    self.logger.info(str.encode(f'SubCategory:- name:{s.get_attribute("href").split("/")[-1]} , url:{s.get_attribute("href")}', "utf-8", "ignore"))
             else:
                 sub_cat_urls.append((cat_name, cat_url.split('/')[-1], cat_url))
-        item_urls = []
+        product_type_urls = []
         for su in sub_cat_urls:
             cat_name = su[0]
             sub_cat_name = su[1]
             sub_cat_url = su[2]
             drv.get(sub_cat_url)
             time.sleep(3)
-            item_types = drv.find_elements_by_class_name('css-h6ss0r')
-            if len(item_types)>0:
-                for item in item_types:
-                    item_urls.append((cat_name, sub_cat_name, item.get_attribute("href").split("/")[-1], item.get_attribute("href")))
-                    self.logger.info(str.encode(f'ItemType:- name:{item.get_attribute("href").split("/")[-1]} , url:{item.get_attribute("href")}', "utf-8", "ignore"))
+            product_types = drv.find_elements_by_class_name('css-h6ss0r')
+            if len(product_types)>0:
+                for item in product_types:
+                    product_type_urls.append((cat_name, sub_cat_name, item.get_attribute("href").split("/")[-1], item.get_attribute("href")))
+                    self.logger.info(str.encode(f'ProductType:- name:{item.get_attribute("href").split("/")[-1]} , url:{item.get_attribute("href")}', "utf-8", "ignore"))
             else:
-                item_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
-        df = pd.DataFrame(item_urls, columns = ['category_raw', 'sub_category_raw', 'item_type', 'item_url'])
-        df.to_csv('sph_item_type_urls_to_extract.csv', index=None)        
+                product_type_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
+        df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'item_type', 'item_url'])
+        df.to_csv('sph_item_type_urls_to_extract.csv', index=None) 
+        drv.close()       
         return df
+
+    def download_metadata(self):
+        """ pass """
+        item_df = self.get_product_type_urls()
+
+    def begin_extraction(self):
+        """ call the extraction functions here """
+        
     
-    def begin_extraction(self, logs=True):
-        drv = self.open_browser(True)
-        drv.get(self.base_url)
-        return drv 
 

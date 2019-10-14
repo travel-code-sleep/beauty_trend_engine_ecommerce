@@ -13,7 +13,7 @@ setup(
                       'missingno', 'matplotlib', 'tldextract',
                       'tqdm', 'plotly', 'seaborn', 'sklearn'],
     # *strongly* suggested for sharing
-    version='0.4',
+    version='0.5',
     # The license can be anything you like
     license='MIT',
     description='Contains all codes for data scraping and cleaning.',

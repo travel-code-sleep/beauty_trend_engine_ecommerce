@@ -66,3 +66,15 @@ class Browser():
             chrome_options = Options()
             chrome_options.add_argument('--headless')
             return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
+    
+    def create_driver(self, url):
+        drv = self.open_browser(True)
+        drv.get(url)
+        return drv 
+
+    def __scroll_down_page(self, driver, speed=8, h1=0, h2=1):
+        current_scroll_position, new_height= h1, h2
+        while current_scroll_position <= new_height:
+            current_scroll_position += speed
+            driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
+            new_height = driver.execute_script("return document.body.scrollHeight")
