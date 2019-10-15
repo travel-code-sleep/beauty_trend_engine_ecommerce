@@ -18,11 +18,12 @@ class Browser(object):
             return webdriver.Chrome(executable_path=self.driver_path)
         else:
             chrome_options = Options()
+            chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--headless')
             return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
 
-    def create_driver(self, url):
-        drv = self.open_browser(True)
+    def create_driver(self, url, show=True):
+        drv = self.open_browser(show)
         drv.get(url)
         return drv 
 
@@ -33,7 +34,7 @@ class Browser(object):
             current_scroll_position += speed
             driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
             new_height = driver.execute_script("return document.body.scrollHeight")
-            
+
 class Logger(object):
     """ pass """
     def __init__(self, task_name):
