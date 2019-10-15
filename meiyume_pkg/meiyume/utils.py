@@ -7,6 +7,33 @@ import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+class Browser(object):
+    """ pass """
+    def __init__(self, driver_path):
+        """ pass """
+        self.driver_path = driver_path
+
+    def open_browser(self, show=False):
+        if show:
+            return webdriver.Chrome(executable_path=self.driver_path)
+        else:
+            chrome_options = Options()
+            chrome_options.add_argument('--headless')
+            return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
+
+    def create_driver(self, url):
+        drv = self.open_browser(True)
+        drv.get(url)
+        return drv 
+
+    @staticmethod
+    def _scroll_down_page(driver, speed=8, h1=0, h2=1):
+        current_scroll_position, new_height= h1, h2
+        while current_scroll_position <= new_height:
+            current_scroll_position += speed
+            driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            
 class Logger(object):
     """ pass """
     def __init__(self, task_name):
@@ -31,7 +58,7 @@ class Logger(object):
         stream_handler.setLevel(logging.WARNING)
         logger.addHandler(stream_handler)
         return logger
-    
+
 def nan_equal(a,b):
         """pass"""
         try:
@@ -39,7 +66,6 @@ def nan_equal(a,b):
         except AssertionError:
             return False
         return True
-
 
 def show_missing_value(dataframe, viz_type=None):
         """pass"""
@@ -51,30 +77,3 @@ def show_missing_value(dataframe, viz_type=None):
             return msno.dendrogram(dataframe, figsize=(12,8))
         else:
             return dataframe.isna().sum()
-
-
-class Browser():
-    """ pass """
-    def __init__(self, driver_path):
-        """ pass """
-        self.driver_path = driver_path
-
-    def open_browser(self, show=False):
-        if show:
-            return webdriver.Chrome(executable_path=self.driver_path)
-        else:
-            chrome_options = Options()
-            chrome_options.add_argument('--headless')
-            return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
-    
-    def create_driver(self, url):
-        drv = self.open_browser(True)
-        drv.get(url)
-        return drv 
-
-    def __scroll_down_page(self, driver, speed=8, h1=0, h2=1):
-        current_scroll_position, new_height= h1, h2
-        while current_scroll_position <= new_height:
-            current_scroll_position += speed
-            driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
-            new_height = driver.execute_script("return document.body.scrollHeight")
