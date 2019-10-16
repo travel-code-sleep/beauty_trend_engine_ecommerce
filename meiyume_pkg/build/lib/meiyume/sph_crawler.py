@@ -32,7 +32,7 @@ class Metadata(Browser):
 
         if logs:
             self.logger, self.log_file_name = Logger("sph_prod_metadata_extraction", path=self.data_path).set_log()
-        self.progress_monitor, self.progress_file_name = Logger("sph_meta_extraction_progress_monitor", path=self.data_path).set_log()
+        #self.progress_monitor, self.progress_file_name = Logger("sph_meta_extraction_progress_monitor", path=self.data_path).set_log()
     
     def get_product_type_urls(self):
         """ pass """
@@ -75,22 +75,33 @@ class Metadata(Browser):
             else:
                 product_type_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
         df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'product_type', 'url'])
+        df['scraped'] = 'N'
         df.to_feather(self.data_path/'sph_product_type_urls_to_extract') 
         drv.close()       
         return df
 
-    def download_metadata(self):
+    def download_metadata(self,fresh_start):
         """ pass """
-        product_meta_data = []
-        product_type_urls = self.get_product_type_urls()
-        product_type_urls.reset_index(inplace=True, drop=True) 
-        drv  = self.create_driver(url=self.base_url)
+        product_meta_data = []        
+        if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
+            product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
+            if sum(product_type_urls.scraped=='N')>0:
+                product_type_urls = product_type_urls[product_type_urls.scraped=='N']
+            else:
+                product_type_urls = self.get_product_type_urls()
+        else:
+            product_type_urls = self.get_product_type_urls()
 
-        for pt in product_type_urls.index():
+        drv  = self.create_driver(url=self.base_url)
+        for pt in product_type_urls.index:
             cat_name = product_type_urls.loc[pt,'category_raw']
             sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
             product_type = product_type_urls.loc[pt,'product_type']
-            product_type_link = product_type_urls[pt,'url']
+            product_type_link = product_type_urls.loc[pt,'url']
+
+            if 'best-selling' in sub_cat_name or 'new' in sub_cat_name:
+                product_type_urls.loc[pt,'scraped'] = 'NA'
+                continue
             drv.get(product_type_link)
             time.sleep(5)
             #click and close welcome forms 
@@ -187,15 +198,17 @@ class Metadata(Browser):
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
                 product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}')  
-                self.progress_monitor.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})') 
+                self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})') 
+                product_type_urls.loc[pt,'scraped'] = 'Y'
+                product_type_urls.to_feather(self.data_path/'sph_product_type_urls_to_extract')
                 product_meta_data = [] 
         self.logger.info('Metadata Extraction Complete')
-        self.progress_monitor.info('Metadata Extraction Complete')
+        #self.progress_monitor.info('Metadata Extraction Complete')
         drv.close() 
 
-    def extract(self):
+    def extract(self, fresh_start=False):
         """ call the extraction functions here """
-        self.download_metadata()
+        self.download_metadata(fresh_start)
         files = [f for f in self.currnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)

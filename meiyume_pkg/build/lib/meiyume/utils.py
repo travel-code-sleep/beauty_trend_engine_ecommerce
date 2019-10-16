@@ -9,7 +9,7 @@ from selenium.webdriver.chrome.options import Options
 
 class Browser(object):
     """ pass """
-    def __init__(self, driver_path, show=True):
+    def __init__(self, driver_path, show):
         """ pass """
         self.show = show
         self.driver_path = driver_path
