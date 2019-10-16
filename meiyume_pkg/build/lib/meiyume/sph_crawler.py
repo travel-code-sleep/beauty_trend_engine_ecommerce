@@ -87,10 +87,13 @@ class Metadata(Browser):
             product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
             if sum(product_type_urls.scraped=='N')>0:
                 product_type_urls = product_type_urls[product_type_urls.scraped=='N']
+                self.logger.info(f'Continuing metadata extraction from IndexPosition:{product_type_urls.index[0]}\
+                                   for ProductType:{product_type_urls.product_type.head(1)}]')
             else:
                 product_type_urls = self.get_product_type_urls()
         else:
             product_type_urls = self.get_product_type_urls()
+            self.logger.info('Starting Fresh Extraction')
 
         drv  = self.create_driver(url=self.base_url)
         for pt in product_type_urls.index:
