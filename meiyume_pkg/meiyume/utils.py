@@ -9,12 +9,16 @@ from selenium.webdriver.chrome.options import Options
 
 class Browser(object):
     """ pass """
-    def __init__(self, driver_path):
+    def __init__(self, driver_path, show=True):
         """ pass """
+        self.show = show
         self.driver_path = driver_path
 
-    def open_browser(self, show=False):
-        if show:
+    def open_headless(self, show=False):
+        self.show = show
+    
+    def open_browser(self):
+        if self.show:
             return webdriver.Chrome(executable_path=self.driver_path)
         else:
             chrome_options = Options()
@@ -22,8 +26,8 @@ class Browser(object):
             chrome_options.add_argument('--headless')
             return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
 
-    def create_driver(self, url, show=True):
-        drv = self.open_browser(show)
+    def create_driver(self, url):
+        drv = self.open_browser()
         drv.get(url)
         return drv 
 

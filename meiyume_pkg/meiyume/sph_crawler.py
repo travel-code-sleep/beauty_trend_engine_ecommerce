@@ -2,7 +2,6 @@ from pathlib import Path
 import tldextract
 import pandas as pd
 import time
-import os
 from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
@@ -23,12 +22,12 @@ class Metadata(Browser):
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
 
-    def __init__(self, driver_path, logs=True, path = Path.cwd()):
-        super().__init__(driver_path)
+    def __init__(self, driver_path, logs=True, path = Path.cwd(), show=True):
+        super().__init__(driver_path, show)
         self.path = Path(path)
-        self.data_path = path/'meiyume/metadata'
+        self.data_path = path/'sephora/metadata'
         self.data_path.mkdir(parents=True, exist_ok=True)
-        self.currnet_progress_path = path/'meiyume/metadata/current_progress'
+        self.currnet_progress_path = self.data_path/'current_progress'
         self.currnet_progress_path.mkdir(parents=True, exist_ok=True)
 
         if logs:

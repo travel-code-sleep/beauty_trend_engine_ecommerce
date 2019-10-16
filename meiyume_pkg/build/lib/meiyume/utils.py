@@ -7,10 +7,42 @@ import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+class Browser(object):
+    """ pass """
+    def __init__(self, driver_path, show=True):
+        """ pass """
+        self.show = show
+        self.driver_path = driver_path
+
+    def open_headless(self, show=False):
+        self.show = show
+    
+    def open_browser(self):
+        if self.show:
+            return webdriver.Chrome(executable_path=self.driver_path)
+        else:
+            chrome_options = Options()
+            chrome_options.add_argument('--no-sandbox')
+            chrome_options.add_argument('--headless')
+            return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
+
+    def create_driver(self, url):
+        drv = self.open_browser()
+        drv.get(url)
+        return drv 
+
+    @staticmethod
+    def _scroll_down_page(driver, speed=8, h1=0, h2=1):
+        current_scroll_position, new_height= h1, h2
+        while current_scroll_position <= new_height:
+            current_scroll_position += speed
+            driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
+            new_height = driver.execute_script("return document.body.scrollHeight")
+
 class Logger(object):
     """ pass """
-    def __init__(self, task_name):
-        self.filename = f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
+    def __init__(self, task_name, path):
+        self.filename = path/f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
     
     def if_exist(self):
         try:
@@ -30,8 +62,8 @@ class Logger(object):
         stream_handler.setFormatter(formatter)
         stream_handler.setLevel(logging.WARNING)
         logger.addHandler(stream_handler)
-        return logger
-    
+        return logger, self.filename
+
 def nan_equal(a,b):
         """pass"""
         try:
@@ -39,7 +71,6 @@ def nan_equal(a,b):
         except AssertionError:
             return False
         return True
-
 
 def show_missing_value(dataframe, viz_type=None):
         """pass"""
@@ -51,31 +82,3 @@ def show_missing_value(dataframe, viz_type=None):
             return msno.dendrogram(dataframe, figsize=(12,8))
         else:
             return dataframe.isna().sum()
-
-
-class Browser(object):
-    """ pass """
-    def __init__(self, driver_path):
-        """ pass """
-        self.driver_path = driver_path
-
-    def open_browser(self, show=False):
-        if show:
-            return webdriver.Chrome(executable_path=self.driver_path)
-        else:
-            chrome_options = Options()
-            chrome_options.add_argument('--headless')
-            return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
-
-    def create_driver(self, url):
-        drv = self.open_browser(True)
-        drv.get(url)
-        return drv 
-
-    @staticmethod
-    def _scroll_down_page(driver, speed=8, h1=0, h2=1):
-        current_scroll_position, new_height= h1, h2
-        while current_scroll_position <= new_height:
-            current_scroll_position += speed
-            driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
-            new_height = driver.execute_script("return document.body.scrollHeight")
