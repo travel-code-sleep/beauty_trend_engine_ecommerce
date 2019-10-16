@@ -76,8 +76,11 @@ class Metadata(Browser):
                 product_type_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
         df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'product_type', 'url'])
         df['scraped'] = 'N'
+        df.to_feather(self.data_path/'sph_product_cat_subcat_structure') 
+        drv.close() 
+        df.drop_duplicates(subset='product_type', inplace=True)
+        df.reset_index(inplace=True, drop=True)
         df.to_feather(self.data_path/'sph_product_type_urls_to_extract') 
-        drv.close()       
         return df
 
     def download_metadata(self,fresh_start):
@@ -98,7 +101,7 @@ class Metadata(Browser):
         drv  = self.create_driver(url=self.base_url)
         for pt in product_type_urls.index:
             cat_name = product_type_urls.loc[pt,'category_raw']
-            sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
+            #sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
             product_type = product_type_urls.loc[pt,'product_type']
             product_type_link = product_type_urls.loc[pt,'url']
 
