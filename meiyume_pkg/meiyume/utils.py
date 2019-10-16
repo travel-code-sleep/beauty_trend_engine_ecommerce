@@ -37,8 +37,8 @@ class Browser(object):
 
 class Logger(object):
     """ pass """
-    def __init__(self, task_name):
-        self.filename = f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
+    def __init__(self, task_name, path):
+        self.filename = path/f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
     
     def if_exist(self):
         try:
@@ -58,7 +58,7 @@ class Logger(object):
         stream_handler.setFormatter(formatter)
         stream_handler.setLevel(logging.WARNING)
         logger.addHandler(stream_handler)
-        return logger
+        return logger, self.filename
 
 def nan_equal(a,b):
         """pass"""
