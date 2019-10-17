@@ -1,3 +1,4 @@
+from __future__ import print_function, absolute_import
 from pathlib import Path
 import tldextract
 import pandas as pd
@@ -29,13 +30,12 @@ class Metadata(Browser):
         self.data_path.mkdir(parents=True, exist_ok=True)
         self.currnet_progress_path = self.data_path/'current_progress'
         self.currnet_progress_path.mkdir(parents=True, exist_ok=True)
-
-        if logs:
-            self.logger, self.log_file_name = Logger("sph_prod_metadata_extraction", path=self.data_path).set_log()
-        #self.progress_monitor, self.progress_file_name = Logger("sph_meta_extraction_progress_monitor", path=self.data_path).set_log()
+        self.logs = logs
     
     def get_product_type_urls(self):
         """ pass """
+        if self.logs:
+            self.logger, self.log_file_name = Logger("sph_site_structure_url_extraction", path=self.data_path).set_log()
         drv  = self.create_driver(url=self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
@@ -81,31 +81,40 @@ class Metadata(Browser):
         df.drop_duplicates(subset='product_type', inplace=True)
         df.reset_index(inplace=True, drop=True)
         df.to_feather(self.data_path/'sph_product_type_urls_to_extract') 
+        self.logger.handlers.clear()
+        self.logger.shutdown()
         return df
 
     def download_metadata(self,fresh_start):
         """ pass """
-        product_meta_data = []        
-        if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
-            product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
-            if sum(product_type_urls.scraped=='N')>0:
-                product_type_urls = product_type_urls[product_type_urls.scraped=='N']
-                self.logger.info(f'Continuing metadata extraction from IndexPosition:{product_type_urls.index[0]}\
-                                   for ProductType:{product_type_urls.product_type.head(1)}]')
-            else:
-                product_type_urls = self.get_product_type_urls()
-        else:
+        if self.logs:
+            self.logger, self.log_file_name = Logger("sph_prod_metadata_extraction", path=self.data_path).set_log()
+
+        product_meta_data = []  
+
+        if fresh_start:
             product_type_urls = self.get_product_type_urls()
-            self.logger.info('Starting Fresh Extraction')
+            self.logger.info('Starting Fresh Extraction.')
+        else:
+            if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
+                product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
+                if sum(product_type_urls.scraped=='N')>0:
+                    self.logger.info('Continuing Metadata Extraction From Last Run.')         
+                else:
+                    product_type_urls = self.get_product_type_urls()
+                    self.logger.info('Previous Run Was Complete. Starting Fresh Extraction.')
 
         drv  = self.create_driver(url=self.base_url)
         for pt in product_type_urls.index:
+            scraped = product_type_urls.loc[pt,'scraped']
+            if scraped in ['NA', 'Y']:
+                continue
             cat_name = product_type_urls.loc[pt,'category_raw']
             #sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
             product_type = product_type_urls.loc[pt,'product_type']
             product_type_link = product_type_urls.loc[pt,'url']
 
-            if 'best-selling' in sub_cat_name or 'new' in sub_cat_name:
+            if 'best-selling' in product_type or 'new' in product_type:
                 product_type_urls.loc[pt,'scraped'] = 'NA'
                 continue
             drv.get(product_type_link)
@@ -125,7 +134,7 @@ class Metadata(Browser):
             try:
                 current_page = drv.find_element_by_class_name('css-x544ax').text
             except:
-                self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType {product_type} is not\
+                self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} is not\
                                              a top level page.(page link: {product_type_link})', 'utf-8', 'ignore'))
                 continue
             #get a list of all avilable pages 
@@ -135,7 +144,7 @@ class Metadata(Browser):
             #start getting product form each page 
             while True: 
                 cp = 0
-                self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType: {product_type}\
+                self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type}\
                                   getting product from page {current_page}.(page link: {product_type_link})','utf-8', 'ignore')) 
                 time.sleep(3)
                 products = drv.find_elements_by_class_name('css-12egk0t')
@@ -144,7 +153,7 @@ class Metadata(Browser):
                     try:
                        product_name = p.find_element_by_class_name('css-ix8km1').get_attribute('aria-label')
                     except NoSuchElementException or StaleElementReferenceException:
-                        self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType: {product_type} -\
+                        self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} metadata extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                         continue
@@ -152,42 +161,40 @@ class Metadata(Browser):
                         product_page = p.find_element_by_class_name('css-ix8km1').get_attribute('href')
                     except NoSuchElementException or StaleElementReferenceException:
                         product_page = ''
-                        self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType: {product_type} -\
+                        self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} product_page extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         brand = p.find_element_by_class_name('css-ktoumz').text
                     except NoSuchElementException or StaleElementReferenceException:
                         brand = ''
-                        self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType: {product_type} -\
+                        self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} brand extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         rating = p.find_element_by_class_name('css-1adflzz').get_attribute('aria-label')
                     except NoSuchElementException or StaleElementReferenceException:
                         rating = ''
-                        self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType: {product_type} -\
+                        self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} rating extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         price = p.find_element_by_class_name('css-68u28a').text
                     except NoSuchElementException or StaleElementReferenceException:
                         price = ''
-                        self.logger.info(str.encode(f'Category: {cat_name} - SubCategory: {sub_cat_name} - ProductType: {product_type} -\
+                        self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                       product {products.index(p)} price extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                 
                     d = {"product_name":product_name,"product_page":product_page,"brand":brand,"price":price,"rating":rating,
-                         "category":cat_name,"sub_category":sub_cat_name,"product_type": product_type,
-                         "timestamp": time.strftime("%Y-%m-%d-%H-%M"),"complete_scrape_flag":"N"}
+                         "category":cat_name,"product_type": product_type, "timestamp": time.strftime("%Y-%m-%d-%H-%M"),"complete_scrape_flag":"N"}
                     cp += 1
-                    self.logger.info(str.encode(f'Category: {cat_name} - Sub_Category: {sub_cat_name} - ProductType: {product_type} -\
+                    self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                  Product: {product_name} - {cp} extracted sucessfully.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     product_meta_data.append(d)
                 if int(current_page) == int(pages[-1]):
-                    self.logger.info(str.encode(f'Category: {cat_name} - Sub_Category: {sub_cat_name} - \
-                                                  ProductType: {product_type} extraction complete.\
+                    self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} extraction complete.\
                                                   (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     break
                 else:
@@ -209,17 +216,23 @@ class Metadata(Browser):
                 product_type_urls.to_feather(self.data_path/'sph_product_type_urls_to_extract')
                 product_meta_data = [] 
         self.logger.info('Metadata Extraction Complete')
+        print('Metadata Extraction Complete')
         #self.progress_monitor.info('Metadata Extraction Complete')
         drv.close() 
 
     def extract(self, fresh_start=False):
         """ call the extraction functions here """
         self.download_metadata(fresh_start)
+        self.logger('Creating Combined Metadata File')
         files = [f for f in self.currnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
         metadata_df.to_feather('sph_product_metadata_all')
+        self.logger(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
+        self.logger.handlers.clear()
+        self.logger.shutdown()
+        print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
         return metadata_df
     
 
