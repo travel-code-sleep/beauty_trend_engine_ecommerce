@@ -133,14 +133,17 @@ class Metadata(Browser):
             #check whether on the first page of product type 
             try:
                 current_page = drv.find_element_by_class_name('css-x544ax').text
-            except:
-                self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} is not\
-                                             a top level page.(page link: {product_type_link})', 'utf-8', 'ignore'))
-                continue
-            #get a list of all avilable pages 
-            pages =  []
-            for page in drv.find_elements_by_class_name('css-1f9ivf5'):
-                pages.append(page.text)
+            except NoSuchElementException:
+                self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} has\
+                only one page of products.(page link: {product_type_link})', 'utf-8', 'ignore'))
+                one_page = True 
+                current_page = 1 
+            else:
+                #get a list of all avilable pages 
+                pages =  []
+                for page in drv.find_elements_by_class_name('css-1f9ivf5'):
+                    pages.append(page.text)
+            
             #start getting product form each page 
             while True: 
                 cp = 0
@@ -193,21 +196,29 @@ class Metadata(Browser):
                                                  Product: {product_name} - {cp} extracted sucessfully.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     product_meta_data.append(d)
-                if int(current_page) == int(pages[-1]):
-                    self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} extraction complete.\
-                                                  (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                
+                if one_page:
                     break
                 else:
-                    try:
-                        time.sleep(2)
-                        drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
-                                                          div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
-                                                          div.css-6su6fj > nav > ul > button').click()
-                        time.sleep(3)
-                        self._scroll_down_page(drv)
-                        current_page = drv.find_element_by_class_name('css-x544ax').text
-                    except:
-                        break    
+                    if int(current_page) == int(pages[-1]):
+                        self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} extraction complete.\
+                                                    (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                        break
+                    else:
+                        try:
+                            time.sleep(2)
+                            drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
+                                                            div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
+                                                            div.css-6su6fj > nav > ul > button').click()
+                            time.sleep(3)
+                            self._scroll_down_page(drv)
+                            current_page = drv.find_element_by_class_name('css-x544ax').text
+                        except:
+                            self.logger.info(str.encode(f'Page navigation issue occured for Category: {cat_name} - \
+                                                          ProductType: {product_type} (page_link: {product_type_link} \
+                                                          - page_no: {current_page})', 'utf-8', 'ignore'))
+                            break  
+                                 
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
                 product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}')  
