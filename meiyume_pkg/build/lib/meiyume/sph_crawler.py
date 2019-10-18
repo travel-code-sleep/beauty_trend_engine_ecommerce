@@ -234,13 +234,13 @@ class Metadata(Browser):
     def extract(self, fresh_start=False):
         """ call the extraction functions here """
         self.download_metadata(fresh_start)
-        self.logger('Creating Combined Metadata File')
+        self.logger.info('Creating Combined Metadata File')
         files = [f for f in self.currnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
         metadata_df.to_feather('sph_product_metadata_all')
-        self.logger(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
+        self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
         self.logger.handlers.clear()
         self.logger.shutdown()
         print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
