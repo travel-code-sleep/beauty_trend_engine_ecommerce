@@ -12,7 +12,15 @@ from meiyume.utils import Logger, Browser
 
 
 class Metadata(Browser):
-    """ pass """
+    """
+    summary
+
+    Arguments:
+        Browser {[type]} -- [description]
+
+    Returns:
+        [type] -- [description]
+    """
     base_url="https://www.sephora.com"
     info = tldextract.extract(base_url)
     source = info.registered_domain
@@ -24,6 +32,16 @@ class Metadata(Browser):
         cls.source = cls.info.registered_domain
 
     def __init__(self, driver_path, logs=True, path = Path.cwd(), show=True):
+        """[summary]
+        
+        Arguments:
+            driver_path {[type]} -- [description]
+        
+        Keyword Arguments:
+            logs {bool} -- [description] (default: {True})
+            path {[type]} -- [description] (default: {Path.cwd()})
+            show {bool} -- [description] (default: {True})
+        """
         super().__init__(driver_path, show)
         self.path = Path(path)
         self.data_path = path/'sephora/metadata'
@@ -35,7 +53,7 @@ class Metadata(Browser):
     def get_product_type_urls(self):
         """ pass """
         if self.logs:
-            self.logger, self.log_file_name = Logger("sph_site_structure_url_extraction", path=self.data_path).set_log()
+            self.logger, self.log_file_name = Logger("sph_site_structure_url_extraction", path=self.data_path).start_log()
         drv  = self.create_driver(url=self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
@@ -82,13 +100,13 @@ class Metadata(Browser):
         df.reset_index(inplace=True, drop=True)
         df.to_feather(self.data_path/'sph_product_type_urls_to_extract') 
         self.logger.handlers.clear()
-        self.logger.shutdown()
+        self.logger.stop_log()
         return df
 
     def download_metadata(self,fresh_start):
         """ pass """
         if self.logs:
-            self.logger, self.log_file_name = Logger("sph_prod_metadata_extraction", path=self.data_path).set_log()
+            self.logger, self.log_file_name = Logger("sph_prod_metadata_extraction", path=self.data_path).start_log()
 
         product_meta_data = []  
 
@@ -242,7 +260,7 @@ class Metadata(Browser):
         metadata_df.to_feather('sph_product_metadata_all')
         self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
         self.logger.handlers.clear()
-        self.logger.shutdown()
+        self.logger.stop_log()
         print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
         return metadata_df
     

@@ -50,35 +50,41 @@ class Logger(object):
         except OSError:
             pass
     
-    def set_log(self):
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.INFO)
-        logger.propagate = False
+    def start_log(self):
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
         formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
-        file_handler = logging.FileHandler(self.filename)
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        self.file_handler = logging.FileHandler(self.filename)
+        self.file_handler.setFormatter(formatter)
+        self.logger.addHandler(self.file_handler)
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         stream_handler.setLevel(logging.WARNING)
-        logger.addHandler(stream_handler)
-        return logger, self.filename
+        self.logger.addHandler(stream_handler)
+        return self.logger, self.filename
+
+    def stop_log(self):
+        """[summary]
+        """
+        self.logger.removeHandler(self.file_handler)
+        del self.logger, self.file_handler
 
 def nan_equal(a,b):
-        """pass"""
-        try:
-            np.testing.assert_equal(a,b)
-        except AssertionError:
-            return False
-        return True
+    """pass"""
+    try:
+        np.testing.assert_equal(a,b)
+    except AssertionError:
+        return False
+    return True
 
 def show_missing_value(dataframe, viz_type=None):
-        """pass"""
-        if viz_type=='matrix':
-            return msno.matrix(dataframe, figsize=(12,4))
-        elif viz_type=='percentage':
-            return dataframe.isna().mean() * 100
-        elif viz_type=='dendrogram':
-            return msno.dendrogram(dataframe, figsize=(12,8))
-        else:
-            return dataframe.isna().sum()
+    """pass"""
+    if viz_type=='matrix':
+        return msno.matrix(dataframe, figsize=(12,4))
+    elif viz_type=='percentage':
+        return dataframe.isna().mean() * 100
+    elif viz_type=='dendrogram':
+        return msno.dendrogram(dataframe, figsize=(12,8))
+    else:
+        return dataframe.isna().sum()
