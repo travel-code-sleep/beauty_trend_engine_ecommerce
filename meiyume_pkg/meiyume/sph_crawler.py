@@ -259,7 +259,7 @@ class Metadata(Browser):
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
-        metadata_df.to_feather('sph_product_metadata_all')
+        metadata_df.to_feather(self.data_path/'sph_product_metadata_all')
         self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
