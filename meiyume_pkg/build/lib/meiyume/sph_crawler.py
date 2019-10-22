@@ -8,7 +8,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from meiyume.utils import Logger, Browser
+from utils import Logger, Browser
+import shutil
 
 
 class Metadata(Browser):
@@ -27,16 +28,23 @@ class Metadata(Browser):
 
     @classmethod
     def update_base_url(cls, url):
+        """
+        [summary]
+
+        Arguments:
+            url {[type]} -- [description]
+        """
         cls.base_url = url
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
 
     def __init__(self, driver_path, logs=True, path = Path.cwd(), show=True):
-        """[summary]
-        
+        """
+        [summary]
+
         Arguments:
             driver_path {[type]} -- [description]
-        
+
         Keyword Arguments:
             logs {bool} -- [description] (default: {True})
             path {[type]} -- [description] (default: {Path.cwd()})
@@ -51,11 +59,12 @@ class Metadata(Browser):
         self.logs = logs
         self.url_log = Logger("sph_site_structure_url_extraction", path=self.data_path)
         self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.data_path)
-        
+
     def get_product_type_urls(self):
-        """ pass """
+        """[summary]
+        """
         if self.logs:
-            self.logger, self.log_file_name = self.url_log.start_log()
+            self.logger, _ = self.url_log.start_log()
         drv  = self.create_driver(url=self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
@@ -64,7 +73,7 @@ class Metadata(Browser):
             self.logger.info(str.encode(f'Category:- name:{c.get_attribute("href").split("/")[-1]}, \
                                           url:{c.get_attribute("href")}', "utf-8", "ignore"))
         sub_cat_urls = []
-        for cu in cat_urls: 
+        for cu in cat_urls:
             cat_name = cu[0]
             cat_url = cu[1]
             drv.get(cat_url)
@@ -72,7 +81,7 @@ class Metadata(Browser):
             sub_cats = drv.find_elements_by_class_name("css-16yq0cc")
             sub_cats.extend(drv.find_elements_by_class_name("css-or7ouu"))
             if len(sub_cats)>0:
-                for s in sub_cats: 
+                for s in sub_cats:
                     sub_cat_urls.append((cat_name, s.get_attribute("href").split("/")[-1], s.get_attribute("href")))
                     self.logger.info(str.encode(f'SubCategory:- name:{s.get_attribute("href").split("/")[-1]},\
                                                   url:{s.get_attribute("href")}', "utf-8", "ignore"))
@@ -88,7 +97,7 @@ class Metadata(Browser):
             product_types = drv.find_elements_by_class_name('css-h6ss0r')
             if len(product_types)>0:
                 for item in product_types:
-                    product_type_urls.append((cat_name, sub_cat_name, item.get_attribute("href").split("/")[-1], 
+                    product_type_urls.append((cat_name, sub_cat_name, item.get_attribute("href").split("/")[-1],
                                               item.get_attribute("href")))
                     self.logger.info(str.encode(f'ProductType:- name:{item.get_attribute("href").split("/")[-1]},\
                                                   url:{item.get_attribute("href")}', "utf-8", "ignore"))
@@ -96,21 +105,25 @@ class Metadata(Browser):
                 product_type_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
         df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'product_type', 'url'])
         df['scraped'] = 'N'
-        df.to_feather(self.data_path/'sph_product_cat_subcat_structure') 
-        drv.close() 
+        df.to_feather(self.data_path/'sph_product_cat_subcat_structure')
+        drv.close()
         df.drop_duplicates(subset='product_type', inplace=True)
         df.reset_index(inplace=True, drop=True)
-        df.to_feather(self.data_path/'sph_product_type_urls_to_extract') 
+        df.to_feather(self.data_path/f'sph_product_type_urls_to_extract')
         self.logger.handlers.clear()
-        url_log.stop_log()
+        self.url_log.stop_log()
         return df
 
     def download_metadata(self,fresh_start):
-        """ pass """
-        if self.logs:
-            self.logger, self.log_file_name = self.prod_meta_log.start_log()
+        """[summary]
 
-        product_meta_data = []  
+        Arguments:
+            fresh_start {[type]} -- [description]
+        """
+        if self.logs:
+            self.logger, _ = self.prod_meta_log.start_log()
+
+        product_meta_data = []
 
         if fresh_start:
             product_type_urls = self.get_product_type_urls()
@@ -119,7 +132,7 @@ class Metadata(Browser):
             if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
                 product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
                 if sum(product_type_urls.scraped=='N')>0:
-                    self.logger.info('Continuing Metadata Extraction From Last Run.')         
+                    self.logger.info('Continuing Metadata Extraction From Last Run.')
                 else:
                     product_type_urls = self.get_product_type_urls()
                     self.logger.info('Previous Run Was Complete. Starting Fresh Extraction.')
@@ -139,7 +152,7 @@ class Metadata(Browser):
                 continue
             drv.get(product_type_link)
             time.sleep(5)
-            #click and close welcome forms 
+            #click and close welcome forms
             try:
                 drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
             except:
@@ -150,21 +163,24 @@ class Metadata(Browser):
                 pass
             #load all the products
             self._scroll_down_page(drv)
-            #check whether on the first page of product type 
+            #check whether on the first page of product type
             try:
                 current_page = drv.find_element_by_class_name('css-x544ax').text
             except NoSuchElementException:
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} has\
                 only one page of products.(page link: {product_type_link})', 'utf-8', 'ignore'))
-                one_page = True 
-                current_page = 1 
+                one_page = True
+                current_page = 1
+            except:
+                product_type_urls.loc[pt,'scraped'] = 'NA'
+                self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} page not found.(page link: {product_type_link})', 'utf-8', 'ignore'))
             else:
-                #get a list of all avilable pages 
+                #get a list of all avilable pages
                 pages =  []
                 for page in drv.find_elements_by_class_name('css-1f9ivf5'):
                     pages.append(page.text)
-            
-            #start getting product form each page 
+
+            #start getting product form each page
             while True: 
                 cp = 0
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type}\
@@ -180,7 +196,7 @@ class Metadata(Browser):
                                                      product {products.index(p)} metadata extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                         continue
-                    try:    
+                    try:
                         product_page = p.find_element_by_class_name('css-ix8km1').get_attribute('href')
                     except NoSuchElementException or StaleElementReferenceException:
                         product_page = ''
@@ -208,7 +224,7 @@ class Metadata(Browser):
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                       product {products.index(p)} price extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
-                
+
                     d = {"product_name":product_name,"product_page":product_page,"brand":brand,"price":price,"rating":rating,
                          "category":cat_name,"product_type": product_type, "timestamp": time.strftime("%Y-%m-%d-%H-%M"),"complete_scrape_flag":"N"}
                     cp += 1
@@ -216,7 +232,7 @@ class Metadata(Browser):
                                                  Product: {product_name} - {cp} extracted sucessfully.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     product_meta_data.append(d)
-                
+
                 if one_page:
                     break
                 else:
@@ -237,33 +253,51 @@ class Metadata(Browser):
                             self.logger.info(str.encode(f'Page navigation issue occured for Category: {cat_name} - \
                                                           ProductType: {product_type} (page_link: {product_type_link} \
                                                           - page_no: {current_page})', 'utf-8', 'ignore'))
-                            break  
-                                 
+                            break
+
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
-                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}')  
+                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')  
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})') 
                 product_type_urls.loc[pt,'scraped'] = 'Y'
                 product_type_urls.to_feather(self.data_path/'sph_product_type_urls_to_extract')
-                product_meta_data = [] 
+                product_meta_data = []
         self.logger.info('Metadata Extraction Complete')
         print('Metadata Extraction Complete')
         #self.progress_monitor.info('Metadata Extraction Complete')
-        drv.close() 
+        drv.close()
 
-    def extract(self, fresh_start=False):
-        """ call the extraction functions here """
+    def extract(self, fresh_start=False, delete_progress=True):
+        """
+        [summary]
+
+        Keyword Arguments:
+            fresh_start {bool} -- [description] (default: {False})
+            delete_progress {bool} -- [description] (default: {True})
+        """
         self.download_metadata(fresh_start)
         self.logger.info('Creating Combined Metadata File')
         files = [f for f in self.currnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
-        metadata_df.to_feather(self.data_path/'sph_product_metadata_all')
+        metadata_df.to_feather(self.data_path/f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}')
         self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
+        print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
+        if delete_progress:
+            print('Deleting Progress Files')
+            shutil.rmtree(f'{data_path}\\current_progress', ignore_errors=True)
+            self.logger.info('Progress files deleted')
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
-        print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
         return metadata_df
-    
 
+
+class Details(Browser):
+    """
+    [summary]
+
+    Arguments:
+        Browser {[type]} -- [description]
+    """
+    pass
