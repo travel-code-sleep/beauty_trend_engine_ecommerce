@@ -8,7 +8,7 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from meiyume.utils import Logger, Browser
+from utils import Logger, Browser
 
 
 class Metadata(Browser):
@@ -27,6 +27,11 @@ class Metadata(Browser):
 
     @classmethod
     def update_base_url(cls, url):
+        """[summary]
+        
+        Arguments:
+            url {[type]} -- [description]
+        """
         cls.base_url = url
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
@@ -53,9 +58,10 @@ class Metadata(Browser):
         self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.data_path)
         
     def get_product_type_urls(self):
-        """ pass """
+        """[summary]
+        """
         if self.logs:
-            self.logger, self.log_file_name = self.url_log.start_log()
+            self.logger, _ = self.url_log.start_log()
         drv  = self.create_driver(url=self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
@@ -102,13 +108,17 @@ class Metadata(Browser):
         df.reset_index(inplace=True, drop=True)
         df.to_feather(self.data_path/'sph_product_type_urls_to_extract') 
         self.logger.handlers.clear()
-        url_log.stop_log()
+        self.url_log.stop_log()
         return df
 
     def download_metadata(self,fresh_start):
-        """ pass """
+        """[summary]
+        
+        Arguments:
+            fresh_start {[type]} -- [description]
+        """
         if self.logs:
-            self.logger, self.log_file_name = self.prod_meta_log.start_log()
+            self.logger, _ = self.prod_meta_log.start_log()
 
         product_meta_data = []  
 
@@ -241,7 +251,7 @@ class Metadata(Browser):
                                  
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
-                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}')  
+                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')  
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})') 
                 product_type_urls.loc[pt,'scraped'] = 'Y'
                 product_type_urls.to_feather(self.data_path/'sph_product_type_urls_to_extract')
@@ -252,7 +262,11 @@ class Metadata(Browser):
         drv.close() 
 
     def extract(self, fresh_start=False):
-        """ call the extraction functions here """
+        """[summary]
+        
+        Keyword Arguments:
+            fresh_start {bool} -- [description] (default: {False})
+        """
         self.download_metadata(fresh_start)
         self.logger.info('Creating Combined Metadata File')
         files = [f for f in self.currnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
@@ -267,3 +281,11 @@ class Metadata(Browser):
         return metadata_df
     
 
+class Details(Browser):
+    """
+    [summary]
+    
+    Arguments:
+        Browser {[type]} -- [description]
+    """
+    pass

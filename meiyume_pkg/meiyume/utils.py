@@ -8,7 +8,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
 class Browser(object):
-    """ pass """
+    """[summary]
+    
+    Arguments:
+        object {[type]} -- [description]
+    """
     def __init__(self, driver_path, show):
         """ pass """
         self.show = show
@@ -18,6 +22,8 @@ class Browser(object):
         self.show = show
     
     def open_browser(self):
+        """[summary]
+        """
         if self.show:
             return webdriver.Chrome(executable_path=self.driver_path)
         else:
@@ -27,12 +33,27 @@ class Browser(object):
             return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
 
     def create_driver(self, url):
+        """[summary]
+        
+        Arguments:
+            url {[type]} -- [description]
+        """
         drv = self.open_browser()
         drv.get(url)
         return drv 
 
     @staticmethod
-    def _scroll_down_page(driver, speed=8, h1=0, h2=1):
+    def scroll_down_page(driver, speed=8, h1=0, h2=1):
+        """[summary]
+        
+        Arguments:
+            driver {[type]} -- [description]
+        
+        Keyword Arguments:
+            speed {int} -- [description] (default: {8})
+            h1 {int} -- [description] (default: {0})
+            h2 {int} -- [description] (default: {1})
+        """
         current_scroll_position, new_height= h1, h2
         while current_scroll_position <= new_height:
             current_scroll_position += speed
@@ -40,7 +61,14 @@ class Browser(object):
             new_height = driver.execute_script("return document.body.scrollHeight")
 
 class Logger(object):
-    """ pass """
+    """[summary]
+    
+    Arguments:
+        object {[type]} -- [description]
+    
+    Returns:
+        [type] -- [description]
+    """""" pass """
     def __init__(self, task_name, path):
         self.filename = path/f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
     
@@ -51,6 +79,8 @@ class Logger(object):
             pass
     
     def start_log(self):
+        """[summary]
+        """
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self.logger.propagate = False
@@ -71,7 +101,12 @@ class Logger(object):
         del self.logger, self.file_handler
 
 def nan_equal(a,b):
-    """pass"""
+    """[summary]
+    
+    Arguments:
+        a {[type]} -- [description]
+        b {[type]} -- [description]
+    """
     try:
         np.testing.assert_equal(a,b)
     except AssertionError:
@@ -79,7 +114,14 @@ def nan_equal(a,b):
     return True
 
 def show_missing_value(dataframe, viz_type=None):
-    """pass"""
+    """[summary]
+    
+    Arguments:
+        dataframe {[type]} -- [description]
+    
+    Keyword Arguments:
+        viz_type {[type]} -- [description] (default: {None})
+    """
     if viz_type=='matrix':
         return msno.matrix(dataframe, figsize=(12,4))
     elif viz_type=='percentage':
