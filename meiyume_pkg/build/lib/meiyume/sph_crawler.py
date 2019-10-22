@@ -162,7 +162,7 @@ class Metadata(Browser):
             except:
                 pass
             #load all the products
-            self._scroll_down_page(drv)
+            self.scroll_down_page(drv)
             #check whether on the first page of product type
             try:
                 current_page = drv.find_element_by_class_name('css-x544ax').text
@@ -247,7 +247,7 @@ class Metadata(Browser):
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
                                                             div.css-6su6fj > nav > ul > button').click()
                             time.sleep(3)
-                            self._scroll_down_page(drv)
+                            self.scroll_down_page(drv)
                             current_page = drv.find_element_by_class_name('css-x544ax').text
                         except:
                             self.logger.info(str.encode(f'Page navigation issue occured for Category: {cat_name} - \
@@ -257,7 +257,7 @@ class Metadata(Browser):
 
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
-                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')  
+                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})') 
                 product_type_urls.loc[pt,'scraped'] = 'Y'
                 product_type_urls.to_feather(self.data_path/'sph_product_type_urls_to_extract')
