@@ -1,3 +1,6 @@
+
+"""[summary]
+"""
 from __future__ import print_function, absolute_import
 from pathlib import Path
 import tldextract
@@ -11,16 +14,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from .utils import Logger, Browser
 import shutil
 
-
 class Metadata(Browser):
-    """
-    summary
+    """[summary]
 
     Arguments:
         Browser {[type]} -- [description]
-
-    Returns:
-        [type] -- [description]
     """
     base_url="https://www.sephora.com"
     info = tldextract.extract(base_url)
@@ -28,8 +26,7 @@ class Metadata(Browser):
 
     @classmethod
     def update_base_url(cls, url):
-        """
-        [summary]
+        """[summary]
 
         Arguments:
             url {[type]} -- [description]
@@ -54,17 +51,15 @@ class Metadata(Browser):
         self.path = Path(path)
         self.data_path = path/'sephora/metadata'
         self.data_path.mkdir(parents=True, exist_ok=True)
-        self.currnet_progress_path = self.data_path/'current_progress'
-        self.currnet_progress_path.mkdir(parents=True, exist_ok=True)
-        self.logs = logs
-        self.url_log = Logger("sph_site_structure_url_extraction", path=self.data_path)
-        self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.data_path)
+        self.curnet_progress_path = self.data_path/'current_progress'
+        self.curnet_progress_path.mkdir(parents=True, exist_ok=True)
+        if logs:
+            self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.data_path)
+            self.logger, _ = self.prod_meta_log.start_log()
 
     def get_product_type_urls(self):
         """[summary]
         """
-        if self.logs:
-            self.logger, _ = self.url_log.start_log()
         drv  = self.create_driver(url=self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
@@ -110,46 +105,54 @@ class Metadata(Browser):
         df.drop_duplicates(subset='product_type', inplace=True)
         df.reset_index(inplace=True, drop=True)
         df.to_feather(self.data_path/f'sph_product_type_urls_to_extract')
-        self.logger.handlers.clear()
-        self.url_log.stop_log()
         return df
 
     def download_metadata(self,fresh_start):
         """[summary]
-
+        
         Arguments:
             fresh_start {[type]} -- [description]
         """
-        if self.logs:
-            self.logger, _ = self.prod_meta_log.start_log()
-
+        
         product_meta_data = []
-
-        if fresh_start:
+       
+        def fresh_ext(self):
             product_type_urls = self.get_product_type_urls()
+            # progress tracker: captures scraped and error desc 
+            progress_tracker = pd.DataFrame(index=product_type_urls.index, columns=['product_type', 'scraped', 'error_desc'])
+            progress_tracker.scraped = 'N'
+            return product_type_urls, progress_tracker
+        
+        if fresh_start:
             self.logger.info('Starting Fresh Extraction.')
+            product_type_urls, progress_tracker = self.fresh_ext()
         else:
             if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
+                progress_tracker = pd.read_feather(self.data_path/'progress_tracker')
                 product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
-                if sum(product_type_urls.scraped=='N')>0:
+                if sum(progress_tracker.scraped=='N')>0:
                     self.logger.info('Continuing Metadata Extraction From Last Run.')
+                    product_type_urls = product_type_urls[product_type_urls.index.isin(progress_tracker.index[progress_tracker.scraped=='N'].values.tolist())]
                 else:
-                    product_type_urls = self.get_product_type_urls()
                     self.logger.info('Previous Run Was Complete. Starting Fresh Extraction.')
-
+                    product_type_urls, progress_tracker = self.fresh_ext()
+            else:
+                self.logger.info('URL File Not Found. Starting Fresh Extraction.')
+                product_type_urls, progress_tracker = self.fresh_ext()
+                
         drv  = self.create_driver(url=self.base_url)
         for pt in product_type_urls.index:
-            scraped = product_type_urls.loc[pt,'scraped']
-            if scraped in ['NA', 'Y']:
-                continue
             cat_name = product_type_urls.loc[pt,'category_raw']
             #sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
             product_type = product_type_urls.loc[pt,'product_type']
             product_type_link = product_type_urls.loc[pt,'url']
 
+            progress_tracker.loc[pt,'product_type'] = product_type
+
             if 'best-selling' in product_type or 'new' in product_type:
-                product_type_urls.loc[pt,'scraped'] = 'NA'
+                progress_tracker.loc[pt,'scraped'] = 'NA'
                 continue
+            
             drv.get(product_type_link)
             time.sleep(5)
             #click and close welcome forms
@@ -175,7 +178,8 @@ class Metadata(Browser):
                 product_type_urls.loc[pt,'scraped'] = 'NA'
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} page not found.(page link: {product_type_link})', 'utf-8', 'ignore'))
             else:
-                #get a list of all avilable pages
+                #get a list of all available pages
+                one_page = False
                 pages =  []
                 for page in drv.find_elements_by_class_name('css-1f9ivf5'):
                     pages.append(page.text)
@@ -229,7 +233,7 @@ class Metadata(Browser):
                          "category":cat_name,"product_type": product_type, "timestamp": time.strftime("%Y-%m-%d-%H-%M"),"complete_scrape_flag":"N"}
                     cp += 1
                     self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
-                                                 Product: {product_name} - {cp} extracted sucessfully.\
+                                                 Product: {product_name} - {cp} extracted successfully.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     product_meta_data.append(d)
 
@@ -257,10 +261,10 @@ class Metadata(Browser):
 
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
-                product_meta_df.to_feather(self.currnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
-                self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})') 
-                product_type_urls.loc[pt,'scraped'] = 'Y'
-                product_type_urls.to_feather(self.data_path/'sph_product_type_urls_to_extract')
+                product_meta_df.to_feather(self.curnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
+                self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})')
+                progress_tracker.loc[pt,'scraped'] = 'Y'
+                progress_tracker.to_feather(self.data_path/'progress_tracker')
                 product_meta_data = []
         self.logger.info('Metadata Extraction Complete')
         print('Metadata Extraction Complete')
@@ -268,16 +272,16 @@ class Metadata(Browser):
         drv.close()
 
     def extract(self, fresh_start=False, delete_progress=True):
-        """
-        [summary]
+        """[summary]
 
         Keyword Arguments:
             fresh_start {bool} -- [description] (default: {False})
             delete_progress {bool} -- [description] (default: {True})
+        Returns: 
         """
         self.download_metadata(fresh_start)
         self.logger.info('Creating Combined Metadata File')
-        files = [f for f in self.currnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
+        files = [f for f in self.curnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
@@ -301,3 +305,7 @@ class Details(Browser):
         Browser {[type]} -- [description]
     """
     pass
+    # define steps
+    # first step
+    # second step
+    # third step

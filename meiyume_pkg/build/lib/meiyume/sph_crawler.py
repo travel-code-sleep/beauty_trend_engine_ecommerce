@@ -176,6 +176,7 @@ class Metadata(Browser):
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} page not found.(page link: {product_type_link})', 'utf-8', 'ignore'))
             else:
                 #get a list of all avilable pages
+                one_page = False
                 pages =  []
                 for page in drv.find_elements_by_class_name('css-1f9ivf5'):
                     pages.append(page.text)
