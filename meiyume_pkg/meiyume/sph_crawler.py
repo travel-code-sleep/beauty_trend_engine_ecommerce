@@ -13,6 +13,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from .utils import Logger, Browser, MeiyumeException
 import shutil
+from pyarrow.lib import ArrowIOError
 
 class Metadata(Browser):
     """[summary]
@@ -153,9 +154,9 @@ class Metadata(Browser):
 
             progress_tracker.loc[pt,'product_type'] = product_type
 
-            # if 'best-selling' in product_type or 'new' in product_type:
-            #     progress_tracker.loc[pt,'scraped'] = 'NA'
-            #     continue
+            if 'best-selling' in product_type or 'new' in product_type:
+                progress_tracker.loc[pt,'scraped'] = 'NA'
+                continue
             
             drv.get(product_type_link)
             time.sleep(5)
@@ -205,6 +206,14 @@ class Metadata(Browser):
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                         continue
                     try:
+                        new_f = p.find_element_by_class_name("css-8o71lk")
+                        product_new_flag = 'NEW'
+                    except NoSuchElementException or StaleElementReferenceException:
+                        product_new_flag = ''
+                        # self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
+                        #                              product {products.index(p)} product_new_flag extraction failed.\
+                        #                         (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                    try:
                         product_page = p.find_element_by_class_name('css-ix8km1').get_attribute('href')
                     except NoSuchElementException or StaleElementReferenceException:
                         product_page = ''
@@ -234,7 +243,8 @@ class Metadata(Browser):
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
 
                     d = {"product_name":product_name,"product_page":product_page,"brand":brand,"price":price,"rating":rating,
-                         "category":cat_name,"product_type": product_type, "timestamp": time.strftime("%Y-%m-%d-%H-%M"),"complete_scrape_flag":"N"}
+                         "category":cat_name,"product_type": product_type, "new_flag":product_new_flag, "complete_scrape_flag":"N",
+                         "timestamp": time.strftime("%Y-%m-%d-%H-%M")}
                     cp += 1
                     self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                  Product: {product_name} - {cp} extracted successfully.\
@@ -250,15 +260,15 @@ class Metadata(Browser):
                         break
                     else:
                         try:
-                            time.sleep(2)
+                            time.sleep(1)
                             drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
                                                             div.css-6su6fj > nav > ul > button').click()
-                            time.sleep(3)
+                            time.sleep(6)
                             self.scroll_down_page(drv)
                             current_page = drv.find_element_by_class_name('css-x544ax').text
                         except:
-                            self.logger.info(str.encode(f'Page navigation issue occured for Category: {cat_name} - \
+                            self.logger.info(str.encode(f'Page navigation issue occurred for Category: {cat_name} - \
                                                           ProductType: {product_type} (page_link: {product_type_link} \
                                                           - page_no: {current_page})', 'utf-8', 'ignore'))
                             break

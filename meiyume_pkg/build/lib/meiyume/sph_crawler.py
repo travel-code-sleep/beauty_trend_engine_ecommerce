@@ -11,8 +11,9 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from .utils import Logger, Browser
+from .utils import Logger, Browser, MeiyumeException
 import shutil
+from pyarrow.lib import ArrowIOError
 
 class Metadata(Browser):
     """[summary]
@@ -128,7 +129,11 @@ class Metadata(Browser):
             product_type_urls, progress_tracker = fresh_ext()
         else:
             if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
-                progress_tracker = pd.read_feather(self.data_path/'progress_tracker')
+                try:
+                    progress_tracker = pd.read_feather(self.data_path/'sph_metadata_progress_tracker')
+                except ArrowIOError:
+                    raise MeiyumeException(f"File sph_product_type_urls_to_extract can't be located in the path {self.data_path}.\
+                                             Please put progress file in the correct path or start fresh extraction.")
                 product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
                 if sum(progress_tracker.scraped=='N')>0:
                     self.logger.info('Continuing Metadata Extraction From Last Run.')
@@ -201,6 +206,14 @@ class Metadata(Browser):
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                         continue
                     try:
+                        new_f = p.find_element_by_class_name("css-8o71lk")
+                        product_new_flag = 'NEW'
+                    except NoSuchElementException or StaleElementReferenceException:
+                        product_new_flag = ''
+                        # self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
+                        #                              product {products.index(p)} product_new_flag extraction failed.\
+                        #                         (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                    try:
                         product_page = p.find_element_by_class_name('css-ix8km1').get_attribute('href')
                     except NoSuchElementException or StaleElementReferenceException:
                         product_page = ''
@@ -230,7 +243,8 @@ class Metadata(Browser):
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
 
                     d = {"product_name":product_name,"product_page":product_page,"brand":brand,"price":price,"rating":rating,
-                         "category":cat_name,"product_type": product_type, "timestamp": time.strftime("%Y-%m-%d-%H-%M"),"complete_scrape_flag":"N"}
+                         "category":cat_name,"product_type": product_type, "new_flag":product_new_flag, "complete_scrape_flag":"N",
+                         "timestamp": time.strftime("%Y-%m-%d-%H-%M")}
                     cp += 1
                     self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                  Product: {product_name} - {cp} extracted successfully.\
@@ -246,15 +260,15 @@ class Metadata(Browser):
                         break
                     else:
                         try:
-                            time.sleep(2)
+                            time.sleep(1)
                             drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
                                                             div.css-6su6fj > nav > ul > button').click()
-                            time.sleep(3)
+                            time.sleep(6)
                             self.scroll_down_page(drv)
                             current_page = drv.find_element_by_class_name('css-x544ax').text
                         except:
-                            self.logger.info(str.encode(f'Page navigation issue occured for Category: {cat_name} - \
+                            self.logger.info(str.encode(f'Page navigation issue occurred for Category: {cat_name} - \
                                                           ProductType: {product_type} (page_link: {product_type_link} \
                                                           - page_no: {current_page})', 'utf-8', 'ignore'))
                             break
@@ -264,7 +278,7 @@ class Metadata(Browser):
                 product_meta_df.to_feather(self.curnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})')
                 progress_tracker.loc[pt,'scraped'] = 'Y'
-                progress_tracker.to_feather(self.data_path/'progress_tracker')
+                progress_tracker.to_feather(self.data_path/'sph_metadata_progress_tracker')
                 product_meta_data = []
         self.logger.info('Metadata Extraction Complete')
         print('Metadata Extraction Complete')
