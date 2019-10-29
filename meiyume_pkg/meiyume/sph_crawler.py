@@ -128,7 +128,11 @@ class Metadata(Browser):
             product_type_urls, progress_tracker = fresh_ext()
         else:
             if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
-                progress_tracker = pd.read_feather(self.data_path/'progress_tracker')
+                try:
+                    progress_tracker = pd.read_feather(self.data_path/'sph_metadata_progress_tracker')
+                except ArrowIOError:
+                    raise MeiyumeException(f"File sph_product_type_urls_to_extract can't be located in the path {self.data_path}.\
+                                             Please put progress file in the correct path or start fresh extraction.")
                 product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
                 if sum(progress_tracker.scraped=='N')>0:
                     self.logger.info('Continuing Metadata Extraction From Last Run.')
@@ -149,9 +153,9 @@ class Metadata(Browser):
 
             progress_tracker.loc[pt,'product_type'] = product_type
 
-            if 'best-selling' in product_type or 'new' in product_type:
-                progress_tracker.loc[pt,'scraped'] = 'NA'
-                continue
+            # if 'best-selling' in product_type or 'new' in product_type:
+            #     progress_tracker.loc[pt,'scraped'] = 'NA'
+            #     continue
             
             drv.get(product_type_link)
             time.sleep(5)
@@ -264,7 +268,7 @@ class Metadata(Browser):
                 product_meta_df.to_feather(self.curnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})')
                 progress_tracker.loc[pt,'scraped'] = 'Y'
-                progress_tracker.to_feather(self.data_path/'progress_tracker')
+                progress_tracker.to_feather(self.data_path/'sph_metadata_progress_tracker')
                 product_meta_data = []
         self.logger.info('Metadata Extraction Complete')
         print('Metadata Extraction Complete')
@@ -296,8 +300,6 @@ class Metadata(Browser):
         self.prod_meta_log.stop_log()
         return metadata_df
 
-    def product_status(self, *args, **kwargs):
-        pass
 
 class Details(Browser):
     """
