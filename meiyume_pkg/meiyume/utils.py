@@ -7,6 +7,14 @@ import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
+
+class MeiyumeException(Exception):
+    """class to define custom exceptions in runtime
+    
+    Arguments:
+        Exception {[type]} -- [description]
+    """
+    pass
 class Browser(object):
     """[summary]
     

@@ -116,7 +116,7 @@ class Metadata(Browser):
         
         product_meta_data = []
        
-        def fresh_ext(self):
+        def fresh_ext():
             product_type_urls = self.get_product_type_urls()
             # progress tracker: captures scraped and error desc 
             progress_tracker = pd.DataFrame(index=product_type_urls.index, columns=['product_type', 'scraped', 'error_desc'])
@@ -125,7 +125,7 @@ class Metadata(Browser):
         
         if fresh_start:
             self.logger.info('Starting Fresh Extraction.')
-            product_type_urls, progress_tracker = self.fresh_ext()
+            product_type_urls, progress_tracker = fresh_ext()
         else:
             if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
                 progress_tracker = pd.read_feather(self.data_path/'progress_tracker')
@@ -135,10 +135,10 @@ class Metadata(Browser):
                     product_type_urls = product_type_urls[product_type_urls.index.isin(progress_tracker.index[progress_tracker.scraped=='N'].values.tolist())]
                 else:
                     self.logger.info('Previous Run Was Complete. Starting Fresh Extraction.')
-                    product_type_urls, progress_tracker = self.fresh_ext()
+                    product_type_urls, progress_tracker = fresh_ext()
             else:
                 self.logger.info('URL File Not Found. Starting Fresh Extraction.')
-                product_type_urls, progress_tracker = self.fresh_ext()
+                product_type_urls, progress_tracker = fresh_ext()
                 
         drv  = self.create_driver(url=self.base_url)
         for pt in product_type_urls.index:

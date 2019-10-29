@@ -6,7 +6,5 @@ Home-page: https://github.com/travel-code-sleep/meiyume_master_source_codes
 Author: Amit Prusty
 Author-email: dcsamit@nus.edu.sg
 License: MIT
-Description: # meiyume_master_source_codes
-        meiyume project code repo
-        
+Description: data engineering and science package.
 Platform: UNKNOWN
