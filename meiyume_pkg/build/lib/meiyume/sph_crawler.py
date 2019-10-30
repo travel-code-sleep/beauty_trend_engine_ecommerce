@@ -169,6 +169,13 @@ class Metadata(Browser):
                 drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
             except:
                 pass
+            #sort by NEW products
+            try:
+                drv.find_element_by_class_name('css-1gw67j0').click()
+                drv.find_element_by_xpath('//*[@id="cat_sort_menu"]/button[3]').click()
+            except:
+                self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} cannot sort by NEW.(page link: {product_type_link})', 'utf-8', 'ignore'))
+                pass
             #load all the products
             self.scroll_down_page(drv)
             #check whether on the first page of product type
@@ -206,7 +213,7 @@ class Metadata(Browser):
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                         continue
                     try:
-                        new_f = p.find_element_by_class_name("css-8o71lk")
+                        new_f = p.find_element_by_class_name("css-8o71lk").text
                         product_new_flag = 'NEW'
                     except NoSuchElementException or StaleElementReferenceException:
                         product_new_flag = ''
@@ -260,11 +267,10 @@ class Metadata(Browser):
                         break
                     else:
                         try:
-                            time.sleep(1)
                             drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
                                                             div.css-6su6fj > nav > ul > button').click()
-                            time.sleep(6)
+                            time.sleep(5)
                             self.scroll_down_page(drv)
                             current_page = drv.find_element_by_class_name('css-x544ax').text
                         except:
