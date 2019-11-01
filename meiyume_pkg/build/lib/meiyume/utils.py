@@ -6,7 +6,7 @@ import os
 import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-
+import gc
 
 class MeiyumeException(Exception):
     """class to define custom exceptions in runtime
@@ -40,15 +40,15 @@ class Browser(object):
             chrome_options.add_argument('--headless')
             return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
 
-    def create_driver(self, url):
-        """[summary]
+    # def create_driver(self, url):
+    #     """[summary]
         
-        Arguments:
-            url {[type]} -- [description]
-        """
-        drv = self.open_browser()
-        drv.get(url)
-        return drv 
+    #     Arguments:
+    #         url {[type]} -- [description]
+    #     """
+    #     drv = self.open_browser()
+    #     drv.get(url)
+    #     return drv 
 
     @staticmethod
     def scroll_down_page(driver, speed=8, h1=0, h2=1):
@@ -68,6 +68,24 @@ class Browser(object):
             driver.execute_script("window.scrollTo(0, {});".format(current_scroll_position))
             new_height = driver.execute_script("return document.body.scrollHeight")
 
+class Sephora(Browser):
+    """[summary]
+    
+    Arguments:
+        Browser {[type]} -- [description]
+    """
+    def __init__(self, driver_path=None, path=Path.cwd(), show=True):
+        super().__init__(driver_path=driver_path, show=show)
+        self.path = Path(path)
+        self.metadata_path = self.path/'sephora/metadata'
+        self.metadata_path.mkdir(parents=True, exist_ok=True)
+        self.detail_path = self.path/'sephora/detail'
+        self.detail_path.mkdir(parents=True, exist_ok=True)
+        self.review_path = self.path/'sephora/review'
+        self.review_path.mkdir(parents=True, exist_ok=True)
+        self.crawl_logs_path = self.path/'sephora/crawler_logs'
+        self.crawl_logs_path.mkdir(parents=True, exist_ok=True)
+        
 class Logger(object):
     """[summary]
     
@@ -105,8 +123,9 @@ class Logger(object):
     def stop_log(self):
         """[summary]
         """
-        self.logger.removeHandler(self.file_handler)
+        #self.logger.removeHandler(self.file_handler)
         del self.logger, self.file_handler
+        gc.collect()
 
 def nan_equal(a,b):
     """[summary]

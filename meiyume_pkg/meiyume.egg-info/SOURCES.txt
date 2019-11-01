@@ -2,6 +2,7 @@ README.md
 setup.py
 meiyume/__init__.py
 meiyume/__main__.py
+meiyume/sph_cleaner.py
 meiyume/sph_crawler.py
 meiyume/sph_master.py
 meiyume/utils.py

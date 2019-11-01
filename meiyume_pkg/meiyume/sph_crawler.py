@@ -11,15 +11,15 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from .utils import Logger, Browser, MeiyumeException
+from .utils import Logger, Sephora, Browser, MeiyumeException
 import shutil
 from pyarrow.lib import ArrowIOError
 
-class Metadata(Browser):
+class Metadata(Sephora):
     """[summary]
-
+    
     Arguments:
-        Browser {[type]} -- [description]
+        Sephora {[type]} -- [description]
     """
     base_url="https://www.sephora.com"
     info = tldextract.extract(base_url)
@@ -36,32 +36,30 @@ class Metadata(Browser):
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
 
-    def __init__(self, driver_path, logs=True, path = Path.cwd(), show=True):
-        """
-        [summary]
-
+    def __init__(self, driver_path, logs=True, path=Path.cwd(),
+                 show=True):
+        """[summary]
+        
         Arguments:
             driver_path {[type]} -- [description]
-
+        
         Keyword Arguments:
             logs {bool} -- [description] (default: {True})
             path {[type]} -- [description] (default: {Path.cwd()})
             show {bool} -- [description] (default: {True})
         """
-        super().__init__(driver_path, show)
-        self.path = Path(path)
-        self.data_path = path/'sephora/metadata'
-        self.data_path.mkdir(parents=True, exist_ok=True)
-        self.curnet_progress_path = self.data_path/'current_progress'
+        super().__init__(driver_path=driver_path, show=show, path=path, data_def='meta')
+        self.curnet_progress_path = self.metadata_path/'current_progress'
         self.curnet_progress_path.mkdir(parents=True, exist_ok=True)
         if logs:
-            self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.data_path)
+            self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.crawl_logs_path)
             self.logger, _ = self.prod_meta_log.start_log()
 
     def get_product_type_urls(self):
         """[summary]
         """
-        drv  = self.create_driver(url=self.base_url)
+        drv  = self.open_browser()
+        drv.get(self.base_url)
         cats = drv.find_elements_by_class_name("css-1t5gbpr")
         cat_urls = []
         for c in cats:
@@ -101,11 +99,11 @@ class Metadata(Browser):
                 product_type_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
         df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'product_type', 'url'])
         df['scraped'] = 'N'
-        df.to_feather(self.data_path/'sph_product_cat_subcat_structure')
+        df.to_feather(self.metadata_path/'sph_product_cat_subcat_structure')
         drv.close()
         df.drop_duplicates(subset='product_type', inplace=True)
         df.reset_index(inplace=True, drop=True)
-        df.to_feather(self.data_path/f'sph_product_type_urls_to_extract')
+        df.to_feather(self.metadata_path/f'sph_product_type_urls_to_extract')
         return df
 
     def download_metadata(self,fresh_start):
@@ -128,13 +126,13 @@ class Metadata(Browser):
             self.logger.info('Starting Fresh Extraction.')
             product_type_urls, progress_tracker = fresh_ext()
         else:
-            if Path(self.data_path/'sph_product_type_urls_to_extract').exists():
+            if Path(self.metadata_path/'sph_product_type_urls_to_extract').exists():
                 try:
-                    progress_tracker = pd.read_feather(self.data_path/'sph_metadata_progress_tracker')
+                    progress_tracker = pd.read_feather(self.metadata_path/'sph_metadata_progress_tracker')
                 except ArrowIOError:
-                    raise MeiyumeException(f"File sph_product_type_urls_to_extract can't be located in the path {self.data_path}.\
+                    raise MeiyumeException(f"File sph_product_type_urls_to_extract can't be located in the path {self.metadata_path}.\
                                              Please put progress file in the correct path or start fresh extraction.")
-                product_type_urls = pd.read_feather(self.data_path/'sph_product_type_urls_to_extract')
+                product_type_urls = pd.read_feather(self.metadata_path/'sph_product_type_urls_to_extract')
                 if sum(progress_tracker.scraped=='N')>0:
                     self.logger.info('Continuing Metadata Extraction From Last Run.')
                     product_type_urls = product_type_urls[product_type_urls.index.isin(progress_tracker.index[progress_tracker.scraped=='N'].values.tolist())]
@@ -145,7 +143,7 @@ class Metadata(Browser):
                 self.logger.info('URL File Not Found. Starting Fresh Extraction.')
                 product_type_urls, progress_tracker = fresh_ext()
                 
-        drv  = self.create_driver(url=self.base_url)
+        drv  = self.open_browser()
         for pt in product_type_urls.index:
             cat_name = product_type_urls.loc[pt,'category_raw']
             #sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
@@ -173,6 +171,7 @@ class Metadata(Browser):
             try:
                 drv.find_element_by_class_name('css-1gw67j0').click()
                 drv.find_element_by_xpath('//*[@id="cat_sort_menu"]/button[3]').click()
+                time.sleep(2)
             except:
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} cannot sort by NEW.(page link: {product_type_link})', 'utf-8', 'ignore'))
                 pass
@@ -187,7 +186,7 @@ class Metadata(Browser):
                 one_page = True
                 current_page = 1
             except:
-                product_type_urls.loc[pt,'scraped'] = 'NA'
+                product_type_urls.loc[pt,'scraped'] = 'NA' 
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} page not found.(page link: {product_type_link})', 'utf-8', 'ignore'))
             else:
                 #get a list of all available pages
@@ -284,7 +283,7 @@ class Metadata(Browser):
                 product_meta_df.to_feather(self.curnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})')
                 progress_tracker.loc[pt,'scraped'] = 'Y'
-                progress_tracker.to_feather(self.data_path/'sph_metadata_progress_tracker')
+                progress_tracker.to_feather(self.metadata_path/'sph_metadata_progress_tracker')
                 product_meta_data = []
         self.logger.info('Metadata Extraction Complete')
         print('Metadata Extraction Complete')
@@ -305,27 +304,41 @@ class Metadata(Browser):
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
-        metadata_df.to_feather(self.data_path/f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}')
-        self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
-        print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.data_path}')
+        metadata_df['source'] = self.source
+        metadata_df.to_feather(self.metadata_path/f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}')
+        self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
+        print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
         if delete_progress:
             print('Deleting Progress Files')
-            shutil.rmtree(f'{data_path}\\current_progress', ignore_errors=True)
+            shutil.rmtree(f'{self.metadata_path}\\current_progress', ignore_errors=True)
             self.logger.info('Progress files deleted')
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
         return metadata_df
 
 
-class Details(Browser):
+class Details(Sephora):
     """
     [summary]
 
     Arguments:
         Browser {[type]} -- [description]
     """
-    pass
-    # define steps
-    # first step
-    # second step
-    # third step
+    def __init__(self, driver_path, path=Path.cwd(), show=True, logs=True):
+        """[summary]
+        
+        Arguments:
+            driver_path {[type]} -- [description]
+        
+        Keyword Arguments:
+            path {[type]} -- [description] (default: {Path.cwd()})
+            show {bool} -- [description] (default: {True})
+            logs {bool} -- [description] (default: {True})
+        """
+        super().__init__(driver_path=driver_path, show=show, path=path, data_def='detail')
+        self.curnet_progress_path = self.detail_path/'current_progress'
+        self.curnet_progress_path.mkdir(parents=True, exist_ok=True)
+        if logs:
+            self.prod_detail_log = Logger("sph_prod_detail_extraction",
+                                           path=self.crawl_logs_path)
+            self.logger, _ = self.prod_detail_log.start_log()
