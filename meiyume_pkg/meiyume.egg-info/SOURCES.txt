@@ -5,6 +5,7 @@ meiyume/__main__.py
 meiyume/sph_cleaner.py
 meiyume/sph_crawler.py
 meiyume/sph_master.py
+meiyume/streamlit_apps.py
 meiyume/utils.py
 meiyume.egg-info/PKG-INFO
 meiyume.egg-info/SOURCES.txt

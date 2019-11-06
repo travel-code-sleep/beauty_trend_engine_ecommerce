@@ -26,10 +26,6 @@ warnings.filterwarnings('ignore')
 from .utils import nan_equal, show_missing_value
 np.random.seed(42)
 
-class MeiyumeException(Exception):
-    """class to define custom exceptions in runtime"""
-    pass
-
 class Meiyume(object):
     """parent class. the methods in this class will
        be inherited by all the child classes. 
@@ -279,7 +275,7 @@ class Cleaner(Meiyume): ## add category translation to meta data cleaning
             else:
                 return x['ratings']
             #self.sph_meta.ratings =  round(self.sph_detail.apply(lambda x: calculate_ratings(x), axis=1),1)
-            
+             
     def sph_meta_cleaner(self, return_type):
         """pass"""
         self.sph_meta = self.read_data()

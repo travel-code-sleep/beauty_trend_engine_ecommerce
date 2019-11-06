@@ -3,6 +3,7 @@
 """
 from __future__ import print_function, absolute_import
 from pathlib import Path
+import os
 import tldextract
 import pandas as pd
 import time
@@ -12,6 +13,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from .utils import Logger, Sephora, Browser, MeiyumeException
+from .sph_cleaner import Cleaner
 import shutil
 from pyarrow.lib import ArrowIOError
 
@@ -290,7 +292,7 @@ class Metadata(Sephora):
         #self.progress_monitor.info('Metadata Extraction Complete')
         drv.close()
 
-    def extract(self, fresh_start=False, delete_progress=True):
+    def extract(self, fresh_start=False, delete_progress=True, clean=True):
         """[summary]
 
         Keyword Arguments:
@@ -305,17 +307,21 @@ class Metadata(Sephora):
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
         metadata_df['source'] = self.source
-        metadata_df.to_feather(self.metadata_path/f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}')
+        file_name = f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}'
+        metadata_df.to_feather(self.metadata_path/file_name)
         self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
         print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
         if delete_progress:
             print('Deleting Progress Files')
             shutil.rmtree(f'{self.metadata_path}\\current_progress', ignore_errors=True)
             self.logger.info('Progress files deleted')
+        if clean:
+            cleaner = Cleaner()
+            metadata_df_clean_no_cat = cleaner.clean_data(data=metadata_df, file_name=file_name)
+            self.logger.info('Metadata Cleaned and Removed Duplicates for Details Extraction.')
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
         return metadata_df
-
 
 class Details(Sephora):
     """
@@ -326,10 +332,10 @@ class Details(Sephora):
     """
     def __init__(self, driver_path, path=Path.cwd(), show=True, logs=True):
         """[summary]
-        
+
         Arguments:
             driver_path {[type]} -- [description]
-        
+
         Keyword Arguments:
             path {[type]} -- [description] (default: {Path.cwd()})
             show {bool} -- [description] (default: {True})
@@ -338,6 +344,8 @@ class Details(Sephora):
         super().__init__(driver_path=driver_path, show=show, path=path, data_def='detail')
         self.curnet_progress_path = self.detail_path/'current_progress'
         self.curnet_progress_path.mkdir(parents=True, exist_ok=True)
+        list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
+        self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))
         if logs:
             self.prod_detail_log = Logger("sph_prod_detail_extraction",
                                            path=self.crawl_logs_path)

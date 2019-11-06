@@ -7,6 +7,7 @@ import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import gc
+from pathlib import Path
 
 class MeiyumeException(Exception):
     """class to define custom exceptions in runtime
@@ -74,14 +75,20 @@ class Sephora(Browser):
         self.path = Path(path)
         # set data paths as per calls from data definition classes
         self.metadata_path = self.path/'sephora/metadata'
+        self.metadata_clean_path = self.metadata_path/'clean'
         if data_def == 'meta':
             self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
         self.detail_path = self.path/'sephora/detail'
+        self.detail_clean_path = self.detail_path/'clean'
         if data_def == 'detail':
             self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
         self.review_path = self.path/'sephora/review'
+        self.review_clean_path = self.review_path/'clean'
         if data_def == 'review':
             self.review_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
         # set universal logs path for sephora
         self.crawl_logs_path = self.path/'sephora/crawler_logs'
         self.crawl_logs_path.mkdir(parents=True, exist_ok=True)

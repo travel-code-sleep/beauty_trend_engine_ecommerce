@@ -5,6 +5,7 @@ def main():
     import meiyume.sph_crawler
     import meiyume.sph_master
     import meiyume.utils
+    import meiyume.sph_cleaner
 
 if __name__ == '__main__':
     main()
