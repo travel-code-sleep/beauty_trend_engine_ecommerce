@@ -89,9 +89,9 @@ class Sephora(Browser):
         if data_def == 'review':
             self.review_path.mkdir(parents=True, exist_ok=True)
             self.review_clean_path.mkdir(parents=True, exist_ok=True)
-        # set universal logs path for sephora
-        self.crawl_logs_path = self.path/'sephora/crawler_logs'
-        self.crawl_logs_path.mkdir(parents=True, exist_ok=True)
+        # set universal log path for sephora
+        self.crawl_log_path = self.path/'sephora/crawler_logs'
+        self.crawl_log_path.mkdir(parents=True, exist_ok=True)
         self.clean_log_path = self.path/'sephora/cleaner_logs'
         self.clean_log_path.mkdir(parents=True, exist_ok=True)
         
@@ -105,7 +105,7 @@ class Logger(object):
         [type] -- [description]
     """""" pass """
     def __init__(self, task_name, path):
-        self.filename = path/f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}'
+        self.filename = path/f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}.log'
     
     def if_exist(self):
         try:
@@ -166,3 +166,13 @@ def show_missing_value(dataframe, viz_type=None):
         return msno.dendrogram(dataframe, figsize=(12,8))
     else:
         return dataframe.isna().sum()
+
+def chunks(l, n):
+    """Yield successive n-sized chunks from l.
+    
+    Arguments:
+        l {[list, range, index]} -- [description]
+        n {[type]} -- [description]
+    """
+    for i in range(0, len(l), n):
+        yield l[i:i + n]

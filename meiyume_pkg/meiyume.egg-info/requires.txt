@@ -9,4 +9,3 @@ tqdm
 plotly
 seaborn
 sklearn
-swifter

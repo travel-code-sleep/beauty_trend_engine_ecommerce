@@ -1,23 +1,27 @@
-from __future__ import print_function, absolute_import
-from pathlib import Path
-import re
-from functools import reduce
-from datetime import datetime, timedelta
-import time
-import pandas as pd
-import swifter
-import numpy as np
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
 import os
-import matplotlib
-import matplotlib.pyplot as plt
-from tqdm import tqdm
-from ast import literal_eval
 import re
 import string
+import time
+from ast import literal_eval
+from datetime import datetime, timedelta
+from functools import reduce
+from pathlib import Path
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import seaborn as sns
+import swifter
+from tqdm import tqdm
+
+from .utils import Logger, Sephora, nan_equal, show_missing_value
+
 plt.style.use('fivethirtyeight')
 np.random.seed(42)
-from .utils import Logger, Sephora, nan_equal, show_missing_value
 
 class Cleaner(Sephora):
     """[summary]
@@ -152,7 +156,7 @@ class Cleaner(Sephora):
         #create product id
         sph_prod_ids = self.meta.product_page.str.split(':', expand=True)
         sph_prod_ids.columns = ['a', 'b', 'id']
-        self.meta['prod_id'] = sph_prod_ids.id
+        self.meta['prod_id'] = 'sph_' + sph_prod_ids.id
         #clean rating
         clean_rating = re.compile('(\s*)stars|star|No(\s*)')
         self.meta.rating = self.meta.rating.swifter.apply(lambda x: clean_rating.sub('',x))
