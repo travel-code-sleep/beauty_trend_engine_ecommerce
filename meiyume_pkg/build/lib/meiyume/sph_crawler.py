@@ -171,7 +171,7 @@ class Metadata(Sephora):
             if 'best-selling' in product_type or 'new' in product_type:
                 progress_tracker.loc[pt,'scraped'] = 'NA'
                 continue
-            
+
             drv.get(product_type_link)
             time.sleep(5)
             #click and close welcome forms
@@ -202,7 +202,7 @@ class Metadata(Sephora):
                 one_page = True
                 current_page = 1
             except:
-                product_type_urls.loc[pt,'scraped'] = 'NA' 
+                product_type_urls.loc[pt,'scraped'] = 'NA'
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} page not found.(page link: {product_type_link})', 'utf-8', 'ignore'))
             else:
                 #get a list of all available pages
@@ -212,10 +212,10 @@ class Metadata(Sephora):
                     pages.append(page.text)
 
             #start getting product form each page
-            while True: 
+            while True:
                 cp = 0
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type}\
-                                  getting product from page {current_page}.(page link: {product_type_link})','utf-8', 'ignore')) 
+                                  getting product from page {current_page}.(page link: {product_type_link})','utf-8', 'ignore'))
                 time.sleep(3)
                 products = drv.find_elements_by_class_name('css-12egk0t')
                 for p in products:
@@ -312,7 +312,7 @@ class Metadata(Sephora):
         Keyword Arguments:
             fresh_start {bool} -- [description] (default: {False})
             delete_progress {bool} -- [description] (default: {True})
-        Returns: 
+        Returns:
         """
         self.download_metadata(fresh_start)
         self.logger.info('Creating Combined Metadata File')
@@ -363,85 +363,6 @@ class Detail(Sephora):
             self.prod_detail_log = Logger("sph_prod_detail_extraction",
                                            path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_log.start_log()
-
-    def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5):
-        """[summary]
-
-        Keyword Arguments:
-            start_idx {[type]} -- [description] (default: {None})
-            end_idx {[type]} -- [description] (default: {None})
-            list_of_index {[type]} -- [description] (default: {None})
-            fresh_start {bool} -- [description] (default: {False})
-            delete_progress {bool} -- [description] (default: {False})
-            clean {bool} -- [description] (default: {True})
-        """
-        def fresh():
-            list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
-            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page']]
-            self.meta['detail_scraped'] = 'N'
-
-        if fresh_start:
-            fresh()
-        else:
-            if Path(self.detail_path/'sph_detail_progress_tracker').exists():
-                self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
-                if sum(self.meta.detail_scraped=='N')==0:
-                    self.fresh()
-                    self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
-                self.logger.info('Continuing Detail Extraction From Last Run.')
-            else:
-                fresh()
-                self.logger.info('Detail Progress Tracker does not exist. Starting Fresh Extraction.')
-
-        #set list or range of product indices to crawl
-        if list_of_index: lst = list_of_index
-        elif start_idx and end_idx is None: lst = range(start_idx, len(self.meta))
-        elif start_idx is None and end_idx: lst = range(0, end_idx)
-        elif start_idx is not None and end_idx is not None: lst = range(start_idx, end_idx)
-        else: lst = range(len(self.meta))
-        print(lst)
-
-        #By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self.download_detail, list(chunks(lst, len(lst)//5)))
-
-        self.download_detail(lst=lst)
-
-        self.logger.info('Creating Combined Detail File')
-        det_li = []
-        self.bad_det_li = []
-        detail_files = [f for f in self.curnet_progress_path.glob("sph_prod_detail_extract_progress_*")]
-        for file in detail_files:
-            try: df = pd.read_csv(file)
-            except: self.bad_det_li.append(file)
-            else: det_li.append(df)
-
-        detail_df = pd.concat(det_li, axis=0, ignore_index=True)
-        detail_df.reset_index(inplace=True, drop=True)
-        detail_df.to_csv(self.detail_path/f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}', index=None)
-
-        self.logger.info('Creating Combined Item File')
-        item_li = []
-        self.bad_item_li = []
-        item_files = [f for f in self.curnet_progress_path.glob("sph_prod_item_extract_progress_*")]
-        for file in item_files:
-            try: idf = pd.read_csv(file)
-            except: self.bad_item_li.append(file)
-            else: item_li.append(idf)
-        item_df = pd.concat(item_li, axis=0, ignore_index=True)
-        item_df.reset_index(inplace=True, drop=True)
-        item_df.to_csv(self.detail_path/f'sph_product_item_all_{time.strftime("%Y-%m-%d")}', index=None)
-
-        self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
-        print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
-
-        if delete_progress:
-            print('Deleting Progress Files')
-            shutil.rmtree(f'{self.detail_path}\\current_progress', ignore_errors=True)
-            self.logger.info('Progress files deleted')
-
-        self.logger.handlers.clear()
-        self.prod_detail_log.stop_log()
 
     def download_detail(self, lst):
         """[summary]
@@ -605,19 +526,17 @@ class Detail(Sephora):
                 self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) votes does not exist.', 'utf-8', 'ignore'))
 
             # product details
-            if 'detail' in tab_names:
+            if 'details' in tab_names:
                 try:
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     tab_num = tab_names.index('details')
-                    #random button click
-                    drv.find_element_by_id(f'tab{1}').click()
                     detail_button = drv.find_element_by_id(f'tab{tab_num}')
                     detail_button.click()
                     time.sleep(1)
-                    detail = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
+                    details = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
                 except NoSuchElementException:
-                    detail = ""
+                    details = ""
                     self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) product detail extraction failed', 'utf-8', 'ignore'))
             else:
                 detail = ""
@@ -681,15 +600,94 @@ class Detail(Sephora):
             product_attributes = pd.DataFrame(get_product_attributes())
             item_df = pd.concat([item_df, pd.DataFrame(product_attributes)], axis=0)
 
-            detail_data.append({'prod_id':prod_id, 'product_name':product_name, 'abt_product':detail, 'how_to_use':how_to_use, 'abt_brand':about_the_brand,
+            detail_data.append({'prod_id':prod_id, 'product_name':product_name, 'abt_product':details, 'how_to_use':how_to_use, 'abt_brand':about_the_brand,
                                 'reviews':reviews, 'votes':votes, 'rating_dist':rating_distribution, 'would_recommend':would_recommend})
             item_data.append(product_attributes)
             self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) details extracted successfully', 'utf-8', 'ignore'))
             self.meta.loc[prod, 'detail_scraped'] = 'Y'
-            
             if prod !=0 and prod%20==0:
                 if len(detail_data)>0:
                     store_data_refresh_mem(detail_data, item_df)
         store_data_refresh_mem(detail_data, item_df)
         drv.close()
         self.logger.info(f'Detail Extraction Complete for start_idx: (lst[0]) to end_idx: {lst[-1]}. Or for list of values.')
+
+    def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5):
+        """[summary]
+
+        Keyword Arguments:
+            start_idx {[type]} -- [description] (default: {None})
+            end_idx {[type]} -- [description] (default: {None})
+            list_of_index {[type]} -- [description] (default: {None})
+            fresh_start {bool} -- [description] (default: {False})
+            delete_progress {bool} -- [description] (default: {False})
+            clean {bool} -- [description] (default: {True})
+        """
+        def fresh():
+            list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
+            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page']]
+            self.meta['detail_scraped'] = 'N'
+
+        if fresh_start:
+            fresh()
+        else:
+            if Path(self.detail_path/'sph_detail_progress_tracker').exists():
+                self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
+                if sum(self.meta.detail_scraped=='N')==0:
+                    self.fresh()
+                    self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
+                self.logger.info('Continuing Detail Extraction From Last Run.')
+            else:
+                fresh()
+                self.logger.info('Detail Progress Tracker does not exist. Starting Fresh Extraction.')
+
+        #set list or range of product indices to crawl
+        if list_of_index: lst = list_of_index
+        elif start_idx and end_idx is None: lst = range(start_idx, len(self.meta))
+        elif start_idx is None and end_idx: lst = range(0, end_idx)
+        elif start_idx is not None and end_idx is not None: lst = range(start_idx, end_idx)
+        else: lst = range(len(self.meta))
+        print(lst)
+
+        #By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(self.download_detail, list(chunks(lst, len(lst)//5)))
+
+        self.download_detail(lst=lst)
+
+        self.logger.info('Creating Combined Detail File')
+        det_li = []
+        self.bad_det_li = []
+        detail_files = [f for f in self.curnet_progress_path.glob("sph_prod_detail_extract_progress_*")]
+        for file in detail_files:
+            try: df = pd.read_csv(file)
+            except: self.bad_det_li.append(file)
+            else: det_li.append(df)
+
+        detail_df = pd.concat(det_li, axis=0, ignore_index=True)
+        detail_df.reset_index(inplace=True, drop=True)
+        detail_df.to_csv(self.detail_path/f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}', index=None)
+
+        self.logger.info('Creating Combined Item File')
+        item_li = []
+        self.bad_item_li = []
+        item_files = [f for f in self.curnet_progress_path.glob("sph_prod_item_extract_progress_*")]
+        for file in item_files:
+            try: idf = pd.read_csv(file)
+            except: self.bad_item_li.append(file)
+            else: item_li.append(idf)
+        item_df = pd.concat(item_li, axis=0, ignore_index=True)
+        item_df.reset_index(inplace=True, drop=True)
+        item_df.to_csv(self.detail_path/f'sph_product_item_all_{time.strftime("%Y-%m-%d")}', index=None)
+
+        self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
+        print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
+
+        if delete_progress:
+            print('Deleting Progress Files')
+            shutil.rmtree(f'{self.detail_path}\\current_progress', ignore_errors=True)
+            self.logger.info('Progress files deleted')
+
+        self.logger.handlers.clear()
+        self.prod_detail_log.stop_log()
+        

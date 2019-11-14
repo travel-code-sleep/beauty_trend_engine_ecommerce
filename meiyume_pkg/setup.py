@@ -14,7 +14,7 @@ setup(
                       'sklearn',#'swifter'
                       ],
     # *strongly* suggested for sharing
-    version='0.5.4',
+    version='0.5.6',
     # The license can be anything you like
     license='MIT',
     description='Contains all codes for data scraping and cleaning.',
