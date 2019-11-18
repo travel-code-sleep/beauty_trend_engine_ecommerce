@@ -134,7 +134,7 @@ class Metadata(Sephora):
 
         product_meta_data = []
 
-        def fresh_ext():
+        def fresh():
             """[summary]
             """
             product_type_urls = self.get_product_type_urls()
@@ -145,7 +145,7 @@ class Metadata(Sephora):
 
         if fresh_start:
             self.logger.info('Starting Fresh Extraction.')
-            product_type_urls, progress_tracker = fresh_ext()
+            product_type_urls, progress_tracker = fresh()
         else:
             if Path(self.metadata_path/'sph_product_type_urls_to_extract').exists():
                 try:
@@ -159,10 +159,10 @@ class Metadata(Sephora):
                     product_type_urls = product_type_urls[product_type_urls.index.isin(progress_tracker.index[progress_tracker.scraped=='N'].values.tolist())]
                 else:
                     self.logger.info('Previous Run Was Complete. Starting Fresh Extraction.')
-                    product_type_urls, progress_tracker = fresh_ext()
+                    product_type_urls, progress_tracker = fresh()
             else:
                 self.logger.info('URL File Not Found. Starting Fresh Extraction.')
-                product_type_urls, progress_tracker = fresh_ext()
+                product_type_urls, progress_tracker = fresh()
 
         drv  = self.open_browser()
         for pt in product_type_urls.index:
@@ -340,7 +340,7 @@ class Metadata(Sephora):
             self.logger.info('Metadata Cleaned and Removed Duplicates for Details Extraction.')
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
-        return metadata_df
+        # return metadata_df
 
 class Detail(Sephora):
     """
