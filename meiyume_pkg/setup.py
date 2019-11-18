@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(
     # Needed to silence warnings (and to be a worthwhile package)
@@ -7,7 +7,8 @@ setup(
     author='Amit Prusty',
     author_email='dcsamit@nus.edu.sg',
     # Needed to actually package something
-    packages=['meiyume'],
+    packages=find_packages(),
+    namespace_packages=['meiyume'],
     # Needed for dependencies
     install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno',
                       'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',

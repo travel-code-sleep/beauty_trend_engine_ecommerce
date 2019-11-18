@@ -1,11 +1,4 @@
-from __future__ import absolute_import
-
-def main():
-    import meiyume 
-    import meiyume.sph_crawler
-    import meiyume.sph_master
-    import meiyume.utils
-    import meiyume.sph_cleaner
-
-if __name__ == '__main__':
-    main()
+try:
+    __import__('pkg_resources').declare_namespace(__name__)
+except ImportError:
+    __path__ = __import__('pkgutil').extend_path(__path__, __name__)
