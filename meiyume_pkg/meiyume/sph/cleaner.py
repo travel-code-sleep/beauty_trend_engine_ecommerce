@@ -146,9 +146,8 @@ class Cleaner(Sephora):
                 return np.nan, np.nan
 
         #price cleaning
-        self.meta.price = self.meta.price.swifter.apply(clean_price)
-        self.meta['low_p'], self.meta['high_p'], self.meta['mrp'] = \
-             zip(*self.meta['price'].swifter.apply(make_price))
+        # self.meta.price = self.meta.price.swifter.apply(clean_price)
+        self.meta['low_p'], self.meta['high_p'], self.meta['mrp'] = zip(*self.meta.price.swifter.apply(clean_price).swifter.apply(make_price))
         self.meta.drop('price', axis=1, inplace=True)
         self.meta.low_p[self.meta.low_p.swifter.apply(len)>7], self.meta.mrp[self.meta.low_p.swifter.apply(len)>7] =\
              zip(*self.meta.low_p[self.meta.low_p.swifter.apply(len)>7].swifter.apply(fix_multi_lowp))
@@ -171,8 +170,30 @@ class Cleaner(Sephora):
             return self.meta_no_cat
         else:
             return self.meta
-    
-    def detail_cleaner():
-        pass
-    
-   
+
+    def detail_cleaner(self):
+        """[summary]
+
+        Returns:
+            [type] -- [description]
+        """
+        self.detail = self.data
+
+        def convert_votes_to_number(x):
+            """[summary]
+
+            Arguments:
+                x {[type]} -- [description]
+
+            Returns:
+                [type] -- [description]
+            """
+            if not nan_equal(np.nan, x):
+                if 'K' in x: return int(x.replace('K',''))*1000
+                else: return int(x)
+            else: return np.nan
+
+        self.detail.votes = self.detail.votes.swifter.apply(convert_votes_to_number)
+
+
+
