@@ -8,25 +8,30 @@ import concurrent.futures
 import os
 import shutil
 import time
+import warnings
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import tldextract
 from pyarrow.lib import ArrowIOError
-from selenium.common.exceptions import (NoSuchElementException,
+from selenium import webdriver
+from selenium.common.exceptions import (ElementClickInterceptedException,
+                                        NoSuchElementException,
                                         StaleElementReferenceException)
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.common.keys import Keys
 
 from .sph_cleaner import Cleaner
 from .utils import Browser, Logger, MeiyumeException, Sephora, chunks
+
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+
 
 
 class Metadata(Sephora):
@@ -306,7 +311,7 @@ class Metadata(Sephora):
         #self.progress_monitor.info('Metadata Extraction Complete')
         drv.close()
 
-    def extract(self, fresh_start=False, delete_progress=True, clean=True):
+    def extract(self, fresh_start=False, delete_progress=True, clean=True, download=True):
         """[summary]
 
         Keyword Arguments:
@@ -314,24 +319,24 @@ class Metadata(Sephora):
             delete_progress {bool} -- [description] (default: {True})
         Returns:
         """
-        self.download_metadata(fresh_start)
+        if download:
+            self.download_metadata(fresh_start)
         self.logger.info('Creating Combined Metadata File')
         files = [f for f in self.curnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
         metadata_df['source'] = self.source
-        file_name = f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}'
-        metadata_df.to_feather(self.metadata_path/file_name)
+        filename = f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}'
+        metadata_df.to_feather(self.metadata_path/filename)
         self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
         print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
         if delete_progress:
-            print('Deleting Progress Files')
             shutil.rmtree(f'{self.metadata_path}\\current_progress', ignore_errors=True)
             self.logger.info('Progress files deleted')
         if clean:
             cleaner = Cleaner()
-            metadata_df_clean_no_cat = cleaner.clean_data(data=metadata_df, file_name=file_name)
+            metadata_df_clean_no_cat = cleaner.clean_data(data=metadata_df, filename=filename)
             self.logger.info('Metadata Cleaned and Removed Duplicates for Details Extraction.')
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
@@ -344,7 +349,7 @@ class Detail(Sephora):
     Arguments:
         Browser {[type]} -- [description]
     """
-    def __init__(self, driver_path, path=Path.cwd(), show=True, log=True):
+    def __init__(self, driver_path, path='.', show=True, log=True):
         """[summary]
 
         Arguments:
@@ -364,14 +369,12 @@ class Detail(Sephora):
                                            path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_log.start_log()
 
-    def download_detail(self, lst):
+    def download_detail(self, lst, detail_data=[], item_data=[]):
         """[summary]
 
         Arguments:
             lst {[type]} -- [description]
         """
-        detail_data = []
-        item_data = []
         item_df = pd.DataFrame(columns=['prod_id','product_name','item_name','item_size','item_price','item_ingredients'])
 
         def store_data_refresh_mem(detail_data, item_df):
@@ -381,10 +384,10 @@ class Detail(Sephora):
                 detail_data {[type]} -- [description]
                 item_df {[type]} -- [description]
             """
-            pd.DataFrame(detail_data).to_csv(self.curnet_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}', index=None)
+            pd.DataFrame(detail_data).to_csv(self.curnet_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             detail_data = []
             item_df.reset_index(inplace=True, drop=True)
-            item_df.to_csv(self.curnet_progress_path/f'sph_prod_item_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}', index=None)
+            item_df.to_csv(self.curnet_progress_path/f'sph_prod_item_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             item_df = pd.DataFrame(columns=['prod_id','product_name','item_name','item_size','item_price','item_ingredients'])
             self.meta.to_feather(self.detail_path/'sph_detail_progress_tracker')
 
@@ -411,7 +414,7 @@ class Detail(Sephora):
                         typ.click()
                     except:
                         continue
-                    time.sleep(2)
+                    time.sleep(4)
                     item_name, item_size, item_price, item_ingredients = get_item_attributes(multi_variety=True, typ=typ)
                     product_attributes.append({"prod_id":prod_id, "product_name":product_name, "item_name":item_name, "item_size":item_size, "item_price":item_price, "item_ingredients":item_ingredients})
             else:
@@ -489,7 +492,7 @@ class Detail(Sephora):
 
             #open product page
             drv.get(product_page)
-            time.sleep(2)
+            time.sleep(6)
 
             #close popup windows
             try:
@@ -532,9 +535,13 @@ class Detail(Sephora):
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     tab_num = tab_names.index('details')
                     detail_button = drv.find_element_by_id(f'tab{tab_num}')
-                    detail_button.click()
-                    time.sleep(1)
-                    details = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
+                    try:
+                        time.sleep(2)
+                        detail_button.click()
+                    except ElementClickInterceptedException:
+                        details = ""
+                    else:
+                        details = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
                 except NoSuchElementException:
                     details = ""
                     self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) product detail extraction failed', 'utf-8', 'ignore'))
@@ -549,9 +556,13 @@ class Detail(Sephora):
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     tab_num = tab_names.index('how to use')
                     how_to_use_button = drv.find_element_by_id(f'tab{tab_num}')
-                    how_to_use_button.click()
-                    time.sleep(1)
-                    how_to_use = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
+                    try:
+                        time.sleep(2)
+                        how_to_use_button.click()
+                    except ElementClickInterceptedException:
+                        how_to_use = ""
+                    else:
+                        how_to_use = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
                 except NoSuchElementException:
                     how_to_use = ""
                     self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) how_to_use extraction failed', 'utf-8', 'ignore'))
@@ -566,9 +577,13 @@ class Detail(Sephora):
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     tab_num = tab_names.index('about the brand')
                     about_the_brand_button = drv.find_element_by_id(f'tab{tab_num}')
-                    about_the_brand_button.click()
-                    time.sleep(1)
-                    about_the_brand = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
+                    try:
+                        time.sleep(2)
+                        about_the_brand_button.click()
+                    except ElementClickInterceptedException:
+                        about_the_brand = ""
+                    else:
+                        about_the_brand = drv.find_element_by_xpath(f'//*[@id="tabpanel{tab_num}"]/div').text
                 except NoSuchElementException:
                     about_the_brand = ""
                     self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) about_the_brand extraction failed', 'utf-8', 'ignore'))
@@ -605,14 +620,14 @@ class Detail(Sephora):
             item_data.append(product_attributes)
             self.logger.info(str.encode(f'product: {product_name} (prod_id: {prod_id}) details extracted successfully', 'utf-8', 'ignore'))
             self.meta.loc[prod, 'detail_scraped'] = 'Y'
-            if prod !=0 and prod%20==0:
+            if prod !=0 and prod%10==0:
                 if len(detail_data)>0:
                     store_data_refresh_mem(detail_data, item_df)
         store_data_refresh_mem(detail_data, item_df)
         drv.close()
         self.logger.info(f'Detail Extraction Complete for start_idx: (lst[0]) to end_idx: {lst[-1]}. Or for list of values.')
 
-    def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5):
+    def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5, download=True):
         """[summary]
 
         Keyword Arguments:
@@ -627,33 +642,36 @@ class Detail(Sephora):
             list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
             self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page']]
             self.meta['detail_scraped'] = 'N'
-
-        if fresh_start:
-            fresh()
-        else:
-            if Path(self.detail_path/'sph_detail_progress_tracker').exists():
-                self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
-                if sum(self.meta.detail_scraped=='N')==0:
-                    self.fresh()
-                    self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
-                self.logger.info('Continuing Detail Extraction From Last Run.')
-            else:
+        if download:
+            if fresh_start:
                 fresh()
-                self.logger.info('Detail Progress Tracker does not exist. Starting Fresh Extraction.')
+            else:
+                if Path(self.detail_path/'sph_detail_progress_tracker').exists():
+                    self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
+                    if sum(self.meta.detail_scraped=='N')==0:
+                        self.fresh()
+                        self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
+                    else:
+                        self.logger.info('Continuing Detail Extraction From Last Run.')
+                else:
+                    fresh()
+                    self.logger.info('Detail Progress Tracker does not exist. Starting Fresh Extraction.')
 
-        #set list or range of product indices to crawl
-        if list_of_index: lst = list_of_index
-        elif start_idx and end_idx is None: lst = range(start_idx, len(self.meta))
-        elif start_idx is None and end_idx: lst = range(0, end_idx)
-        elif start_idx is not None and end_idx is not None: lst = range(start_idx, end_idx)
-        else: lst = range(len(self.meta))
-        print(lst)
+            #set list or range of product indices to crawl
+            if list_of_index: lst = list_of_index
+            elif start_idx and end_idx is None: lst = range(start_idx, len(self.meta))
+            elif start_idx is None and end_idx: lst = range(0, end_idx)
+            elif start_idx is not None and end_idx is not None: lst = range(start_idx, end_idx)
+            else: lst = range(len(self.meta))
+            print(lst)
 
-        #By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(self.download_detail, list(chunks(lst, len(lst)//5)))
-
-        self.download_detail(lst=lst)
+            if list_of_index:
+                self.download_detail(lst = list_of_index)
+            else:#By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
+                lst_of_lst = list(chunks(lst, len(lst)//n_workers))
+                detail_data = [[] for i in lst_of_lst]
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    executor.map(self.download_detail, lst_of_lst, detail_data)
 
         self.logger.info('Creating Combined Detail File')
         det_li = []
@@ -663,10 +681,11 @@ class Detail(Sephora):
             try: df = pd.read_csv(file)
             except: self.bad_det_li.append(file)
             else: det_li.append(df)
-
         detail_df = pd.concat(det_li, axis=0, ignore_index=True)
         detail_df.reset_index(inplace=True, drop=True)
-        detail_df.to_csv(self.detail_path/f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}', index=None)
+        detail_df.drop_duplicates(inplace=True)
+        detail_filename = f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}.csv'
+        detail_df.to_csv(self.detail_path/detail_filename, index=None)
 
         self.logger.info('Creating Combined Item File')
         item_li = []
@@ -678,16 +697,20 @@ class Detail(Sephora):
             else: item_li.append(idf)
         item_df = pd.concat(item_li, axis=0, ignore_index=True)
         item_df.reset_index(inplace=True, drop=True)
-        item_df.to_csv(self.detail_path/f'sph_product_item_all_{time.strftime("%Y-%m-%d")}', index=None)
+        item_df.drop_duplicates(inplace=True)
+        item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}.csv'
+        item_df.to_csv(self.detail_path/item_filename, index=None)
 
         self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
         print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
 
         if delete_progress:
-            print('Deleting Progress Files')
             shutil.rmtree(f'{self.detail_path}\\current_progress', ignore_errors=True)
             self.logger.info('Progress files deleted')
 
+        if  clean:
+            cleaner = Cleaner()
+            self.detail_clean_df = cleaner.clean_data(data=detail_df, filename=detail_filename)
+            self.item_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
         self.logger.handlers.clear()
         self.prod_detail_log.stop_log()
-        

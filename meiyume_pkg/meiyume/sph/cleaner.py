@@ -29,19 +29,17 @@ class Cleaner(Sephora):
     Arguments:
         Sephora {[type]} -- [description]
     """
-    def __init__(self, path=Path.cwd()):
+    def __init__(self, path='.'):
         super().__init__(path=path)
-        self.nan_equal = nan_equal
-        self.show_missing_values = show_missing_value
 
-    def clean_data(self, data, file_name=None, rtn_typ='no_cat', save=True, logs=False):
+    def clean_data(self, data, filename=None, rtn_typ='no_cat', save=True, logs=False):
         """[summary]
 
         Arguments:
-            data {[feather, pandas.DataFrame]} -- [description]
+            data {[file_path, pandas.DataFrame]} -- [files can be of csv or feather format]
 
         Keyword Arguments:
-            file_name {[type]} -- [description] (default: {None})
+            filename {[type]} -- [description] (default: {None})
             rtn_typ {str} -- [description] (default: {'no_cat'})
             save {bool} -- [description] (default: {True})
             logs {bool} -- [description] (default: {False})
@@ -52,18 +50,19 @@ class Cleaner(Sephora):
 
         if type(data) == 'pandas.core.frame.DataFrame':
             self.data = data
-            file_name = file_name
+            filename = filename
         else:
-            file_name = data
-            self.data = pd.read_feather(data)
+            filename = data
+            try: self.data = pd.read_feather(data)
+            except: self.data = pd.read_csv(data)
 
-        data_def = self.find_data_def(str(file_name))
+        data_def = self.find_data_def(str(filename))
 
         if logs:
             self.cleaner_log = Logger(f"sph_prod_{data_def}_extraction", path=self.clean_log_path)
             self.logger, _ = self.cleaner_log.start_log()
 
-        clean_file_name = 'cleaned_'+str(file_name).split('\\')[-1]
+        clean_file_name = 'cleaned_'+str(filename).split('\\')[-1]
 
         if data_def == 'meta':
             cleaned_metadata = self.meta_cleaner(rtn_typ)
@@ -81,14 +80,14 @@ class Cleaner(Sephora):
                 cleaned_review.to_feather(self.review_clean_path/'clean_file_name')
             return cleaned_review
 
-    def find_data_def(self, file_name):
-        if 'meta' in file_name.lower():
+    def find_data_def(self, filename):
+        if 'meta' in filename.lower():
             return 'meta'
-        elif 'detail' in file_name.lower():
+        elif 'detail' in filename.lower():
             return 'detail'
-        elif 'item' in file_name.lower():
+        elif 'item' in filename.lower():
             return 'item'
-        elif 'review' in file_name.lower():
+        elif 'review' in filename.lower():
             return 'review'
         else:
             raise MeiyumeException("Unable to determine data definition. Please provide correct file names.")
@@ -172,3 +171,6 @@ class Cleaner(Sephora):
             return self.meta_no_cat
         else:
             return self.meta
+        
+    
+   
