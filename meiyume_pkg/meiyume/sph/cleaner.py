@@ -171,6 +171,8 @@ class Cleaner(Sephora):
             return self.meta_no_cat
         else:
             return self.meta
-        
+    
+    def detail_cleaner():
+        pass
     
    

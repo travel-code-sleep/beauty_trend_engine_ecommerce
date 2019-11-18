@@ -11,7 +11,7 @@ setup(
     # Needed for dependencies
     install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno',
                       'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',
-                      'sklearn',#'swifter'
+                      'sklearn',#'swifter', 'fastai', 'keras', 'tensorflow, 'scipy',
                       ],
     # *strongly* suggested for sharing
     version='0.5.6',
