@@ -858,9 +858,9 @@ class Review(Sephora):
                     review_date = ''
 
                 try:
-                    helpful = ' '
+                    helpful = []
                     for h in rev.find_elements_by_class_name('css-39esqn'):
-                        helpful += h.text
+                        helpful.append(h.text)
                 except NoSuchElementException or StaleElementReferenceException:
                     helpful = []
 
