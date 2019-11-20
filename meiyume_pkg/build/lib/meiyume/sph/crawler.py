@@ -852,7 +852,7 @@ class Review(Sephora):
                     recommend = ''
 
                 try:
-                    review_date = rev.find_element_by_class_name('css-1mfxbmj').text
+                    review_date = rev.find_element_by_class_name('css-1bk7s0g').text
                     review_date = convert_ago_to_date(review_date)
                 except NoSuchElementException or StaleElementReferenceException:
                     review_date = ''
@@ -957,5 +957,3 @@ class Review(Sephora):
             self.review_clean_df = cleaner.clean_data(data=rev_df, filename=review_filename)
         self.logger.handlers.clear()
         self.prod_review_log.stop_log()
-
-    
