@@ -8,6 +8,7 @@ import concurrent.futures
 import os
 import shutil
 import time
+from datetime import datetime, timedelta
 import warnings
 from pathlib import Path
 
@@ -27,7 +28,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from meiyume.sph.cleaner import Cleaner
-from meiyume.utils import Browser, Logger, MeiyumeException, Sephora, chunks
+from meiyume.utils import Browser, Logger, MeiyumeException, Sephora, chunks, convert_ago_to_date
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -68,8 +69,8 @@ class Metadata(Sephora):
             show {bool} -- [description] (default: {True})
         """
         super().__init__(driver_path=driver_path, show=show, path=path, data_def='meta')
-        self.curnet_progress_path = self.metadata_path/'current_progress'
-        self.curnet_progress_path.mkdir(parents=True, exist_ok=True)
+        self.current_progress_path = self.metadata_path/'current_progress'
+        self.current_progress_path.mkdir(parents=True, exist_ok=True)
         if log:
             self.prod_meta_log = Logger("sph_prod_metadata_extraction", path=self.crawl_log_path)
             self.logger, _ = self.prod_meta_log.start_log()
@@ -301,7 +302,7 @@ class Metadata(Sephora):
 
             if len(product_meta_data)>0:
                 product_meta_df = pd.DataFrame(product_meta_data)
-                product_meta_df.to_feather(self.curnet_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
+                product_meta_df.to_feather(self.current_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
                 self.logger.info(f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})')
                 progress_tracker.loc[pt,'scraped'] = 'Y'
                 progress_tracker.to_feather(self.metadata_path/'sph_metadata_progress_tracker')
@@ -322,7 +323,7 @@ class Metadata(Sephora):
         if download:
             self.download_metadata(fresh_start)
         self.logger.info('Creating Combined Metadata File')
-        files = [f for f in self.curnet_progress_path.glob("sph_prod_meta_extract_progress_*")]
+        files = [f for f in self.current_progress_path.glob("sph_prod_meta_extract_progress_*")]
         li = [pd.read_feather(file) for file in files]
         metadata_df = pd.concat(li, axis=0, ignore_index=True)
         metadata_df.reset_index(inplace=True, drop=True)
@@ -361,8 +362,8 @@ class Detail(Sephora):
             log {bool} -- [description] (default: {True})
         """
         super().__init__(driver_path=driver_path, show=show, path=path, data_def='detail')
-        self.curnet_progress_path = self.detail_path/'current_progress'
-        self.curnet_progress_path.mkdir(parents=True, exist_ok=True)
+        self.current_progress_path = self.detail_path/'current_progress'
+        self.current_progress_path.mkdir(parents=True, exist_ok=True)
         #set logger
         if log:
             self.prod_detail_log = Logger("sph_prod_detail_extraction",
@@ -392,10 +393,10 @@ class Detail(Sephora):
                 detail_data {[type]} -- [description]
                 item_df {[type]} -- [description]
             """
-            pd.DataFrame(detail_data).to_csv(self.curnet_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
+            pd.DataFrame(detail_data).to_csv(self.current_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             detail_data = []
             item_df.reset_index(inplace=True, drop=True)
-            item_df.to_csv(self.curnet_progress_path/f'sph_prod_item_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
+            item_df.to_csv(self.current_progress_path/f'sph_prod_item_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             item_df = pd.DataFrame(columns=['prod_id','product_name','item_name','item_size','item_price','item_ingredients'])
             self.meta.to_feather(self.detail_path/'sph_detail_progress_tracker')
 
@@ -691,31 +692,32 @@ class Detail(Sephora):
         self.logger.info('Creating Combined Detail File')
         det_li = []
         self.bad_det_li = []
-        detail_files = [f for f in self.curnet_progress_path.glob("sph_prod_detail_extract_progress_*")]
+        detail_files = [f for f in self.current_progress_path.glob("sph_prod_detail_extract_progress_*")]
         for file in detail_files:
             try: df = pd.read_csv(file)
             except: self.bad_det_li.append(file)
             else: det_li.append(df)
         detail_df = pd.concat(det_li, axis=0, ignore_index=True)
-        detail_df.reset_index(inplace=True, drop=True)
         detail_df.drop_duplicates(inplace=True)
-        detail_filename = f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}.csv'
-        detail_df.to_csv(self.detail_path/detail_filename, index=None)
-
+        detail_df.reset_index(inplace=True, drop=True)
+        detail_filename = f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}'#.csv'
+        # detail_df.to_csv(self.detail_path/detail_filename, index=None)
+        detail_df.to_feather(self.detail_path/detail_filename)
         self.logger.info('Creating Combined Item File')
         item_li = []
         self.bad_item_li = []
-        item_files = [f for f in self.curnet_progress_path.glob("sph_prod_item_extract_progress_*")]
+        item_files = [f for f in self.current_progress_path.glob("sph_prod_item_extract_progress_*")]
         for file in item_files:
             try: idf = pd.read_csv(file)
             except: self.bad_item_li.append(file)
             else: item_li.append(idf)
         item_df = pd.concat(item_li, axis=0, ignore_index=True)
-        item_df.reset_index(inplace=True, drop=True)
         item_df.drop_duplicates(inplace=True)
-        item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}.csv'
-        item_df.to_csv(self.detail_path/item_filename, index=None)
-
+        item_df.reset_index(inplace=True, drop=True)
+        item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}'#.csv'
+        # item_df.to_csv(self.detail_path/item_filename, index=None)
+        item_df.to_feather(self.detail_path/item_filename)
+        
         self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
         print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
 
@@ -729,3 +731,231 @@ class Detail(Sephora):
             self.item_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
         self.logger.handlers.clear()
         self.prod_detail_log.stop_log()
+
+class Review(Sephora):
+    """[summary]
+
+    Arguments:
+        Sephora {[type]} -- [description]
+    """
+    def __init__(self,driver_path, path='.', show=True, log=True):
+        """[summary]
+
+        Arguments:
+            driver_path {[type]} -- [description]
+
+        Keyword Arguments:
+            path {str} -- [description] (default: {'.'})
+            show {bool} -- [description] (default: {True})
+            log {bool} -- [description] (default: {True})
+        """
+        super().__init__(driver_path=driver_path, show=show, path=path, data_def='review')
+        self.current_progress_path = self.review_path/'current_progress'
+        self.current_progress_path.mkdir(parents=True, exist_ok=True)
+        if log:
+            self.prod_review_log = Logger("sph_prod_review_extraction", path=self.crawl_log_path)
+            self.logger, _ = self.prod_review_log.start_log()
+
+    def download_review(self, lst, review_data=[]):
+        """[summary]
+
+        Arguments:
+            lst {[type]} -- [description]
+
+        Keyword Arguments:
+            review_data {list} -- [description] (default: {[]})
+        """
+        def store_data_refresh_mem(review_data):
+            """[summary]
+
+            Arguments:
+                review_data {[type]} -- [description]
+            """
+            pd.DataFrame(review_data).to_csv(self.current_progress_path/f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
+            review_data=[]
+            self.meta.to_feather(self.review_path/'sph_review_progress_tracker')
+
+        for prod in self.meta.index[self.meta.index.isin(lst)]:
+            if self.meta.loc[prod, 'review_scraped'] in ['Y','NA']:
+                continue
+            prod_id = self.meta.loc[prod, 'prod_id']
+            product_name = self.meta.loc[prod, 'product_name']
+            product_page = self.meta.loc[prod, 'product_page']
+
+            drv = self.open_browser()
+            drv.get(product_page)
+            time.sleep(6)
+
+            #close popup windows
+            try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
+            except: pass
+            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
+            except: pass
+
+            self.scroll_down_page(drv, h2=0.6)
+
+            try:
+                no_of_reviews = int(drv.find_element_by_class_name('css-mzsag6').text.split()[0])
+            except NoSuchElementException:
+                self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} reviews extraction failed. Either product has no reviews or not\
+                                              available for sell currently.(page: {product_page})', 'utf-8', 'ignore'))
+                no_of_reviews = 0
+                self.meta.loc[prod, 'review_scraped'] = 'NA'
+                drv.close()
+                continue
+
+            #sort by NEW reviews
+            try:
+                drv.find_element_by_id('review_filter_sort_trigger').click()
+                drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
+                time.sleep(1)
+            except:
+                self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
+
+            for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
+                time.sleep(1)
+                webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform() #close any opened popups by escape
+                try: drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
+                except: break
+
+            product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]
+
+            r = 0
+            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+            for rev in product_reviews:
+                r+=1
+                try:
+                    review_text = rev.find_element_by_class_name('css-1p4f59m').text
+                except NoSuchElementException or StaleElementReferenceException:
+                    continue
+
+                try:
+                    user_attribute = []
+                    for u in rev.find_elements_by_class_name('css-15415he'):
+                        user_attribute.append({'_'.join(u.text.lower().split()[0:-1]):u.text.lower().split()[-1]})
+                except NoSuchElementException or StaleElementReferenceException:
+                    user_attribute = []
+
+                try:
+                    review_title = rev.find_element_by_class_name('css-ai9pjd').text
+                except NoSuchElementException or StaleElementReferenceException:
+                    review_title = ''
+
+                try:
+                    user_rating = rev.find_element_by_class_name('css-5quttm').get_attribute('aria-label')
+                except NoSuchElementException or StaleElementReferenceException:
+                    user_rating = ''
+
+                try:
+                    recommend = rev.find_element_by_class_name('css-ue839').text
+                except NoSuchElementException or StaleElementReferenceException:
+                    recommend = ''
+
+                try:
+                    review_date = rev.find_element_by_class_name('css-1mfxbmj').text
+                    review_date = convert_ago_to_date(review_date)
+                except NoSuchElementException or StaleElementReferenceException:
+                    review_date = ''
+
+                try:
+                    helpful = []
+                    for h in rev.find_elements_by_class_name('css-39esqn'):
+                        helpful.append(h.text)
+                except NoSuchElementException or StaleElementReferenceException:
+                    helpful = []
+
+                review_data.append({'prod_id':prod_id, 'product_name':product_name,
+                                    'user_attribute':user_attribute, 'timestamp':time.strftime("%Y-%m-%d-%H-%M"),
+                                    'review_title':review_title, 'review_text':review_text,
+                                    'review_rating':user_rating, 'recommend':recommend,
+                                    'review_date':review_date,   'helpful':helpful})
+            drv.close()
+            self.meta.loc[prod, 'review_scraped'] = 'Y'
+            store_data_refresh_mem(review_data)
+            self.logger.info(str.encode('Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.\
+                                        (total_reviews: {no_of_reviews}, extracted_reviews: {len(product_reviews)}, page: {product_page})', 'utf-8', 'ignore'))
+
+        store_data_refresh_mem(review_data)
+
+
+
+    def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5, download=True):
+        """[summary]
+
+        Keyword Arguments:
+            start_idx {[type]} -- [description] (default: {None})
+            end_idx {[type]} -- [description] (default: {None})
+            list_of_index {[type]} -- [description] (default: {None})
+            fresh_start {bool} -- [description] (default: {False})
+            delete_progress {bool} -- [description] (default: {False})
+            clean {bool} -- [description] (default: {True})
+        """
+        def fresh():
+            list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
+            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page']]
+            self.meta['review_scraped'] = 'N'
+
+        if download:
+            if fresh_start:
+                fresh()
+            else:
+                if Path(self.review_path/'sph_review_progress_tracker').exists():
+                    self.meta = pd.read_feather(self.review_path/'sph_review_progress_tracker')
+                    if sum(self.meta.review_scraped=='N')==0:
+                        self.fresh()
+                        self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
+                    else:
+                        self.logger.info('Continuing Review Extraction From Last Run.')
+                else:
+                    fresh()
+                    self.logger.info('Review Progress Tracker not found. Starting Fresh Extraction.')
+
+            #set list or range of product indices to crawl
+            if list_of_index: lst = list_of_index
+            elif start_idx and end_idx is None: lst = range(start_idx, len(self.meta))
+            elif start_idx is None and end_idx: lst = range(0, end_idx)
+            elif start_idx is not None and end_idx is not None: lst = range(start_idx, end_idx)
+            else: lst = range(len(self.meta))
+            print(lst)
+
+            if list_of_index:
+                self.download_review(lst = list_of_index)
+            else:#By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
+                lst_of_lst = list(chunks(lst, len(lst)//n_workers))
+                #review_Data and item_data are lists of empty lists so that each namepace of function call will have its separate detail_data
+                #list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
+                review_data = [[] for i in lst_of_lst]
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    #but each of the function namespace will be modifying only one metadata tracing file so that progress saving
+                    #is tracked correctly. else multiple progress tracker file will be created with difficulty to combine correct
+                    #progress information
+                    executor.map(self.download_review, lst_of_lst, review_data)
+
+        self.logger.info('Creating Combined Review File')
+        rev_li = []
+        self.bad_rev_li = []
+        review_files = [f for f in self.current_progress_path.glob("sph_prod_review_extract_progress_*")]
+        for file in review_files:
+            try: df = pd.read_csv(file)
+            except: self.bad_rev_li.append(file)
+            else: rev_li.append(df)
+        rev_df = pd.concat(rev_li, axis=0, ignore_index=True)
+        rev_df.drop_duplicates(inplace=True)
+        rev_df.reset_index(inplace=True, drop=True)
+        review_filename = f'sph_product_review_all_{time.strftime("%Y-%m-%d")}'
+        rev_df.to_feather(self.review_path/review_filename)#, index=None)
+
+        self.logger.info(f'Review file created. Please look for file sph_product_review_all in path {self.review_path}')
+        print(f'Review file created. Please look for file sph_product_review_all in path {self.review_path}')
+
+        if delete_progress:
+            shutil.rmtree(f'{self.review_path}\\current_progress', ignore_errors=True)
+            self.logger.info('Progress files deleted')
+
+        if  clean:
+            cleaner = Cleaner()
+            self.review_clean_df = cleaner.clean_data(data=rev_df, filename=review_filename)
+        self.logger.handlers.clear()
+        self.prod_review_log.stop_log()
+
+    

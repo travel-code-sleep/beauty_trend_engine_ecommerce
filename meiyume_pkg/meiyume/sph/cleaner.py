@@ -59,7 +59,7 @@ class Cleaner(Sephora):
         data_def = self.find_data_def(str(filename))
 
         if logs:
-            self.cleaner_log = Logger(f"sph_prod_{data_def}_extraction", path=self.clean_log_path)
+            self.cleaner_log = Logger(f"sph_prod_{data_def}_cleaning", path=self.clean_log_path)
             self.logger, _ = self.cleaner_log.start_log()
 
         clean_file_name = 'cleaned_'+str(filename).split('\\')[-1]
@@ -70,27 +70,67 @@ class Cleaner(Sephora):
                 cleaned_metadata.to_feather(self.metadata_clean_path/f'{rtn_typ}_{clean_file_name}')
             return cleaned_metadata
         if data_def == 'detail':
-            cleaned_detail = self.detail_cleaner(return_type='None')
+            cleaned_detail = self.detail_cleaner()
+            cleaned_detail.drop_duplicates(inplace=True)
+            cleaned_detail.reset_index(inplace=True, drop=True)
             if save:
-                cleaned_detail.to_feather(self.detail_clean_path/'clean_file_name')
+                cleaned_detail.to_feather(self.detail_clean_path/f'{clean_file_name}')
             return cleaned_detail
+        if data_def == 'item':
+            cleaned_item = self.item_cleaner(return_type='None')
+            cleaned_item.drop_duplicates(inplace=True)
+            cleaned_item.reset_index(inplace=True, drop=True)
+            if save:
+                cleaned_item.to_feather(self.detail_clean_path/f'{clean_file_name}')
+            return cleaned_item
         if data_def == 'review':
             cleaned_review = self.review_cleaner()
+            cleaned_review.drop_duplicates(inplace=True)
+            cleaned_review.reset_index(inplace=True, drop=True)
             if save:
-                cleaned_review.to_feather(self.review_clean_path/'clean_file_name')
+                cleaned_review.to_feather(self.review_clean_path/f'{clean_file_name}')
             return cleaned_review
 
     def find_data_def(self, filename):
-        if 'meta' in filename.lower():
-            return 'meta'
-        elif 'detail' in filename.lower():
-            return 'detail'
-        elif 'item' in filename.lower():
-            return 'item'
-        elif 'review' in filename.lower():
-            return 'review'
+        if 'meta' in filename.lower(): return 'meta'
+        elif 'detail' in filename.lower(): return 'detail'
+        elif 'item' in filename.lower(): return 'item'
+        elif 'review' in filename.lower(): return 'review'
+        elif 'item' in filename.lower(): return 'item'
+        else: raise MeiyumeException("Unable to determine data definition. Please provide correct file names.")
+
+    def make_price(self, x):
+        """[summary]
+
+        Arguments:
+            x {[type]} -- [description]
+        """
+        if '/' not in x and '-' not in x:
+            return x, np.nan, np.nan
+        elif '/' in x and '-' in x:
+            p = re.split('-|/', x)
+            return p[0], p[1], p[2]
+        elif '/' in x and '-' not in x:
+            p = re.split('/', x)
+            return p[0], np.nan, p[1]
+        elif x.count('-')>1 and '/' not in x:
+            ts = [m.start() for m in re.finditer(' ', x)]
+            p = x[ts[2]:].strip().split('-')
+            return p[0], p[1], x[:ts[2]]
+        elif '-' in x and x.count('-')<2 and '/' not in x:
+            p = re.split('-', x)
+            return p[0], p[1], np.nan
         else:
-            raise MeiyumeException("Unable to determine data definition. Please provide correct file names.")
+            return np.nan, np.nan, np.nan
+
+    def clean_price(self, x):
+        """[summary]
+
+        Arguments:
+            x {[type]} -- [description]
+        """
+        repls = ('$', ''), ('(', '/ '), (')', ''), ('value','')
+        return reduce(lambda a, kv: a.replace(*kv), repls, x)
 
     def meta_cleaner(self, rtn_typ):
         """[summary]
@@ -100,40 +140,7 @@ class Cleaner(Sephora):
         """
         self.meta = self.data
 
-        def make_price(x):
-            """[summary]
-
-            Arguments:
-                x {[type]} -- [description]
-            """
-            if '/' not in x and '-' not in x:
-                return x, np.nan, np.nan
-            elif '/' in x and '-' in x:
-                p = re.split('-|/', x)
-                return p[0], p[1], p[2]
-            elif '/' in x and '-' not in x:
-                p = re.split('/', x)
-                return p[0], np.nan, p[1]
-            elif x.count('-')>1 and '/' not in x:
-                ts = [m.start() for m in re.finditer(' ', x)]
-                p = x[ts[2]:].strip().split('-')
-                return p[0], p[1], x[:ts[2]]
-            elif '-' in x and x.count('-')<2 and '/' not in x:
-                p = re.split('-', x)
-                return p[0], p[1], np.nan
-            else:
-                return np.nan, np.nan, np.nan
-
-        def clean_price(x):
-            """[summary]
-
-            Arguments:
-                x {[type]} -- [description]
-            """
-            repls = ('$', ''), ('(', '/ '), (')', ''), ('value','')
-            return reduce(lambda a, kv: a.replace(*kv), repls, x)
-
-        def fix_multi_lowp(x):
+        def fix_multi_low_price(x):
             """[summary]
 
             Arguments:
@@ -146,11 +153,10 @@ class Cleaner(Sephora):
                 return np.nan, np.nan
 
         #price cleaning
-        # self.meta.price = self.meta.price.swifter.apply(clean_price)
-        self.meta['low_p'], self.meta['high_p'], self.meta['mrp'] = zip(*self.meta.price.swifter.apply(clean_price).swifter.apply(make_price))
+        self.meta['low_p'], self.meta['high_p'], self.meta['mrp'] = zip(*self.meta.price.swifter.apply(lambda x: self.clean_price(x)).swifter.apply(lambda y: self.make_price(y)))
         self.meta.drop('price', axis=1, inplace=True)
         self.meta.low_p[self.meta.low_p.swifter.apply(len)>7], self.meta.mrp[self.meta.low_p.swifter.apply(len)>7] =\
-             zip(*self.meta.low_p[self.meta.low_p.swifter.apply(len)>7].swifter.apply(fix_multi_lowp))
+             zip(*self.meta.low_p[self.meta.low_p.swifter.apply(len)>7].swifter.apply(fix_multi_low_price))
         #create product id
         sph_prod_ids = self.meta.product_page.str.split(':', expand=True)
         sph_prod_ids.columns = ['a', 'b', 'id']
@@ -195,5 +201,27 @@ class Cleaner(Sephora):
 
         self.detail.votes = self.detail.votes.swifter.apply(convert_votes_to_number)
 
+        def split_rating_dist(x):
+            if x is not np.nan:
+                ratings = literal_eval(x)
+                return ratings[1], ratings[3], ratings[5], ratings[7], ratings[9]
+            else: return (np.nan for i in range(5))
 
+        self.detail['five_star'], self.detail['four_star'], self.detail['three_star'], self.detail['two_star'], self.detail['one_star'] = \
+            zip(*self.detail.rating_dist.swifter.apply(split_rating_dist))
+        self.detail.drop('rating_dist', axis=1, inplace=True)
 
+        self.detail.would_recommend = self.detail.would_recommend.str.replace('%','').astype(float)
+        self.detail.rename({'would_recommend':'would_recommend_percentage'}, inplace=True, axis=1)
+        return self.detail
+
+    def calculate_ratings(self, x):
+        """pass"""
+        if x is np.nan:
+            return (x['five_star']*5 + x['four_star']*4 + x['three_star']*3 + x['two_star']*2 + x['one_star'])\
+                    /(x['five_star'] + x['four_star'] + x['three_star'] + x['two_star'] + x['one_star'])
+        else: return x
+
+    def item_cleaner(self):
+        self.item = self.data
+        self.item.item_price = self.item.item_price.swifter.apply(lambda x: self.clean_price(x))

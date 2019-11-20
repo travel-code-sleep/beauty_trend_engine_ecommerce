@@ -1,8 +1,8 @@
-import datetime
+from datetime import datetime, timedelta
 import logging
 import time
-import numpy as np 
-import os 
+import numpy as np
+import os
 import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -38,7 +38,7 @@ class Browser(object):
             return webdriver.Chrome(executable_path=self.driver_path)
         else:
             chrome_options = Options()
-            chrome_options.add_argument('--no-sandbox')
+            #chrome_options.add_argument('--no-sandbox')
             chrome_options.add_argument('--headless')
             return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
 
@@ -169,10 +169,26 @@ def show_missing_value(dataframe, viz_type=None):
 
 def chunks(l, n):
     """Yield successive n-sized chunks from l.
-    
+
     Arguments:
         l {[list, range, index]} -- [description]
         n {[type]} -- [description]
     """
     for i in range(0, len(l), n):
         yield l[i:i + n]
+
+def convert_ago_to_date(x):
+    if 'ago' in x.lower() and x is not np.nan:
+        if 'd' in x.lower():
+            days = int(x.split()[0])
+            date = datetime.today() - timedelta(days=days)
+            return date.strftime('%d %b %Y')
+        elif 'm' in x.lower():
+            mins = int(x.split()[0])
+            date = datetime.today() - timedelta(days=10) - timedelta(minutes=mins)
+            return date.strftime('%d %b %Y')
+        elif 'h' in x.lower():
+            hours = int(x.split()[0])
+            date = datetime.today() - timedelta(days=10) - timedelta(hours=hours)
+            return date.strftime('%d %b %Y')
+    else: return x
