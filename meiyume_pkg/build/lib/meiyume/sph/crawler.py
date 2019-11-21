@@ -287,6 +287,7 @@ class Metadata(Sephora):
                                                     (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                         break
                     else:
+                        #go to next page
                         try:
                             drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
@@ -784,7 +785,7 @@ class Review(Sephora):
 
             drv = self.open_browser()
             drv.get(product_page)
-            time.sleep(6)
+            time.sleep(4)
 
             #close popup windows
             try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
@@ -792,7 +793,7 @@ class Review(Sephora):
             try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
             except: pass
 
-            self.scroll_down_page(drv, h2=0.6)
+            self.scroll_down_page(drv, speed=20, h2=0.6)
 
             try:
                 no_of_reviews = int(drv.find_element_by_class_name('css-mzsag6').text.split()[0])
@@ -810,13 +811,40 @@ class Review(Sephora):
                 drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
                 time.sleep(1)
             except:
-                self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
+                try:
+                    drv.find_element_by_id('review_filter_sort_trigger').click()
+                    drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
+                    time.sleep(1)
+                except:
+                    try:
+                        self.scroll_down_page(drv, speed=8, h2=0.5)
+                        time.sleep(3)
+                        drv.find_element_by_id('review_filter_sort_trigger').click()
+                        drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
+                        time.sleep(1)
+                    except:
+                        self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
 
-            for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
-                time.sleep(1)
+            for n in range(no_of_reviews//6+10): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
+                # if n >=1001:
+                #     break #code will stop after getting 6000 reviews of one particular product
+                time.sleep(0.4)
                 webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform() #close any opened popups by escape
-                try: drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
-                except: break
+                try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
+                except:
+                    try: drv.find_element_by_class_name('css-1phfyoj').click()
+                    except:
+                        try: drv.find_element_by_class_name('css-1phfyoj').click()
+                        except:
+                            try: drv.find_element_by_class_name('css-1phfyoj').click()
+                            except:
+                                self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} cant load all reviews. Check click next 6 reviews\
+                                                                code section(page link: {product_page})', 'utf-8', 'ignore'))
+                                if n < (no_of_reviews//6):
+                                    self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} breaking click next review loop.\
+                                                                 [total_reviews:{no_of_reviews} loaded_reviews:{n*6}]\
+                                                                 (page link: {product_page})', 'utf-8', 'ignore'))
+                                break
 
             product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]
 
@@ -872,8 +900,7 @@ class Review(Sephora):
             drv.close()
             self.meta.loc[prod, 'review_scraped'] = 'Y'
             store_data_refresh_mem(review_data)
-            self.logger.info(str.encode('Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.\
-                                        (total_reviews: {no_of_reviews}, extracted_reviews: {len(product_reviews)}, page: {product_page})', 'utf-8', 'ignore'))
+            self.logger.info(str.encode(f'Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, extracted_reviews: {len(product_reviews)}, page: {product_page})', 'utf-8', 'ignore'))
 
         store_data_refresh_mem(review_data)
 

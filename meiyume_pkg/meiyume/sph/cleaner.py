@@ -5,6 +5,7 @@ import os
 import re
 import string
 import time
+import warnings
 from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import reduce
@@ -16,10 +17,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import swifter
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value
 from tqdm import tqdm
 
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value
-
+warnings.simplefilter(action='ignore')#, category=[FutureWarning, SettingWithCopyWarning])
 plt.style.use('fivethirtyeight')
 np.random.seed(42)
 
@@ -253,16 +254,16 @@ class Cleaner(Sephora):
         self.review.recommend[(self.review.recommend!='Yes') & (self.review.review_rating.isin([1,2]))] = 'No'
         self.review.recommend[(self.review.recommend!='Yes') & (self.review.review_rating.isin([3,4]))] = 'not_avlbl'
 
-        #separate and create user attribute columns
+        #separate and create user attribute column
         def make_dict(x):
-            return {k:v  for d in literal_eval(x) for k, v in d.items() if not 'hair_condition' in k}
-        self.review['age'], _, self.review['eye_color'], self.review['hair_color'], reself.reviewv['skin_tone'], \
-        self.review['skin_type'] = zip(*pd.DataFrame(self.review.user_attribute.swifter.apply(make_dict).tolist()).values)
+            return {k:v  for d in literal_eval(x) for k, v in d.items() if k not in ['hair_condition_chemically_treated_(colored,_relaxed,_or', 'age_over']}
+        self.review['age'], self.review['eye_color'], self.review['hair_color'], self.review['skin_tone'], self.review['skin_type'] = \
+            zip(*pd.DataFrame(self.review.user_attribute.swifter.apply(make_dict).tolist()).values)
         self.review.drop('user_attribute', inplace=True, axis=1)
 
         self.review.reset_index(drop=True, inplace=True)
         return self.review
-    
+
     def item_cleaner(self):
         self.item = self.data
         self.item.item_price = self.item.item_price.swifter.apply(lambda x: self.clean_price(x))

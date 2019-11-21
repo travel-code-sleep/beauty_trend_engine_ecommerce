@@ -26,314 +26,7 @@ warnings.filterwarnings('ignore')
 from .utils import nan_equal, show_missing_value
 np.random.seed(42)
 
-class Meiyume(object):
-    """parent class. the methods in this class will
-       be inherited by all the child classes. 
-       define global methods only"""    
-    def __init__(self):
-        self.nan_equal = nan_equal
-        self.show_missing_value = show_missing_value
 
-    
-class Cleaner(Meiyume): ## add category translation to meta data cleaning 
-    """ pass """
-    def __init__(self, file_name, file_path=os.getcwd()):
-        """pass"""
-        super(Cleaner, self).__init__()
-        self.file_name = file_name
-        self.file_path = file_path
-        self.file_type = file_name.split('.')[-1].lower()
-        
-        if 'sephora' in self.file_name.lower() or 'sph' in  self.file_name.lower():
-            if 'meta' in self.file_name.lower():
-                self.data_defintion = 'sph_meta'
-            elif 'detail' in self.file_name.lower():
-                self.data_defintion = 'sph_detail'
-            elif 'item' in self.file_name.lower():
-                self.data_defintion = 'sph_item'
-            elif 'review' in self.file_name.lower():
-                self.data_defintion = 'sph_review'
-        else: 
-            raise MeiyumeException("Unable to determine data definition. Please provide correct file names.")
-                
-        self.file = os.path.join(file_path, file_name)
-                
-    def read_data(self):
-        """pass"""
-        if self.file_type == 'xlsx':
-            return pd.read_excel(self.file)
-        elif self.file_type == 'csv':
-            return pd.read_csv(self.file)
-    
-    def clean_data(self, return_type='no_cats'):
-        """pass"""
-        if self.data_defintion == 'sph_meta':
-            cleaned_metadata = self.sph_meta_cleaner(return_type)
-            return cleaned_metadata
-        if self.data_defintion == 'sph_detail':
-            cleaned_detail = self.sph_detail_cleaner(return_type='None')
-            return cleaned_detail
-        if self.data_defintion == 'sph_review':
-            cleaned_review = self.sph_review_cleaner()
-            return cleaned_review
-        
-    
-    def sph_review_cleaner(self):
-        """pass"""
-        self.sph_review = self.read_data()
-        #remove blank review and date fields
-        self.sph_review = self.sph_review[~self.sph_review.review.isna()] 
-        self.sph_review = self.sph_review[~self.sph_review.review_date.isna()]
-        self.sph_review.reset_index(inplace=True, drop=True)
-        
-        #clean and separate helpful
-        self.sph_review.helpful[self.sph_review.helpful.astype(str)== "['', '']"] = np.nan
-        
-        def helpful_split(x, extract):
-            if not self.nan_equal(x,np.nan):
-                if extract == 'helpful':
-                    helpful = literal_eval(x)[1].split('(')[-1].replace(')','')
-                    return helpful
-                elif extract == 'not_helpful':
-                    not_helpful = literal_eval(x)[0].split('(')[-1].replace(')','')
-                    return not_helpful
-            else:
-                return np.nan
-        self.sph_review['helpful_Y'] = self.sph_review.helpful.apply(lambda x: helpful_split(x,extract='helpful'))
-        self.sph_review['helpful_N'] = self.sph_review.helpful.apply(lambda x: helpful_split(x,extract='not_helpful'))
-        self.sph_review.helpful_Y[self.sph_review.helpful_Y.isna()] = 0
-        self.sph_review.helpful_N[self.sph_review.helpful_N.isna()] = 0
-        self.sph_review.helpful_Y[self.sph_review.helpful_Y ==''] = 0
-        self.sph_review.helpful_N[self.sph_review.helpful_N ==''] = 0
-        self.sph_review.drop('helpful', inplace=True, axis=1)
-        self.sph_review.helpful_Y = self.sph_review.helpful_Y.astype(int)
-        self.sph_review.helpful_N = self.sph_review.helpful_N.astype(int)
-        
-        #convert ratings to numbers
-        rem_rat = re.compile('(\s*)stars|star|No(\s*)')
-        self.sph_review.review_rating = self.sph_review.review_rating.apply(lambda x: rem_rat.sub('',x))
-        self.sph_review.review_rating = self.sph_review.review_rating.astype(int)
-        
-        #clean date and convrt to pandas datetime¶
-        def convert_to_date(x):
-            if 'ago' in x.lower():
-                if 'd' in x.lower():
-                    days = 10 + int(x.split()[0])
-                    date = datetime.today() - timedelta(days=days)
-                    return date.strftime('%d %b %Y')
-                elif 'm' in x.lower():
-                    mins = int(x.split()[0])
-                    date = datetime.today() - timedelta(days=10) - timedelta(minutes=mins)
-                    return date.strftime('%d %b %Y')
-                elif 'h' in x.lower():
-                    hours = int(x.split()[0])
-                    date = datetime.today() - timedelta(days=10) - timedelta(hours=hours)
-                    return date.strftime('%d %b %Y')
-            else:
-                return x
-        self.sph_review.review_date = self.sph_review.review_date.apply(convert_to_date)
-        self.sph_review.review_date = pd.to_datetime(self.sph_review.review_date, infer_datetime_format=True)
-        
-        #clean and convert recommendation
-        #### if rating is 5 then it is assumed that the person recommends
-        #### id rating is 1 or 2 then it is assumed that the person does not recomend
-        #### for all the other cases data is not available
-        self.sph_review.recommend[(self.sph_review.recommend=='Recommends this product') | (self.sph_review.review_rating==5)] = 'Yes'
-        self.sph_review.recommend[(self.sph_review.recommend!='Yes') & (self.sph_review.review_rating.isin([1,2]))] = 'No'
-        self.sph_review.recommend[(self.sph_review.recommend!='Yes') & (self.sph_review.review_rating.isin([3,4]))] = 'not_avlbl'
-        
-        #clean and separate user attributes
-        self.sph_review.user_attribute[self.sph_review.user_attribute.isin(["['', '', '', '']", "['', '', '']","[]"])] = np.nan
-        # this part of the code depends on multi-level regular expression search and quite slower 
-        def separate_user_attributes(x):
-            """pass"""
-            rmv = re.compile("(\s*)]|\(|\)|'|,(\s*)")
-            if not self.nan_equal(x, np.nan):
-                age_srch = re.search('age(.+?),', x.lower())
-                if age_srch is None:
-                    age_srch = re.search('age(.+?)]', x.lower())
-                if age_srch:
-                    age = age_srch.group(0)
-                    age = rmv.sub('', age.split()[-1])
-                else: 
-                    age = 'not_avlbl'
-
-                eye_srch = re.search('eye color(.+?),', x.lower())
-                if eye_srch is None:
-                    eye_srch = re.search('eye color(.+?)]', x.lower())
-                if eye_srch:
-                    eye_color = eye_srch.group(0)
-                    eye_color = rmv.sub('', eye_color.split('color')[-1])
-                else:
-                    eye_color = 'not_avlbl'
-
-                hair_col_srch = re.search('hair color(.+?),', x.lower())
-                if hair_col_srch is None:
-                    hair_col_srch = re.search('hair color(.+?)]', x.lower())
-                if hair_col_srch:
-                    hair_color = hair_col_srch.group(0)
-                    hair_color = rmv.sub('', hair_color.split('color')[-1])
-                else:
-                    hair_color = 'not_avlbl'
-
-                hair_cond_srch = re.search('hair condition(.+?),', x.lower())
-                if hair_cond_srch is None:
-                    hair_cond_srch = re.search('hair condition(.+?)]', x.lower())
-                if hair_cond_srch:
-                    hair_cond = hair_cond_srch.group(0)
-                    hair_cond = rmv.sub('', hair_cond.split('condition')[-1])
-                else:
-                    hair_cond = 'not_avlbl'
-
-                skin_tone_srch = re.search('skin tone(.+?),', x.lower())
-                if skin_tone_srch is None:
-                    skin_tone_srch = re.search('skin tone(.+?)]', x.lower())
-                if skin_tone_srch:
-                    skin_tone = skin_tone_srch.group(0)
-                    skin_tone = rmv.sub('', skin_tone.split('tone')[-1])
-                else:
-                    skin_tone = 'not_avlbl'
-
-                skin_type_srch = re.search('skin type(.+?)]', x.lower())
-                if skin_type_srch is None:
-                    skin_type_srch = re.search('skin type(.+?),', x.lower())
-                if skin_type_srch:
-                    skin_type = skin_type_srch.group(0)
-                    skin_type = rmv.sub('', skin_type.split('type')[-1])
-                else:
-                    skin_type = 'not_avlbl'
-
-                return({'age':age, 'eye_color':eye_color, 'hair_color':hair_color, 
-                    'hair_cond':hair_cond, 'skin_tone':skin_tone, 'skin_type':skin_type})
-            else:
-                return({'age':'not_avlbl', 'eye_color':'not_avlbl', 'hair_color':'not_avlbl', 
-                    'hair_cond':'not_avlbl', 'skin_tone':'not_avlbl', 'skin_type':'not_avlbl'}) 
-        self.sph_review['user_attrs'] = self.sph_review.user_attribute.apply(separate_user_attributes)
-        user_attrs = pd.DataFrame(self.sph_review.user_attrs.values.tolist())
-        self.sph_review = pd.concat([self.sph_review, user_attrs], axis=1)
-        self.sph_review.drop(['user_attribute', 'user_attrs'], axis=1, inplace=True)
-        self.sph_review.reset_index(drop=True, inplace=True)
-        return self.sph_review       
-        
-        
-    def sph_detail_cleaner(self, return_type):
-        """pass"""
-        self.sph_detail = self.read_data()
-        #self.sph_detail.drop_duplicates(subset='sephora_product_id', inplace=True) ##uncomment once the new detail with id is downloaded and augmented
-        self.sph_detail.drop('product_attributes', inplace=True, axis=1)
-        self.sph_detail.reset_index(drop=True, inplace=True)
-        
-        def convert_votes_to_number(x):
-            """pass"""
-            if not self.nan_equal(np.nan, x):
-                if 'K' in x:
-                     return int(x.replace('K',''))*1000
-                else:
-                    return x.replace('K','')
-            else:
-                return np.nan
-            
-        self.sph_detail.votes_count = self.sph_detail.votes_count.apply(lambda x: convert_votes_to_number(x))
-        
-        import ast
-        def split_rating_dist(x, stars):
-            if x is not np.nan:
-                ratings = ast.literal_eval(x)
-                if stars == 5:
-                    return ratings[1]            
-                elif stars == 4:
-                    return ratings[3]
-                elif stars == 3:
-                    return ratings[5]
-                elif stars == 2:
-                    return ratings[7]
-                elif stars == 1:
-                    return ratings[9]
-            else:
-                return np.nan
-        self.sph_detail['five_star'] = self.sph_detail.rating_distribution.apply(lambda x: split_rating_dist(x,5))
-        self.sph_detail['four_star'] = self.sph_detail.rating_distribution.apply(lambda x: split_rating_dist(x,4))
-        self.sph_detail['three_star'] = self.sph_detail.rating_distribution.apply(lambda x: split_rating_dist(x,3))
-        self.sph_detail['two_star'] = self.sph_detail.rating_distribution.apply(lambda x: split_rating_dist(x,2))
-        self.sph_detail['one_star'] = self.sph_detail.rating_distribution.apply(lambda x: split_rating_dist(x,1))
-        self.sph_detail.drop('rating_distribution', axis=1, inplace=True)
-        
-        self.sph_detail.would_recommend = self.sph_detail.would_recommend.str.replace('%','').astype(float)
-        self.sph_detail.rename({'would_recommend':'would_recommend_percentage'}, inplace=True, axis=1)
-               
-        
-        if return_type == 'None':
-            return self.sph_detail
-        #else:
-         #   return self.sph_meta
-    
-    def calculate_ratings(self, x):
-            """pass"""
-            if self.nan_equal(np.nan, x['ratings']):
-                return (x['five_star']*5 + x['four_star']*4 + x['three_star']*3 + x['two_star']*2 + x['one_star'])\
-                        /(x['five_star'] + x['four_star'] + x['three_star'] + x['two_star'] + x['one_star'])
-            else:
-                return x['ratings']
-            #self.sph_meta.ratings =  round(self.sph_detail.apply(lambda x: calculate_ratings(x), axis=1),1)
-             
-    def sph_meta_cleaner(self, return_type):
-        """pass"""
-        self.sph_meta = self.read_data()
-        #self.sph_meta.drop_duplicates(inplace=True)
-        #self.sph_meta.reset_index(drop=True, inplace=True)
-        self.sph_meta['price'] = self.sph_meta['price'].str.replace('$', '')
-        self.sph_meta['price'] = self.sph_meta['price'].str.replace('(', '/ ')
-        self.sph_meta['price'] = self.sph_meta['price'].str.replace(')', '')
-        self.sph_meta['price'] = self.sph_meta['price'].str.replace('value','')
-    
-        sephora_product_ids = self.sph_meta.product_page.str.split(':', expand=True)
-        sephora_product_ids.columns = ['a', 'b', 'id']
-        self.sph_meta['sephora_product_id'] = sephora_product_ids.id
-        
-        rem_rat = re.compile('(\s*)stars|star|No(\s*)')
-        self.sph_meta.ratings = self.sph_meta.ratings.apply(lambda x: rem_rat.sub('',x))
-        self.sph_meta.ratings[self.sph_meta.ratings==''] = np.nan
-        
-        low_price = []
-        high_price = []
-        actual_price = []
-        self.sph_meta_missing_price = self.sph_meta[self.sph_meta.price.isna()]
-        self.sph_meta_missing_price.drop_duplicates(inplace=True)
-        self.sph_meta_missing_price.reset_index(drop=True, inplace=True)
-        
-        self.sph_meta = self.sph_meta[~self.sph_meta.price.isna()]
-        for i in self.sph_meta.price[:]:
-            if '/' in i:
-                prices = i.split('/')
-                low_price.append(prices[0])
-                actual_price.append(prices[-1])
-                high_price.append(np.nan)
-            elif '-' in i:
-                prices = i.split('-')
-                low_price.append(prices[0])
-                high_price.append(prices[-1])  
-                actual_price.append(np.nan)
-            else:
-                low_price.append(i)
-                high_price.append(np.nan)
-                actual_price.append(np.nan)
-        prices = pd.DataFrame(list(zip(low_price, high_price, actual_price)), columns=['low_price', 'high_price', 'actual_price'])
-        prices.reset_index(drop=True, inplace=True)
-        self.sph_meta.reset_index(drop=True, inplace=True)
-        self.sph_meta = pd.concat([self.sph_meta, prices], axis=1)
-        self.sph_meta.drop('price', axis=1, inplace=True)
-        
-        self.sph_meta_no_cats = self.sph_meta.loc[:, self.sph_meta.columns.difference(['category', 'sub_category'])]     
-        self.sph_meta_no_cats.drop_duplicates(subset='sephora_product_id', inplace=True)
-        self.sph_meta_no_cats.reset_index(drop=True, inplace=True)
-        
-        self.sph_meta.reset_index(drop=True, inplace=True)
-        
-        if return_type == 'no_cats':
-            return self.sph_meta_no_cats
-        else:
-            return self.sph_meta
-        
 class DataPrep(Meiyume):
     """pass"""
     def __init__(self, meta_file=None, detail_file=None, review_file=None, file_path=os.getcwd(), 
@@ -405,13 +98,13 @@ class DataPrep(Meiyume):
                         /(x['five_star'] + x['four_star'] + x['three_star'] + x['two_star'] + x['one_star'])
             else:
                 return x['ratings']
-            
+
         self.meta_detail_rank.ratings =  round(self.meta_detail_rank.apply(lambda x: calculate_ratings(x), axis=1),1)
         self.meta_detail_rank = self.meta_detail_rank[~self.meta_detail_rank.ratings.isna()]
         self.meta_detail_rank = self.meta_detail_rank[~self.meta_detail_rank.reviews_count.isna()]
         self.meta_detail_rank.reset_index(inplace=True, drop=True)
-        
-        return self.meta_detail_rank 
+
+        return self.meta_detail_rank
 
     def prepare_data_for_review_data_analysis(self):
         """pass"""
@@ -422,14 +115,14 @@ class DataPrep(Meiyume):
             cat_brand.set_index('product_name', inplace=True)
             self.review = self.review.join(cat_brand, how='inner')
             cat_brand.reset_index(inplace=True)
-            self.review.reset_index(inplace=True)        
+            self.review.reset_index(inplace=True)
             #convert price to float
             self.review.low_price = self.review.low_price.str.replace(' ','')
             self.review = self.review[self.review.low_price.apply(len) != 0]
             self.review.low_price = self.review.low_price.astype(float)
-            return self.review   
+            return self.review
         else:
-            return self.review      
+            return self.review
 
     def prepare_data_for_review_classification_first_stage(self):
         """pass"""
