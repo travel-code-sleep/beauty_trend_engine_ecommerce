@@ -13,3 +13,4 @@ meiyume/sph/app.py
 meiyume/sph/cleaner.py
 meiyume/sph/crawler.py
 meiyume/sph/master.py
+meiyume/sph/sexy_ingredients.py

@@ -5,6 +5,7 @@ import os
 import re
 import string
 import time
+import warnings
 from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import reduce
@@ -16,10 +17,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import swifter
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value
 from tqdm import tqdm
 
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value
-
+warnings.simplefilter(action='ignore')#, category=[FutureWarning, SettingWithCopyWarning])
 plt.style.use('fivethirtyeight')
 np.random.seed(42)
 
@@ -221,6 +222,47 @@ class Cleaner(Sephora):
             return (x['five_star']*5 + x['four_star']*4 + x['three_star']*3 + x['two_star']*2 + x['one_star'])\
                     /(x['five_star'] + x['four_star'] + x['three_star'] + x['two_star'] + x['one_star'])
         else: return x
+
+    def review_cleaner(self):
+        """[summary]
+
+        """
+        self.review = self.data
+        self.review = self.review[~self.review.review_text.isna()]
+        self.review.reset_index(inplace=True, drop=True)
+
+        #separate helpful/not_helpful
+        self.review['helpful_N'], self.review['helpful_Y']= zip(*self.review.helpful.swifter.apply(lambda x: literal_eval(x)[0]).str.split('\n', expand=True).values)
+        hlp_regex = re.compile('[a-zA-Z()]')
+        self.review.helpful_Y = self.review.helpful_Y.swifter.apply(lambda x: hlp_regex.sub('', x))
+        self.review.helpful_N = self.review.helpful_N.swifter.apply(lambda x: hlp_regex.sub('', x))
+        self.review.drop('helpful', inplace=True, axis=1)
+
+        #convert ratings to numbers
+        rat_regex = re.compile('(\s*)stars|star|No(\s*)')
+        self.review.review_rating = self.review.review_rating.swifter.apply(lambda x: rat_regex.sub('',x))
+        self.review.review_rating = self.review.review_rating.astype(int)
+
+        #convert data format
+        self.review.review_date = pd.to_datetime(self.review.review_date, infer_datetime_format=True)
+
+        #clean and convert recommendation
+        #### if rating is 5 then it is assumed that the person recommends
+        #### id rating is 1 or 2 then it is assumed that the person does not recommend
+        #### for all the other cases data is not available
+        self.review.recommend[(self.review.recommend=='Recommends this product') | (self.review.review_rating==5)] = 'Yes'
+        self.review.recommend[(self.review.recommend!='Yes') & (self.review.review_rating.isin([1,2]))] = 'No'
+        self.review.recommend[(self.review.recommend!='Yes') & (self.review.review_rating.isin([3,4]))] = 'not_avlbl'
+
+        #separate and create user attribute column
+        def make_dict(x):
+            return {k:v  for d in literal_eval(x) for k, v in d.items() if k not in ['hair_condition_chemically_treated_(colored,_relaxed,_or', 'age_over']}
+        self.review['age'], self.review['eye_color'], self.review['hair_color'], self.review['skin_tone'], self.review['skin_type'] = \
+            zip(*pd.DataFrame(self.review.user_attribute.swifter.apply(make_dict).tolist()).values)
+        self.review.drop('user_attribute', inplace=True, axis=1)
+
+        self.review.reset_index(drop=True, inplace=True)
+        return self.review
 
     def item_cleaner(self):
         self.item = self.data
