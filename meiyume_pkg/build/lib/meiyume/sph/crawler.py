@@ -838,12 +838,12 @@ class Review(Sephora):
                         except:
                             try: drv.find_element_by_class_name('css-1phfyoj').click()
                             except:
-                                self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} cant load all reviews. Check click next 6 reviews\
-                                                                code section(page link: {product_page})', 'utf-8', 'ignore'))
                                 if n < (no_of_reviews//6):
                                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} breaking click next review loop.\
                                                                  [total_reviews:{no_of_reviews} loaded_reviews:{n*6}]\
                                                                  (page link: {product_page})', 'utf-8', 'ignore'))
+                                    self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} cant load all reviews. Check click next 6 reviews\
+                                                                code section(page link: {product_page})', 'utf-8', 'ignore'))
                                 break
 
             product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]

@@ -846,12 +846,22 @@ class Review(Sephora):
                                                                 code section(page link: {product_page})', 'utf-8', 'ignore'))
                                 break
 
+            try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
+            except: pass
+            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
+            except: pass
+            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
+            except: pass
             product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]
 
             r = 0
-            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
             for rev in product_reviews:
                 r+=1
+                if r%100==0:
+                    try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
+                    except: pass
+                    try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
+                    except: pass
                 try:
                     review_text = rev.find_element_by_class_name('css-1p4f59m').text
                 except NoSuchElementException or StaleElementReferenceException:
