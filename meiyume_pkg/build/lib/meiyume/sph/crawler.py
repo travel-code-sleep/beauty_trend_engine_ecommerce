@@ -807,9 +807,13 @@ class Review(Sephora):
 
             #sort by NEW reviews
             try:
+                drv.find_element_by_class_name('css-2rg6q7').click()
                 drv.find_element_by_id('review_filter_sort_trigger').click()
-                drv.find_element_by_css_selector('#review_filter_sort > div > div > div:nth-child(2) > div > span > span').click()
-                time.sleep(1)
+                for btn in drv.find_elements_by_class_name('css-a2osvj'):
+                    if btn.text == 'Newest':
+                        drv.find_element_by_id('review_filter_sort_trigger').click()
+                        btn.click()
+                        break
             except:
                 try:
                     drv.find_element_by_id('review_filter_sort_trigger').click()
@@ -817,7 +821,6 @@ class Review(Sephora):
                     time.sleep(1)
                 except:
                     try:
-                        drv.find_element_by_class_name('css-2rg6q7').click()
                         drv.find_element_by_id('review_filter_sort_trigger').click()
                         drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[4]/div[2]/div/div/div/div[2]/div/span/span').click()
                         time.sleep(1)
@@ -835,6 +838,12 @@ class Review(Sephora):
                                 time.sleep(1)
                             except:
                                 self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
+            #                 try:
+            #                     drv.find_element_by_id('review_filter_sort_trigger').click()
+            #                     drv.find_element_by_css_selector('#review_filter_sort > div > div > div:nth-child(2) > div > span > span').click()
+            #                     time.sleep(1)
+            #                 except:
+            #                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
 
             for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
                 if n >=800:
@@ -845,8 +854,16 @@ class Review(Sephora):
                 except:
                     try: drv.find_element_by_class_name('css-1phfyoj').click()
                     except:
+                        try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
+                        except: pass
+                        try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
+                        except: pass
                         try: drv.find_element_by_class_name('css-1phfyoj').click()
                         except:
+                            try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
+                            except: pass
+                            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
+                            except: pass
                             try: drv.find_element_by_class_name('css-1phfyoj').click()
                             except:
                                 if n < (no_of_reviews//6):
@@ -858,8 +875,6 @@ class Review(Sephora):
                                 break
 
             try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-            except: pass
-            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
             except: pass
             try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
             except: pass
