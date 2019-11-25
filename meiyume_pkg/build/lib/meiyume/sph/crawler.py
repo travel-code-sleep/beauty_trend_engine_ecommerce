@@ -849,21 +849,17 @@ class Review(Sephora):
                 if n >=800:
                     break #code will stop after getting 6000 reviews of one particular product
                 time.sleep(0.2)
-                webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform() #close any opened popups by escape
+                #close any opened popups by escape
                 try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
                 except:
+                    webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     try: drv.find_element_by_class_name('css-1phfyoj').click()
                     except:
-                        try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-                        except: pass
-                        try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-                        except: pass
+                        webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                         try: drv.find_element_by_class_name('css-1phfyoj').click()
                         except:
-                            try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-                            except: pass
-                            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-                            except: pass
+                            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+                            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                             try: drv.find_element_by_class_name('css-1phfyoj').click()
                             except:
                                 if n < (no_of_reviews//6):
@@ -874,20 +870,16 @@ class Review(Sephora):
                                                                 code section(page link: {product_page})', 'utf-8', 'ignore'))
                                 break
 
-            try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-            except: pass
-            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-            except: pass
+            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
             product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]
 
             r = 0
             for rev in product_reviews:
                 r+=1
-                if r%5==0:
-                    try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-                    except: pass
-                    try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-                    except: pass
+                if r%20==0:
+                    webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+                    webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                 try:
                     review_text = rev.find_element_by_class_name('css-1p4f59m').text
                 except NoSuchElementException or StaleElementReferenceException:
