@@ -808,24 +808,24 @@ class Review(Sephora):
             #sort by NEW reviews
             try:
                 drv.find_element_by_id('review_filter_sort_trigger').click()
-                drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
+                drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
                 time.sleep(1)
             except:
                 try:
+                    drv.find_element_by_class_name('css-2rg6q7').click()
                     drv.find_element_by_id('review_filter_sort_trigger').click()
-                    drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
+                    drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
                     time.sleep(1)
                 except:
                     try:
-                        self.scroll_down_page(drv, speed=8, h2=0.5)
-                        time.sleep(3)
+                        drv.find_element_by_class_name('css-2rg6q7').click()
                         drv.find_element_by_id('review_filter_sort_trigger').click()
-                        drv.find_element_by_xpath('//*[@id="review_filter_sort"]/div/div/div[2]/div/span/span').click()
+                        drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
                         time.sleep(1)
                     except:
                         self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
 
-            for n in range(no_of_reviews//6+10): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
+            for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
                 # if n >=1001:
                 #     break #code will stop after getting 6000 reviews of one particular product
                 time.sleep(0.2)
@@ -840,7 +840,7 @@ class Review(Sephora):
                             except:
                                 if n < (no_of_reviews//6):
                                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} breaking click next review loop.\
-                                                                 [total_reviews:{no_of_reviews} loaded_reviews:{n*6}]\
+                                                                 [total_reviews:{no_of_reviews} loaded_reviews:{n}]\
                                                                  (page link: {product_page})', 'utf-8', 'ignore'))
                                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} cant load all reviews. Check click next 6 reviews\
                                                                 code section(page link: {product_page})', 'utf-8', 'ignore'))
