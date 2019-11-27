@@ -10,10 +10,10 @@ setup(
     packages=find_packages(),
     namespace_packages=['meiyume'],
     # Needed for dependencies
-    install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno',
-                      'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',
-                      'sklearn',#'swifter', 'fastai', 'keras', 'tensorflow, 'scipy',
-                      ],
+    # install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno',
+    #                   'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',
+    #                   #'sklearn',#'swifter', 'fastai', 'keras', 'tensorflow, 'scipy',
+    #                   ],
     # *strongly* suggested for sharing
     version='0.5.6',
     # The license can be anything you like

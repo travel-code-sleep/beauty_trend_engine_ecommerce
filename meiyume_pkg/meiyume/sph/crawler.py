@@ -807,35 +807,59 @@ class Review(Sephora):
 
             #sort by NEW reviews
             try:
+                drv.find_element_by_class_name('css-2rg6q7').click()
                 drv.find_element_by_id('review_filter_sort_trigger').click()
-                drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
-                time.sleep(1)
+                for btn in drv.find_elements_by_class_name('css-a2osvj'):
+                    if btn.text == 'Newest':
+                        drv.find_element_by_id('review_filter_sort_trigger').click()
+                        btn.click()
+                        break
             except:
                 try:
-                    drv.find_element_by_class_name('css-2rg6q7').click()
                     drv.find_element_by_id('review_filter_sort_trigger').click()
                     drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
                     time.sleep(1)
                 except:
                     try:
-                        drv.find_element_by_class_name('css-2rg6q7').click()
                         drv.find_element_by_id('review_filter_sort_trigger').click()
-                        drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
+                        drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[4]/div[2]/div/div/div/div[2]/div/span/span').click()
                         time.sleep(1)
                     except:
-                        self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
+                        try:
+                            drv.find_element_by_class_name('css-2rg6q7').click()
+                            drv.find_element_by_id('review_filter_sort_trigger').click()
+                            drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
+                            time.sleep(1)
+                        except:
+                            try:
+                                drv.find_element_by_class_name('css-2rg6q7').click()
+                                drv.find_element_by_id('review_filter_sort_trigger').click()
+                                drv.find_element_by_xpath('/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[4]/div[2]/div/div/div/div[2]/div/span/span').click()
+                                time.sleep(1)
+                            except:
+                                self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
+            #                 try:
+            #                     drv.find_element_by_id('review_filter_sort_trigger').click()
+            #                     drv.find_element_by_css_selector('#review_filter_sort > div > div > div:nth-child(2) > div > span > span').click()
+            #                     time.sleep(1)
+            #                 except:
+            #                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
 
             for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
-                # if n >=1001:
-                #     break #code will stop after getting 6000 reviews of one particular product
-                time.sleep(0.2)
-                webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform() #close any opened popups by escape
+                if n >=200:
+                    break #code will stop after getting 6000 reviews of one particular product
+                time.sleep(0.1)
+                #close any opened popups by escape
                 try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
                 except:
+                    webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     try: drv.find_element_by_class_name('css-1phfyoj').click()
                     except:
+                        webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                         try: drv.find_element_by_class_name('css-1phfyoj').click()
                         except:
+                            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+                            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                             try: drv.find_element_by_class_name('css-1phfyoj').click()
                             except:
                                 if n < (no_of_reviews//6):
@@ -846,22 +870,16 @@ class Review(Sephora):
                                                                 code section(page link: {product_page})', 'utf-8', 'ignore'))
                                 break
 
-            try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-            except: pass
-            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-            except: pass
-            try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-            except: pass
+            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+            webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
             product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]
 
             r = 0
             for rev in product_reviews:
                 r+=1
-                if r%5==0:
-                    try: drv.find_element_by_xpath('/html/body/div[5]/div/div/div/div[1]/div/div/button').click()
-                    except: pass
-                    try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
-                    except: pass
+                if r%20==0:
+                    webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+                    webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                 try:
                     review_text = rev.find_element_by_class_name('css-1p4f59m').text
                 except NoSuchElementException or StaleElementReferenceException:
