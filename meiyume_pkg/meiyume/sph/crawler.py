@@ -914,6 +914,8 @@ class Review(Sephora):
 
         store_data_refresh_mem(review_data)
 
+    def get_first_review_date(self):
+        pass
 
 
     def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5, download=True):
