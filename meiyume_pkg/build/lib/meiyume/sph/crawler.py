@@ -846,9 +846,9 @@ class Review(Sephora):
             #                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
 
             for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
-                if n >=800:
+                if n >=200:
                     break #code will stop after getting 6000 reviews of one particular product
-                time.sleep(0.2)
+                time.sleep(0.1)
                 #close any opened popups by escape
                 try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
                 except:

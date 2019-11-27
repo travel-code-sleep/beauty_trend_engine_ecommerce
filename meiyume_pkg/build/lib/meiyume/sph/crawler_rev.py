@@ -846,9 +846,9 @@ class Review(Sephora):
             #                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})', 'utf-8', 'ignore'))
 
             for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
-                if n >=200:
+                if n >=300:
                     break #code will stop after getting 6000 reviews of one particular product
-                time.sleep(0.1)
+                time.sleep(0.2)
                 #close any opened popups by escape
                 try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
                 except:
@@ -867,17 +867,17 @@ class Review(Sephora):
                                                                  [total_reviews:{no_of_reviews} loaded_reviews:{n}]\
                                                                  (page link: {product_page})', 'utf-8', 'ignore'))
                                     self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} cant load all reviews. Check click next 6 reviews\
-                                                                code section(page link: {product_page})', 'utf-8', 'ignore'))
+                                                                  code section(page link: {product_page})', 'utf-8', 'ignore'))
                                 break
 
             webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
             webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
             product_reviews = drv.find_elements_by_class_name('css-1hm9c5d')[2:]
 
-            r = 0
-            for rev in product_reviews:
-                r+=1
-                if r%20==0:
+            for x in (4, len(product_reviews)+1):
+                rev = drv.find_element_by_xpath(f'//*[@id="ratings-reviews"]/div[{x}]')
+
+                if x%20==0:
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                     webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
                 try:
