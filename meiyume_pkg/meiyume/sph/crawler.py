@@ -228,7 +228,7 @@ class Metadata(Sephora):
                     time.sleep(3)
                     try:
                        product_name = p.find_element_by_class_name('css-ix8km1').get_attribute('aria-label')
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except: NoSuchElementException or StaleElementReferenceException:
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} metadata extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
@@ -236,35 +236,35 @@ class Metadata(Sephora):
                     try:
                         new_f = p.find_element_by_class_name("css-8o71lk").text
                         product_new_flag = 'NEW'
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except: NoSuchElementException or StaleElementReferenceException:
                         product_new_flag = ''
                         # self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                         #                              product {products.index(p)} product_new_flag extraction failed.\
                         #                         (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         product_page = p.find_element_by_class_name('css-ix8km1').get_attribute('href')
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except: NoSuchElementException or StaleElementReferenceException:
                         product_page = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} product_page extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         brand = p.find_element_by_class_name('css-ktoumz').text
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except: NoSuchElementException or StaleElementReferenceException:
                         brand = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} brand extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         rating = p.find_element_by_class_name('css-1adflzz').get_attribute('aria-label')
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except: NoSuchElementException or StaleElementReferenceException:
                         rating = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} rating extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         price = p.find_element_by_class_name('css-68u28a').text
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except: NoSuchElementException or StaleElementReferenceException:
                         price = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                       product {products.index(p)} price extraction failed.\
