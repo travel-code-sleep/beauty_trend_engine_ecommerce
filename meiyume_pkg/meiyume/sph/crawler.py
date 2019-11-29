@@ -393,6 +393,9 @@ class Detail(Sephora):
             Arguments:
                 detail_data {[type]} -- [description]
                 item_df {[type]} -- [description]
+
+            Returns:
+                [type] -- [description]
             """
             pd.DataFrame(detail_data).to_csv(self.current_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             item_df.reset_index(inplace=True, drop=True)
@@ -771,6 +774,9 @@ class Review(Sephora):
 
             Arguments:
                 review_data {[type]} -- [description]
+
+            Returns:
+                [type] -- [description]
             """
             pd.DataFrame(review_data).to_csv(self.current_progress_path/f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             self.meta.to_feather(self.review_path/'sph_review_progress_tracker')
