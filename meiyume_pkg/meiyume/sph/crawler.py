@@ -395,11 +395,11 @@ class Detail(Sephora):
                 item_df {[type]} -- [description]
             """
             pd.DataFrame(detail_data).to_csv(self.current_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
-            detail_data = []
             item_df.reset_index(inplace=True, drop=True)
             item_df.to_csv(self.current_progress_path/f'sph_prod_item_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             item_df = pd.DataFrame(columns=['prod_id','product_name','item_name','item_size','item_price','item_ingredients'])
             self.meta.to_feather(self.detail_path/'sph_detail_progress_tracker')
+            return [], item_df
 
         def get_product_attributes():
             """[summary]
@@ -632,8 +632,8 @@ class Detail(Sephora):
             self.meta.loc[prod, 'detail_scraped'] = 'Y'
             if prod !=0 and prod%10==0:
                 if len(detail_data)>0:
-                    store_data_refresh_mem(detail_data, item_df)
-        store_data_refresh_mem(detail_data, item_df)
+                   detail_data, item_df = store_data_refresh_mem(detail_data, item_df)
+        detail_data, item_df = store_data_refresh_mem(detail_data, item_df)
         drv.close()
         self.logger.info(f'Detail Extraction Complete for start_idx: (lst[0]) to end_idx: {lst[-1]}. Or for list of values.')
 
@@ -659,7 +659,7 @@ class Detail(Sephora):
                 if Path(self.detail_path/'sph_detail_progress_tracker').exists():
                     self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
                     if sum(self.meta.detail_scraped=='N')==0:
-                        self.fresh()
+                        fresh()
                         self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info('Continuing Detail Extraction From Last Run.')
@@ -959,7 +959,7 @@ class Review(Sephora):
                 if Path(self.review_path/'sph_review_progress_tracker').exists():
                     self.meta = pd.read_feather(self.review_path/'sph_review_progress_tracker')
                     if sum(self.meta.review_scraped=='N')==0:
-                        self.fresh()
+                        fresh()
                         self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info('Continuing Review Extraction From Last Run.')

@@ -773,8 +773,8 @@ class Review(Sephora):
                 review_data {[type]} -- [description]
             """
             pd.DataFrame(review_data).to_csv(self.current_progress_path/f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
-            review_data=[]
             self.meta.to_feather(self.review_path/'sph_review_progress_tracker')
+            return []
 
         for prod in self.meta.index[self.meta.index.isin(lst)]:
             if self.meta.loc[prod, 'review_scraped'] in ['Y','NA']:
@@ -927,11 +927,13 @@ class Review(Sephora):
                                     'review_date':review_date,   'helpful':helpful})
             drv.close()
             self.meta.loc[prod, 'review_scraped'] = 'Y'
-            store_data_refresh_mem(review_data)
+            review_data = store_data_refresh_mem(review_data)
             self.logger.info(str.encode(f'Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, extracted_reviews: {len(product_reviews)}, page: {product_page})', 'utf-8', 'ignore'))
 
-        store_data_refresh_mem(review_data)
+        review_data = store_data_refresh_mem(review_data)
 
+    def get_first_review_date(self):
+        pass
 
 
     def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, delete_progress=False, clean=True, n_workers=5, download=True):
