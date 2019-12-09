@@ -59,10 +59,10 @@ class Metadata(Sephora):
     def __init__(self, driver_path, log=True, path=Path.cwd(),
                  show=True):
         """[summary]
-        
+
         Arguments:
             driver_path {[type]} -- [description]
-        
+
         Keyword Arguments:
             log {bool} -- [description] (default: {True})
             path {[type]} -- [description] (default: {Path.cwd()})
@@ -139,7 +139,7 @@ class Metadata(Sephora):
             """[summary]
             """
             product_type_urls = self.get_product_type_urls()
-            # progress tracker: captures scraped and error desc 
+            # progress tracker: captures scraped and error desc
             progress_tracker = pd.DataFrame(index=product_type_urls.index, columns=['product_type', 'scraped', 'error_desc'])
             progress_tracker.scraped = 'N'
             return product_type_urls, progress_tracker
@@ -393,13 +393,16 @@ class Detail(Sephora):
             Arguments:
                 detail_data {[type]} -- [description]
                 item_df {[type]} -- [description]
+
+            Returns:
+                [type] -- [description]
             """
             pd.DataFrame(detail_data).to_csv(self.current_progress_path/f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
-            detail_data = []
             item_df.reset_index(inplace=True, drop=True)
             item_df.to_csv(self.current_progress_path/f'sph_prod_item_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             item_df = pd.DataFrame(columns=['prod_id','product_name','item_name','item_size','item_price','item_ingredients'])
             self.meta.to_feather(self.detail_path/'sph_detail_progress_tracker')
+            return [], item_df
 
         def get_product_attributes():
             """[summary]
@@ -632,8 +635,8 @@ class Detail(Sephora):
             self.meta.loc[prod, 'detail_scraped'] = 'Y'
             if prod !=0 and prod%10==0:
                 if len(detail_data)>0:
-                    store_data_refresh_mem(detail_data, item_df)
-        store_data_refresh_mem(detail_data, item_df)
+                   detail_data, item_df = store_data_refresh_mem(detail_data, item_df)
+        detail_data, item_df = store_data_refresh_mem(detail_data, item_df)
         drv.close()
         self.logger.info(f'Detail Extraction Complete for start_idx: (lst[0]) to end_idx: {lst[-1]}. Or for list of values.')
 
@@ -659,7 +662,7 @@ class Detail(Sephora):
                 if Path(self.detail_path/'sph_detail_progress_tracker').exists():
                     self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
                     if sum(self.meta.detail_scraped=='N')==0:
-                        self.fresh()
+                        fresh()
                         self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info('Continuing Detail Extraction From Last Run.')
@@ -718,7 +721,7 @@ class Detail(Sephora):
         item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}'#.csv'
         # item_df.to_csv(self.detail_path/item_filename, index=None)
         item_df.to_feather(self.detail_path/item_filename)
-        
+
         self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
         print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
 
@@ -729,7 +732,7 @@ class Detail(Sephora):
         if  clean:
             cleaner = Cleaner()
             self.detail_clean_df = cleaner.clean_data(data=detail_df, filename=detail_filename)
-            self.item_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
+            self.item_clean_df, self.ing_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
         self.logger.handlers.clear()
         self.prod_detail_log.stop_log()
 
@@ -771,6 +774,9 @@ class Review(Sephora):
 
             Arguments:
                 review_data {[type]} -- [description]
+
+            Returns:
+                [type] -- [description]
             """
             pd.DataFrame(review_data).to_csv(self.current_progress_path/f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
             self.meta.to_feather(self.review_path/'sph_review_progress_tracker')
@@ -959,7 +965,7 @@ class Review(Sephora):
                 if Path(self.review_path/'sph_review_progress_tracker').exists():
                     self.meta = pd.read_feather(self.review_path/'sph_review_progress_tracker')
                     if sum(self.meta.review_scraped=='N')==0:
-                        self.fresh()
+                        fresh()
                         self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info('Continuing Review Extraction From Last Run.')

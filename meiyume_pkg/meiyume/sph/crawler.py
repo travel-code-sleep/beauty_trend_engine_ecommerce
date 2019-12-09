@@ -721,7 +721,7 @@ class Detail(Sephora):
         item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}'#.csv'
         # item_df.to_csv(self.detail_path/item_filename, index=None)
         item_df.to_feather(self.detail_path/item_filename)
-        
+
         self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
         print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
 
@@ -732,7 +732,7 @@ class Detail(Sephora):
         if  clean:
             cleaner = Cleaner()
             self.detail_clean_df = cleaner.clean_data(data=detail_df, filename=detail_filename)
-            self.item_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
+            self.item_clean_df, self.ing_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
         self.logger.handlers.clear()
         self.prod_detail_log.stop_log()
 
