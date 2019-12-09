@@ -16,9 +16,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import spacy
 import swifter
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException
 from tqdm import tqdm
+
+nlp = spacy.load('en_core_web_lg')
 
 warnings.simplefilter(action='ignore')#, category=[FutureWarning, SettingWithCopyWarning])
 plt.style.use('fivethirtyeight')
@@ -53,7 +56,7 @@ class Cleaner(Sephora):
             self.data = data
             filename = filename
         else:
-            filename = data
+            filename = Path(data)
             try: self.data = pd.read_feather(data)
             except: self.data = pd.read_csv(data)
 
@@ -78,12 +81,13 @@ class Cleaner(Sephora):
                 cleaned_detail.to_feather(self.detail_clean_path/f'{clean_file_name}')
             return cleaned_detail
         if data_def == 'item':
-            cleaned_item = self.item_cleaner(return_type='None')
+            cleaned_item, cleaned_ingredient = self.item_cleaner()
             cleaned_item.drop_duplicates(inplace=True)
             cleaned_item.reset_index(inplace=True, drop=True)
             if save:
                 cleaned_item.to_feather(self.detail_clean_path/f'{clean_file_name}')
-            return cleaned_item
+                cleaned_ingredient.to_feather(self.detail_clean_path/f'{clean_file_name.replace("item", "ingredient")}')
+            return cleaned_item, cleaned_ingredient
         if data_def == 'review':
             cleaned_review = self.review_cleaner()
             cleaned_review.drop_duplicates(inplace=True)
@@ -93,11 +97,11 @@ class Cleaner(Sephora):
             return cleaned_review
 
     def find_data_def(self, filename):
+        filename = str(filename).split('\\')[-1]
         if 'meta' in filename.lower(): return 'meta'
         elif 'detail' in filename.lower(): return 'detail'
         elif 'item' in filename.lower(): return 'item'
         elif 'review' in filename.lower(): return 'review'
-        elif 'item' in filename.lower(): return 'item'
         else: raise MeiyumeException("Unable to determine data definition. Please provide correct file names.")
 
     def make_price(self, x):
@@ -267,3 +271,56 @@ class Cleaner(Sephora):
     def item_cleaner(self):
         self.item = self.data
         self.item.item_price = self.item.item_price.swifter.apply(lambda x: self.clean_price(x))
+        self.item.item_size = self.item.item_size.str.replace('SIZE', '').str.encode('ascii', errors='ignore').astype(str).str.decode('utf8', errors='ignore')
+        #self.item.item_size = self.item.item_size.astype(str).str.decode('utf8', errors='ignore')
+        def RemoveBannedWords(text):
+            pattern = re.compile("\\b(off|for|without|defined|which|must|supports|please|protect|prevents|provides|exfoliate|exfoliates|calms|calm|irritating|effects|of|pollution|\
+                            on|breakout-prone|skins|skin|breakout|prone|helps|help|reduces|reduce|shine|top|yourself|will|namely|between|name|why|amount|comforts|comfort|contour|\
+                            so|regarding|from|next|seeming|had|among|seemed|per|beyond|thereafter|because|only|hundred|throughout|never|might|our|sensitized|volumizing|effect|plump|\
+                            Strengthen|strengthen|relieve|stresses|stress|Removed|removed|remove|redness|Scaling|derived|Aids|body|renewal|spot|size|clear|prematurely|age|encapsulating|\
+                            really|these|whereby|none|last|above|not|always|until|something|prone|became|less|whether|of|everywhere|ca|supports|support|fights|fight|wrinkles|appears|\
+                            forty|all|becoming|hereupon|pollution|could|afterwards|twenty|are|keep|though|side|hereafter|unless|may|hereby|gently|effectively|unclog|purify|pores|\
+                            nevertheless|whatever|no|since|should|is|again|but|calms|after|re|further|neither|now|some|via|first|else|travel|cortex|nourish|repairs|repair|inside|feel|\
+                            anyway|amongst|shine|Provides|out|say|behind|put|much|ours|under|my_new_stopword|who|those|nor|please|few|and|refines|refine|absorbs|absorb|deeper|elasticity|\
+                            when|besides|reduce|each|into|do|beforehand|he|also|where|mostly|make|wherein|perhaps|myself|would|breakout|meanwhile|minimize|symptoms|fatigue|insomnia|while|\
+                            while|elsewhere|except|together|whereas|how|around|just|three|yourselves|she|your|about|done|therein|an|whereupon|am|providing|protection|chronic|diseases|associated|\
+                            somewhere|they|both|bottom|skin|whence|onto|seems|whenever|or|such|almost|see|everyone|my|five|either|go|latterly|Soothe|soften|aging|excessive|sun|exposure|\
+                            along|below|another|thence|enough|nt|at|must|by|during|within|hers|whither|upon|has|than|effects|Calms|ve|it|barrier|guards|guard|external|irritants|\
+                            anywhere|you|being|us|we|without|himself|therefore|other|towards|thus|up|own|defined|ll|even|any|m|although|designed|battles|battle|environmental|aggressors|\
+                            eleven|nobody|anything|whom|breakout-prone|every|moreover|themselves|anyhow|serious|does|whole|Exfoliate|once|others|the|aggressor|skin.|updated|periodically|\
+                            third|seem|was|hence|made|sometimes|were|ourselves|then|on|six|across|alone|against|move|back|Helps|in|can|and|signs|aging|minimizes|looks|look|damages|damage|induced|\
+                            irritating|what|their|sometime|here|provides|noone|still|indeed|prevents|doing|before|been|somehow|this|several|aid|Increases|circulation|temperature|induces|induce|\
+                            for|whoever|former|have|which|become|thereupon|sixty|formerly|quite|using|me|and|get|already|very|well|cannot|work|effectively|utilizing|called|entourage|effect|\
+                            many|off|i|nine|otherwise|nowhere|fifty|over|everything|empty|used|with|his|him|most|wherever|more|toward|Please|purifying|sweat|eliminate|toxins|while|soften|tone|\
+                            front|itself|same|however|least|often|eight|latter|through|its|anyone|full|if|supports|her|beside|someone|read|list|packaging|sure|resilience|boosts|boost|firmness|\
+                            four|be|ever|ten|too|twelve|exfoliate|whose|them|various|rather|thereby|did|down|that|protect|whereafter|yet|lasting|required|fight|age|related|dryness|makes|make|lines|\
+                            as|take|nothing|yours|two|herself|there|give|part|becomes|mine|herein|call|due|one|show|fifteen|to|thru|Undisclosed|appropriate|personal|use|\
+                            synthetic|Products|formulated|disclosed|meet|following|criteria|include|ingredients|listed|numbers|total|product|ingredient|listings|\
+                            Brand|brand|conducts|testing|ensure|provided|applied|applies|apply|comply|thresholds|threshold|as|follows|follows|meant|rinsed|off|wiped|removed|\
+                            for|mean|remain|giving|feeling|a|smooth|pain|inflammation|inflammation|antibacterial|provides|provide|antiseptic|calming|properties|diminish|\
+                            appearance|blemishes|prevents|prevent|new|ones|occurring|Contains|contain|benefits|benefit|tone|Protects|protect|hair|\
+                            damage|delivers|deliver|essentials|essential|tame|frizz|balances|balance|hydration|hairs|hair|locks|lock|moisture|delivers|deliver|silky|feel|\
+                            hair|moisture|retention|restores|balance|improves|improve|elasticity|hair|Forms|form|protective|film|)\\W", re.I)
+            return pattern.sub(" ", text)
+        self.item.item_ingredients = self.item.item_ingredients.str.replace('\n', ',').str.replace('%', ' percent ').str.replace('.', ' dottt ')
+        self.item['clean_ing_list'] = self.item.item_ingredients.swifter.apply(lambda x: [" ".join(re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', RemoveBannedWords(text)).replace('-', ' ').strip().split())
+                                                                              for text in nlp(x.replace('\n', ',')).text.split(',') if RemoveBannedWords(text).strip()!='']
+                                                                              if x is not np.nan else np.nan, axis=1)
+        self.ing = pd.DataFrame(columns=['prod_id', 'ingredient'])
+        for i in self.item.index:
+            clean_list = self.item.loc[i, 'clean_ing_list']
+            if clean_list is np.nan:
+                continue
+            prod_id = self.item.loc[i, 'prod_id']
+            df = pd.DataFrame(clean_list, columns=['ingredient']) 
+            df['prod_id'] = prod_id
+            self.ing = pd.concat([self.ing, df], axis=0)
+
+        self.ing.drop_duplicates(inplace=True)
+        self.ing = self.ing[~self.ing.ingredient.isin(['synthetic fragrances synthetic fragrances 1 synthetic fragrances 1 12 2 synthetic fragrances concentration 1 formula type acrylates ethyl acrylate','1'])]
+        self.ing.ingredient = self.ing.ingredient.swifter.apply(lambda x: RemoveBannedWords(x).strip())
+        self.ing.ingredient = self.ing.ingredient.str.replace('percent', '%').str.replace('dottt', '.')
+        self.ing.reset_index(inplace=True, drop=True)
+
+        self.item.drop(columns=['item_ingredients','clean_ing_list'], inplace=True, axis=1)
+        return self.item, self.ing

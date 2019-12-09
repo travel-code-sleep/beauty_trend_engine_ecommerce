@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     namespace_packages=['meiyume'],
     # Needed for dependencies
-    # install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno',
+    # install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno', 'spacy'
     #                   'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',
     #                   #'sklearn',#'swifter', 'fastai', 'keras', 'tensorflow, 'scipy',
     #                   ],
