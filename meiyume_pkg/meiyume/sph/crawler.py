@@ -124,11 +124,12 @@ class Metadata(Sephora):
         df_clean = df_clean[(df_clean.url.apply(
             lambda x: True if 'clean' in x else False)) & (df_clean.product_type != 'cleanser')]
         df = pd.concat([df, df_clean], axis=0)
-        df['scraped'] = 'N'
+        df.reset_index(inplace=True, drop=True)
         df.to_feather(self.metadata_path/'sph_product_cat_subcat_structure')
         drv.close()
-        df.drop_duplicates(subset='product_type', inplace=True)
+        df.drop_duplicates(subset='url', inplace=True)
         df.reset_index(inplace=True, drop=True)
+        df['scraped'] = 'N'
         df.to_feather(self.metadata_path/f'sph_product_type_urls_to_extract')
         return df
 
