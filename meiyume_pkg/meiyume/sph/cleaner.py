@@ -319,7 +319,7 @@ class Cleaner(Sephora):
         self.ing.drop_duplicates(inplace=True)
         self.ing = self.ing[~self.ing.ingredient.isin(['synthetic fragrances synthetic fragrances 1 synthetic fragrances 1 12 2 synthetic fragrances concentration 1 formula type acrylates ethyl acrylate','1'])]
         self.ing.ingredient = self.ing.ingredient.swifter.apply(lambda x: RemoveBannedWords(x).strip())
-        self.ing.ingredient = self.ing.ingredient.str.replace('percent', '%').str.replace('dottt', '.')
+        self.ing.ingredient = self.ing.ingredient.str.replace('percent ', '%').str.replace(' dottt ', '.').str.rstrip('.')
         self.ing.reset_index(inplace=True, drop=True)
 
         self.item.drop(columns=['item_ingredients','clean_ing_list'], inplace=True, axis=1)

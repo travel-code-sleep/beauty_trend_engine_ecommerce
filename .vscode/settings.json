@@ -55,5 +55,7 @@
         "meiyume",
         "not",
         "sph"
-    ]
+    ],
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true
 }
