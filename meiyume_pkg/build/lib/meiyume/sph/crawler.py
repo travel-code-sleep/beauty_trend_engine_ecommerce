@@ -119,6 +119,9 @@ class Metadata(Sephora):
                 product_type_urls.append((cat_name, sub_cat_name, sub_cat_url.split('/')[-1], sub_cat_url))
         df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'product_type', 'url'])
         df['scraped'] = 'N'
+        df_clean = pd.DataFrame(sub_cat_urls, columns=['category', 'subcategory', 'subcat_url'])
+        df_clean = df_clean[(df_clean.subcat_url.apply(lambda x: True if 'clean' in x else False))&(df_clean.subcategory!='cleanser')]
+        df = pd.concat([df,df_clean], axis=0)
         df.to_feather(self.metadata_path/'sph_product_cat_subcat_structure')
         drv.close()
         df.drop_duplicates(subset='product_type', inplace=True)
