@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\ProgramData\\Anaconda3\\python.exe",
+    "python.pythonPath": "C:\\Anaconda3\\python.exe",
     "cSpell.enabledLanguageIds": [
         "Log",
         "asciidoc",
@@ -51,6 +51,7 @@
     "cSpell.words": [
         "avlbl",
         "cleaner",
+        "exception",
         "master",
         "meiyume",
         "not",

@@ -21,7 +21,7 @@ import swifter
 from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException
 from tqdm import tqdm
 
-nlp = spacy.load('en_core_web_lg')
+# nlp = spacy.load('en_core_web_lg')
 
 warnings.simplefilter(action='ignore')#, category=[FutureWarning, SettingWithCopyWarning])
 plt.style.use('fivethirtyeight')
