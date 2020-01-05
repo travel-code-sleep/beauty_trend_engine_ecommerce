@@ -120,7 +120,7 @@ class Metadata(Sephora):
         df = pd.DataFrame(product_type_urls, columns = ['category_raw', 'sub_category_raw', 'product_type', 'url'])
         df_clean = pd.DataFrame(sub_cat_urls, columns=[
                                 'category_raw', 'product_type', 'url'])
-        df_clean['sub_category_raw'] = np.nan
+        df_clean['sub_category_raw'] = 'CLEAN'
         df_clean = df_clean[(df_clean.url.apply(
             lambda x: True if 'clean' in x else False)) & (df_clean.product_type != 'cleanser')]
         df = pd.concat([df, df_clean], axis=0)

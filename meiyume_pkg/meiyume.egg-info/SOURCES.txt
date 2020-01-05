@@ -8,8 +8,8 @@ meiyume.egg-info/dependency_links.txt
 meiyume.egg-info/namespace_packages.txt
 meiyume.egg-info/top_level.txt
 meiyume/sph/__init__.py
+meiyume/sph/algorithms.py
 meiyume/sph/app.py
 meiyume/sph/cleaner.py
 meiyume/sph/crawler.py
 meiyume/sph/master.py
-meiyume/sph/sexy_ingredients.py

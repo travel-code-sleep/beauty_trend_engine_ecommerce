@@ -51,8 +51,7 @@ class Cleaner(Sephora):
         Returns:
             [type] -- [description]
         """
-
-        if type(data) == 'pandas.core.frame.DataFrame':
+        if filename:
             self.data = data
             filename = filename
         else:
@@ -85,8 +84,8 @@ class Cleaner(Sephora):
             cleaned_item.drop_duplicates(inplace=True)
             cleaned_item.reset_index(inplace=True, drop=True)
             if save:
-                cleaned_item.to_feather(self.detail_clean_path/f'{clean_file_name}')
-                cleaned_ingredient.to_feather(self.detail_clean_path/f'{clean_file_name.replace("item", "ingredient")}')
+                cleaned_item.to_feather(self.detail_clean_path/f'{clean_file_name.replace(".csv", "")}')
+                cleaned_ingredient.to_feather(self.detail_clean_path/f'{clean_file_name.replace("item", "ingredient").replace(".csv","")}')
             return cleaned_item, cleaned_ingredient
         if data_def == 'review':
             cleaned_review = self.review_cleaner()
@@ -170,6 +169,12 @@ class Cleaner(Sephora):
         clean_rating = re.compile('(\s*)stars|star|No(\s*)')
         self.meta.rating = self.meta.rating.swifter.apply(lambda x: clean_rating.sub('',x))
         self.meta.rating[self.meta.rating==''] = np.nan
+
+        #clean ingredient flag
+        clean_prod_type = self.meta.product_type[self.meta.product_type.swifter.apply(
+            lambda x: True if x.split('-')[0] == 'clean' else False)].unique()
+        self.meta['clean_flag'] = self.meta.swifter.apply(
+            lambda x: 'Yes' if x.product_type in clean_prod_type else 'No', axis=1)
 
         self.meta_no_cat = self.meta.loc[:, self.meta.columns.difference(['category'])]
         self.meta_no_cat.drop_duplicates(subset='prod_id', inplace=True)
@@ -269,11 +274,32 @@ class Cleaner(Sephora):
         return self.review
 
     def item_cleaner(self):
+        """[summary]
+        
+        Returns:
+            [type] -- [description]
+        """        
+        meta_files = self.metadata_clean_path.glob('cat_cleaned_sph_product_metadata_all*')
+        meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+        clean_prod_type = meta.product_type[meta.product_type.apply(lambda x: True if x.split('-')[0] == 'clean' else False)].unique()
+        clean_product_list = meta.prod_id[meta.product_type.isin(clean_prod_type)].unique()
+        new_product_list = meta.prod_id[meta.new_flag == 'NEW'].unique()
+
         self.item = self.data
         self.item.item_price = self.item.item_price.swifter.apply(lambda x: self.clean_price(x))
         self.item.item_size = self.item.item_size.str.replace('SIZE', '').str.encode('ascii', errors='ignore').astype(str).str.decode('utf8', errors='ignore')
         #self.item.item_size = self.item.item_size.astype(str).str.decode('utf8', errors='ignore')
-        def RemoveBannedWords(text):
+        self.item['clean_flag'] = self.item.prod_id.swifter.apply(lambda x: 'Clean' if x in clean_product_list else 'No')
+        self.item['new_flag'] = self.item.prod_id.swifter.apply(lambda x: 'New' if x in new_product_list else 'Old')
+
+        def clean_ing_sep(x):
+            if x.clean_flag == 'Clean' and x.item_ingredients is not np.nan:
+                return x.item_ingredients.lower().split('clean at sephora')[0]+'\n'
+            else: return x.item_ingredients
+
+        self.item.item_ingredients = self.item.swifter.apply(lambda x: clean_ing_sep(x), axis=1).str.replace('(and)', ', ')
+
+        def removeBannedWords(text):
             pattern = re.compile("\\b(off|for|without|defined|which|must|supports|please|protect|prevents|provides|exfoliate|exfoliates|calms|calm|irritating|effects|of|pollution|\
                             on|breakout-prone|skins|skin|breakout|prone|helps|help|reduces|reduce|shine|top|yourself|will|namely|between|name|why|amount|comforts|comfort|contour|\
                             so|regarding|from|next|seeming|had|among|seemed|per|beyond|thereafter|because|only|hundred|throughout|never|might|our|sensitized|volumizing|effect|plump|\
@@ -298,29 +324,38 @@ class Cleaner(Sephora):
                             synthetic|Products|formulated|disclosed|meet|following|criteria|include|ingredients|listed|numbers|total|product|ingredient|listings|\
                             Brand|brand|conducts|testing|ensure|provided|applied|applies|apply|comply|thresholds|threshold|as|follows|follows|meant|rinsed|off|wiped|removed|\
                             for|mean|remain|giving|feeling|a|smooth|pain|inflammation|inflammation|antibacterial|provides|provide|antiseptic|calming|properties|diminish|\
-                            appearance|blemishes|prevents|prevent|new|ones|occurring|Contains|contain|benefits|benefit|tone|Protects|protect|hair|\
+                            appearance|blemishes|prevents|prevent|new|ones|occurring|Contains|contain|benefits|benefit|tone|Protects|protect|hair|refers|refer|shown|data|information|\
                             damage|delivers|deliver|essentials|essential|tame|frizz|balances|balance|hydration|hairs|hair|locks|lock|moisture|delivers|deliver|silky|feel|\
                             hair|moisture|retention|restores|balance|improves|improve|elasticity|hair|Forms|form|protective|film|)\\W", re.I)
             return pattern.sub(" ", text)
+
         self.item.item_ingredients = self.item.item_ingredients.str.replace('\n', ',').str.replace('%', ' percent ').str.replace('.', ' dottt ')
-        self.item['clean_ing_list'] = self.item.item_ingredients.swifter.apply(lambda x: [" ".join(re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', RemoveBannedWords(text)).replace('-', ' ').strip().split())
-                                                                              for text in nlp(x.replace('\n', ',')).text.split(',') if RemoveBannedWords(text).strip()!='']
+        self.item['clean_ing_list'] = self.item.item_ingredients.swifter.apply(lambda x: [" ".join(re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', removeBannedWords(text)).replace('-', ' ').strip().split())
+                                                                              for text in nlp(x.replace('\n', ',')).text.split(',') if removeBannedWords(text).strip() not in ['', ' ']]
                                                                               if x is not np.nan else np.nan, axis=1)
-        self.ing = pd.DataFrame(columns=['prod_id', 'ingredient'])
+
+        self.ing = pd.DataFrame(columns=['prod_id', 'ingredient', 'clean_flag', 'new_flag'])
         for i in self.item.index:
             clean_list = self.item.loc[i, 'clean_ing_list']
             if clean_list is np.nan:
                 continue
             prod_id = self.item.loc[i, 'prod_id']
-            df = pd.DataFrame(clean_list, columns=['ingredient']) 
+            clean_flag = self.item.loc[i,'clean_flag']
+            new_flag = self.item.loc[i,'new_flag']
+            df = pd.DataFrame(clean_list, columns=['ingredient'])
             df['prod_id'] = prod_id
+            df['clean_flag'] = clean_flag
+            df['new_flag'] = new_flag
             self.ing = pd.concat([self.ing, df], axis=0)
 
         self.ing.drop_duplicates(inplace=True)
         self.ing = self.ing[~self.ing.ingredient.isin(['synthetic fragrances synthetic fragrances 1 synthetic fragrances 1 12 2 synthetic fragrances concentration 1 formula type acrylates ethyl acrylate','1'])]
-        self.ing.ingredient = self.ing.ingredient.swifter.apply(lambda x: RemoveBannedWords(x).strip())
-        self.ing.ingredient = self.ing.ingredient.str.replace('percent ', '%').str.replace(' dottt ', '.').str.rstrip('.')
+
+        bannedwords = pd.read_excel(self.detail_path/'banned_words.xlsx', sheet_name='Sheet1')['words'].tolist()
+        self.ing.ingredient = self.ing.ingredient.swifter.apply(lambda x: (' ').join([w if w not in bannedwords else ' ' for w in x.split()]).strip())
+
+        self.ing.ingredient = self.ing.ingredient.str.replace('percent ', '%').str.replace('dottt', '.').str.rstrip('.')
         self.ing.reset_index(inplace=True, drop=True)
 
-        self.item.drop(columns=['item_ingredients','clean_ing_list'], inplace=True, axis=1)
+        self.item.drop(columns=['item_ingredients','clean_ing_list', 'new_flag', 'clean_flag'], inplace=True, axis=1)
         return self.item, self.ing
