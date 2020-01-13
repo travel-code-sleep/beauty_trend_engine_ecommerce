@@ -91,7 +91,7 @@ class Metadata(Sephora):
             cat_name = cu[0]
             cat_url = cu[1]
             drv.get(cat_url)
-            time.sleep(5)
+            time.sleep(8)
             sub_cats = drv.find_elements_by_class_name("css-16yq0cc")
             sub_cats.extend(drv.find_elements_by_class_name("css-or7ouu"))
             if len(sub_cats)>0:
@@ -107,7 +107,7 @@ class Metadata(Sephora):
             sub_cat_name = su[1]
             sub_cat_url = su[2]
             drv.get(sub_cat_url)
-            time.sleep(3)
+            time.sleep(6)
             product_types = drv.find_elements_by_class_name('css-h6ss0r')
             if len(product_types)>0:
                 for item in product_types:
@@ -186,7 +186,7 @@ class Metadata(Sephora):
                 continue
 
             drv.get(product_type_link)
-            time.sleep(5)
+            time.sleep(8)
             #click and close welcome forms
             try:
                 drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
@@ -200,7 +200,7 @@ class Metadata(Sephora):
             try:
                 drv.find_element_by_class_name('css-1gw67j0').click()
                 drv.find_element_by_xpath('//*[@id="cat_sort_menu"]/button[3]').click()
-                time.sleep(2)
+                time.sleep(5)
             except:
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} cannot sort by NEW.(page link: {product_type_link})', 'utf-8', 'ignore'))
                 pass
@@ -229,10 +229,10 @@ class Metadata(Sephora):
                 cp = 0
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type}\
                                   getting product from page {current_page}.(page link: {product_type_link})','utf-8', 'ignore'))
-                time.sleep(3)
+                time.sleep(6)
                 products = drv.find_elements_by_class_name('css-12egk0t')
                 for p in products:
-                    time.sleep(3)
+                    time.sleep(6)
                     try:
                        product_name = p.find_element_by_class_name('css-ix8km1').get_attribute('aria-label')
                     except NoSuchElementException or StaleElementReferenceException:
@@ -279,7 +279,7 @@ class Metadata(Sephora):
 
                     d = {"product_name":product_name,"product_page":product_page,"brand":brand,"price":price,"rating":rating,
                          "category":cat_name,"product_type": product_type, "new_flag":product_new_flag, "complete_scrape_flag":"N",
-                         "timestamp": time.strftime("%Y-%m-%d-%H-%M")}
+                         "meta_date": time.strftime("%Y-%m-%d")}
                     cp += 1
                     self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                  Product: {product_name} - {cp} extracted successfully.\
@@ -299,7 +299,7 @@ class Metadata(Sephora):
                             drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
                                                             div.css-6su6fj > nav > ul > button').click()
-                            time.sleep(5)
+                            time.sleep(10)
                             self.scroll_down_page(drv)
                             current_page = drv.find_element_by_class_name('css-x544ax').text
                         except:
@@ -338,8 +338,8 @@ class Metadata(Sephora):
         metadata_df['source'] = self.source
         filename = f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}'
         metadata_df.to_feather(self.metadata_path/filename)
-        self.logger.info(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
-        print(f'Metadata file created. Please look for file sph_product_metadata_all in path {self.metadata_path}')
+        self.logger.info(f'Metadata file created. Please look for file {filename} in path {self.metadata_path}')
+        print(f'Metadata file created. Please look for file {filename} in path {self.metadata_path}')
         if delete_progress:
             shutil.rmtree(f'{self.metadata_path}\\current_progress', ignore_errors=True)
             self.logger.info('Progress files deleted')
@@ -434,7 +434,7 @@ class Detail(Sephora):
                         typ.click()
                     except:
                         continue
-                    time.sleep(4)
+                    time.sleep(8)
                     item_name, item_size, item_price, item_ingredients = get_item_attributes(multi_variety=True, typ=typ)
                     product_attributes.append({"prod_id":prod_id, "product_name":product_name, "item_name":item_name, "item_size":item_size, "item_price":item_price, "item_ingredients":item_ingredients})
             else:
@@ -512,7 +512,7 @@ class Detail(Sephora):
 
             #open product page
             drv.get(product_page)
-            time.sleep(6)
+            time.sleep(10)
 
             #close popup windows
             try:
@@ -556,7 +556,7 @@ class Detail(Sephora):
                     tab_num = tab_names.index('details')
                     detail_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
-                        time.sleep(2)
+                        time.sleep(4)
                         detail_button.click()
                     except ElementClickInterceptedException:
                         details = ""
@@ -577,7 +577,7 @@ class Detail(Sephora):
                     tab_num = tab_names.index('how to use')
                     how_to_use_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
-                        time.sleep(2)
+                        time.sleep(4)
                         how_to_use_button.click()
                     except ElementClickInterceptedException:
                         how_to_use = ""
@@ -598,7 +598,7 @@ class Detail(Sephora):
                     tab_num = tab_names.index('about the brand')
                     about_the_brand_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
-                        time.sleep(2)
+                        time.sleep(4)
                         about_the_brand_button.click()
                     except ElementClickInterceptedException:
                         about_the_brand = ""
@@ -660,7 +660,7 @@ class Detail(Sephora):
         """
         def fresh():
             list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
-            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page']]
+            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page', 'meta_date']]
             self.meta['detail_scraped'] = 'N'
         if download:
             if fresh_start:
@@ -711,9 +711,10 @@ class Detail(Sephora):
         detail_df = pd.concat(det_li, axis=0, ignore_index=True)
         detail_df.drop_duplicates(inplace=True)
         detail_df.reset_index(inplace=True, drop=True)
-        detail_filename = f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}'#.csv'
-        # detail_df.to_csv(self.detail_path/detail_filename, index=None)
-        detail_df.to_feather(self.detail_path/detail_filename)
+        detail_df['meta_date'] = self.meta.meta_date.max()
+        detail_filename = f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}.csv'
+        detail_df.to_csv(self.detail_path/detail_filename, index=None)
+        # detail_df.to_feather(self.detail_path/detail_filename)
         self.logger.info('Creating Combined Item File')
         item_li = []
         self.bad_item_li = []
@@ -725,21 +726,23 @@ class Detail(Sephora):
         item_df = pd.concat(item_li, axis=0, ignore_index=True)
         item_df.drop_duplicates(inplace=True)
         item_df.reset_index(inplace=True, drop=True)
-        item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}'#.csv'
-        # item_df.to_csv(self.detail_path/item_filename, index=None)
-        item_df.to_feather(self.detail_path/item_filename)
+        item_df['meta_date'] = self.meta.meta_date.max()
+        item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}.csv'
+        item_df.to_csv(self.detail_path/item_filename, index=None)
+        # item_df.to_feather(self.detail_path/item_filename)
 
         self.logger.info(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
         print(f'Detail and Item files created. Please look for file sph_product_detail_all and sph_product_item_all in path {self.detail_path}')
-
-        if delete_progress:
-            shutil.rmtree(f'{self.detail_path}\\current_progress', ignore_errors=True)
-            self.logger.info('Progress files deleted')
 
         if  clean:
             cleaner = Cleaner()
             self.detail_clean_df = cleaner.clean_data(data=detail_df, filename=detail_filename)
             self.item_clean_df, self.ing_clean_df = cleaner.clean_data(data=item_df, filename=item_filename)
+
+        if delete_progress:
+            shutil.rmtree(f'{self.detail_path}\\current_progress', ignore_errors=True)
+            self.logger.info('Progress files deleted')
+
         self.logger.handlers.clear()
         self.prod_detail_log.stop_log()
 
@@ -798,7 +801,7 @@ class Review(Sephora):
 
             drv = self.open_browser()
             drv.get(product_page)
-            time.sleep(4)
+            time.sleep(8)
 
             #close popup windows
             try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
@@ -861,7 +864,7 @@ class Review(Sephora):
             for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
                 if n >=200:
                     break #code will stop after getting 6000 reviews of one particular product
-                time.sleep(0.1)
+                time.sleep(1)
                 #close any opened popups by escape
                 try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
                 except:
@@ -962,7 +965,7 @@ class Review(Sephora):
         """
         def fresh():
             list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
-            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page']]
+            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page', 'meta_date']]
             self.meta['review_scraped'] = 'N'
 
         if download:
@@ -1012,6 +1015,7 @@ class Review(Sephora):
         rev_df = pd.concat(rev_li, axis=0, ignore_index=True)
         rev_df.drop_duplicates(inplace=True)
         rev_df.reset_index(inplace=True, drop=True)
+        rev_df['meta_date'] = self.meta.meta_date.max()
         review_filename = f'sph_product_review_all_{time.strftime("%Y-%m-%d")}'
         rev_df.to_feather(self.review_path/review_filename)#, index=None)
 

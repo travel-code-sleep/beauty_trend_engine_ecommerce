@@ -77,7 +77,7 @@ class Cleaner(Sephora):
             cleaned_detail.drop_duplicates(inplace=True)
             cleaned_detail.reset_index(inplace=True, drop=True)
             if save:
-                cleaned_detail.to_feather(self.detail_clean_path/f'{clean_file_name}')
+                cleaned_detail.to_feather(self.detail_clean_path/f'{clean_file_name.replace(".csv","")}')
             return cleaned_detail
         if data_def == 'item':
             cleaned_item, cleaned_ingredient = self.item_cleaner()
@@ -297,11 +297,12 @@ class Cleaner(Sephora):
                 return x.item_ingredients.lower().split('clean at sephora')[0]+'\n'
             else: return x.item_ingredients
 
-        self.item.item_ingredients = self.item.swifter.apply(lambda x: clean_ing_sep(x), axis=1).str.replace('(and)', ', ')
+        self.item.item_ingredients = self.item.swifter.apply(lambda x: clean_ing_sep(x), axis=1).str.replace('(and)', ', ').str.replace(';', ', ').str.lower()\
+            .replace('may contain', 'xxcont').str.replace('(', '/').str.replace(')','')
 
         def removeBannedWords(text):
             pattern = re.compile("\\b(off|for|without|defined|which|must|supports|please|protect|prevents|provides|exfoliate|exfoliates|calms|calm|irritating|effects|of|pollution|\
-                            on|breakout-prone|skins|skin|breakout|prone|helps|help|reduces|reduce|shine|top|yourself|will|namely|between|name|why|amount|comforts|comfort|contour|\
+                            on|skins|skin|breakout|prone|helps|help|reduces|reduce|shine|top|yourself|will|namely|between|name|why|amount|comforts|comfort|contour|sunscreens|\
                             so|regarding|from|next|seeming|had|among|seemed|per|beyond|thereafter|because|only|hundred|throughout|never|might|our|sensitized|volumizing|effect|plump|\
                             Strengthen|strengthen|relieve|stresses|stress|Removed|removed|remove|redness|Scaling|derived|Aids|body|renewal|spot|size|clear|prematurely|age|encapsulating|\
                             really|these|whereby|none|last|above|not|always|until|something|prone|became|less|whether|of|everywhere|ca|supports|support|fights|fight|wrinkles|appears|\
@@ -321,7 +322,7 @@ class Cleaner(Sephora):
                             front|itself|same|however|least|often|eight|latter|through|its|anyone|full|if|supports|her|beside|someone|read|list|packaging|sure|resilience|boosts|boost|firmness|\
                             four|be|ever|ten|too|twelve|exfoliate|whose|them|various|rather|thereby|did|down|that|protect|whereafter|yet|lasting|required|fight|age|related|dryness|makes|make|lines|\
                             as|take|nothing|yours|two|herself|there|give|part|becomes|mine|herein|call|due|one|show|fifteen|to|thru|Undisclosed|appropriate|personal|use|\
-                            synthetic|Products|formulated|disclosed|meet|following|criteria|include|ingredients|listed|numbers|total|product|ingredient|listings|\
+                            synthetic|Products|formulated|disclosed|meet|following|criteria|include|ingredients|listed|numbers|total|product|ingredient|listings|brightening|\
                             Brand|brand|conducts|testing|ensure|provided|applied|applies|apply|comply|thresholds|threshold|as|follows|follows|meant|rinsed|off|wiped|removed|\
                             for|mean|remain|giving|feeling|a|smooth|pain|inflammation|inflammation|antibacterial|provides|provide|antiseptic|calming|properties|diminish|\
                             appearance|blemishes|prevents|prevent|new|ones|occurring|Contains|contain|benefits|benefit|tone|Protects|protect|hair|refers|refer|shown|data|information|\
@@ -329,7 +330,7 @@ class Cleaner(Sephora):
                             hair|moisture|retention|restores|balance|improves|improve|elasticity|hair|Forms|form|protective|film|)\\W", re.I)
             return pattern.sub(" ", text)
 
-        self.item.item_ingredients = self.item.item_ingredients.str.replace('\n', ',').str.replace('%', ' percent ').str.replace('.', ' dottt ')
+        self.item.item_ingredients = self.item.item_ingredients.str.replace('\n', ',').str.replace('%', ' percent ').str.replace('.', ' dottt ').str.replace('/', ' slash ')
         self.item['clean_ing_list'] = self.item.item_ingredients.swifter.apply(lambda x: [" ".join(re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', removeBannedWords(text)).replace('-', ' ').strip().split())
                                                                               for text in nlp(x.replace('\n', ',')).text.split(',') if removeBannedWords(text).strip() not in ['', ' ']]
                                                                               if x is not np.nan else np.nan, axis=1)
@@ -351,11 +352,21 @@ class Cleaner(Sephora):
         self.ing.drop_duplicates(inplace=True)
         self.ing = self.ing[~self.ing.ingredient.isin(['synthetic fragrances synthetic fragrances 1 synthetic fragrances 1 12 2 synthetic fragrances concentration 1 formula type acrylates ethyl acrylate','1'])]
 
-        bannedwords = pd.read_excel(self.detail_path/'banned_words.xlsx', sheet_name='Sheet1')['words'].tolist()
-        self.ing.ingredient = self.ing.ingredient.apply(lambda x: (' ').join([w for w in x.split() if w not in bannedwords]))
-
-        self.ing.ingredient = self.ing.ingredient.str.replace('percent ', '%').str.replace('dottt', '.').str.rstrip('.')
+        bannedwords = pd.read_excel(self.detail_path/'banned_words.xlsx', sheet_name='banned_words')['words'].str.strip().tolist()
+        self.ing.ingredient = self.ing.ingredient.str.replace('percent', '% ').str.replace('dottt', '.').str.replace('xxcont', ':may contain ').str.rstrip('.')\
+            .str.replace('slash', ' / ').str.lstrip('.')
+        self.ing.ingredient = self.ing.ingredient.swifter.apply(lambda x: (' ').join([w if w not in bannedwords else ' ' for w in x.split()]).strip())
+        
+        exclusion_list = pd.read_excel(self.detail_path/'banned_phrases.xlsx', sheet_name='banned_phrases')['phrases'].str.strip().tolist()
+        self.ing = self.ing[~self.ing.ingredient.isin(exclusion_list)]
+        self.ing.ingredient = self.ing.ingredient.str.replace('er fruit oil', 'lavender fruit oil')
+        self.ing.ingredient = self.ing.ingredient.str.lstrip('.').str.rstrip('.').str.rstrip('/').str.lstrip('/').str.strip()
+        self.ing = self.ing[~self.ing.ingredient.str.isnumeric()]
+        self.ing = self.ing[self.ing.ingredient!='']
         self.ing.reset_index(inplace=True, drop=True)
 
         self.item.drop(columns=['item_ingredients','clean_ing_list', 'new_flag', 'clean_flag'], inplace=True, axis=1)
+        self.item.reset_index(inplace=True, drop=True)
+        
+        self.ing['meta_date'] = self.item.meta_date.max()
         return self.item, self.ing

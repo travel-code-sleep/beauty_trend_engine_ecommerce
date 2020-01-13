@@ -359,10 +359,10 @@ class Cleaner(Sephora):
         
         exclusion_list = pd.read_excel(self.detail_path/'banned_phrases.xlsx', sheet_name='banned_phrases')['phrases'].str.strip().tolist()
         self.ing = self.ing[~self.ing.ingredient.isin(exclusion_list)]
+        self.ing = self.ing[self.ing.ingredient!='']
+        self.ing = self.ing[~self.ing.ingredient.str.isnumeric()]
         self.ing.ingredient = self.ing.ingredient.str.replace('er fruit oil', 'lavender fruit oil')
         self.ing.ingredient = self.ing.ingredient.str.lstrip('.').str.rstrip('.').str.rstrip('/').str.lstrip('/').str.strip()
-        self.ing = self.ing[~self.ing.ingredient.str.isnumeric()]
-        self.ing = self.ing[self.ing.ingredient!='']
         self.ing.reset_index(inplace=True, drop=True)
 
         self.item.drop(columns=['item_ingredients','clean_ing_list', 'new_flag', 'clean_flag'], inplace=True, axis=1)

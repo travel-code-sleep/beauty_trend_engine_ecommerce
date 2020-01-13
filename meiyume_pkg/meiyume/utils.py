@@ -208,3 +208,11 @@ def convert_ago_to_date(x):
             return date.strftime('%d %b %Y')
     else:
         return x
+
+
+class DataAggregator(object):
+    
+    def __init__(self):
+        self.sph = Sephora(path='.')
+        pass
+

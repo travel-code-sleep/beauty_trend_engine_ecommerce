@@ -91,7 +91,7 @@ class Metadata(Sephora):
             cat_name = cu[0]
             cat_url = cu[1]
             drv.get(cat_url)
-            time.sleep(8)
+            time.sleep(5)
             sub_cats = drv.find_elements_by_class_name("css-16yq0cc")
             sub_cats.extend(drv.find_elements_by_class_name("css-or7ouu"))
             if len(sub_cats)>0:
@@ -107,7 +107,7 @@ class Metadata(Sephora):
             sub_cat_name = su[1]
             sub_cat_url = su[2]
             drv.get(sub_cat_url)
-            time.sleep(6)
+            time.sleep(3)
             product_types = drv.find_elements_by_class_name('css-h6ss0r')
             if len(product_types)>0:
                 for item in product_types:
@@ -186,7 +186,7 @@ class Metadata(Sephora):
                 continue
 
             drv.get(product_type_link)
-            time.sleep(8)
+            time.sleep(5)
             #click and close welcome forms
             try:
                 drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
@@ -200,7 +200,7 @@ class Metadata(Sephora):
             try:
                 drv.find_element_by_class_name('css-1gw67j0').click()
                 drv.find_element_by_xpath('//*[@id="cat_sort_menu"]/button[3]').click()
-                time.sleep(5)
+                time.sleep(2)
             except:
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} cannot sort by NEW.(page link: {product_type_link})', 'utf-8', 'ignore'))
                 pass
@@ -229,10 +229,10 @@ class Metadata(Sephora):
                 cp = 0
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type}\
                                   getting product from page {current_page}.(page link: {product_type_link})','utf-8', 'ignore'))
-                time.sleep(6)
+                time.sleep(3)
                 products = drv.find_elements_by_class_name('css-12egk0t')
                 for p in products:
-                    time.sleep(6)
+                    time.sleep(3)
                     try:
                        product_name = p.find_element_by_class_name('css-ix8km1').get_attribute('aria-label')
                     except NoSuchElementException or StaleElementReferenceException:
@@ -299,7 +299,7 @@ class Metadata(Sephora):
                             drv.find_element_by_css_selector('body > div.css-o44is > div.css-138ub37 > div > div > div >\
                                                             div.css-1o80i28 > div > main > div.css-1aj5qq4 > div > div.css-1cepc9v >\
                                                             div.css-6su6fj > nav > ul > button').click()
-                            time.sleep(10)
+                            time.sleep(5)
                             self.scroll_down_page(drv)
                             current_page = drv.find_element_by_class_name('css-x544ax').text
                         except:
@@ -434,7 +434,7 @@ class Detail(Sephora):
                         typ.click()
                     except:
                         continue
-                    time.sleep(8)
+                    time.sleep(4)
                     item_name, item_size, item_price, item_ingredients = get_item_attributes(multi_variety=True, typ=typ)
                     product_attributes.append({"prod_id":prod_id, "product_name":product_name, "item_name":item_name, "item_size":item_size, "item_price":item_price, "item_ingredients":item_ingredients})
             else:
@@ -512,7 +512,7 @@ class Detail(Sephora):
 
             #open product page
             drv.get(product_page)
-            time.sleep(10)
+            time.sleep(6)
 
             #close popup windows
             try:
@@ -556,7 +556,7 @@ class Detail(Sephora):
                     tab_num = tab_names.index('details')
                     detail_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
-                        time.sleep(4)
+                        time.sleep(2)
                         detail_button.click()
                     except ElementClickInterceptedException:
                         details = ""
@@ -577,7 +577,7 @@ class Detail(Sephora):
                     tab_num = tab_names.index('how to use')
                     how_to_use_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
-                        time.sleep(4)
+                        time.sleep(2)
                         how_to_use_button.click()
                     except ElementClickInterceptedException:
                         how_to_use = ""
@@ -598,7 +598,7 @@ class Detail(Sephora):
                     tab_num = tab_names.index('about the brand')
                     about_the_brand_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
-                        time.sleep(4)
+                        time.sleep(2)
                         about_the_brand_button.click()
                     except ElementClickInterceptedException:
                         about_the_brand = ""
@@ -658,23 +658,23 @@ class Detail(Sephora):
             delete_progress {bool} -- [description] (default: {False})
             clean {bool} -- [description] (default: {True})
         """
-        def fresh():
+        def fresh(self):
             list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
             self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page', 'meta_date']]
             self.meta['detail_scraped'] = 'N'
         if download:
             if fresh_start:
-                fresh()
+                self.fresh()
             else:
                 if Path(self.detail_path/'sph_detail_progress_tracker').exists():
                     self.meta = pd.read_feather(self.detail_path/'sph_detail_progress_tracker')
                     if sum(self.meta.detail_scraped=='N')==0:
-                        fresh()
+                        self.fresh()
                         self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info('Continuing Detail Extraction From Last Run.')
                 else:
-                    fresh()
+                    self.fresh()
                     self.logger.info('Detail Progress Tracker does not exist. Starting Fresh Extraction.')
 
             #set list or range of product indices to crawl
@@ -801,7 +801,7 @@ class Review(Sephora):
 
             drv = self.open_browser()
             drv.get(product_page)
-            time.sleep(8)
+            time.sleep(4)
 
             #close popup windows
             try: drv.find_element_by_xpath('/html/body/div[8]/div/div/div[1]/div/div/button').click()
@@ -864,7 +864,7 @@ class Review(Sephora):
             for n in range(no_of_reviews//6+25): #6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
                 if n >=200:
                     break #code will stop after getting 6000 reviews of one particular product
-                time.sleep(1)
+                time.sleep(0.1)
                 #close any opened popups by escape
                 try: drv.find_element_by_class_name('css-1phfyoj').click()#drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
                 except:
@@ -963,24 +963,24 @@ class Review(Sephora):
             delete_progress {bool} -- [description] (default: {False})
             clean {bool} -- [description] (default: {True})
         """
-        def fresh():
+        def fresh(self):
             list_of_files = self.metadata_clean_path.glob('no_cat_cleaned_sph_product_metadata_all*')
             self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[['prod_id', 'product_name', 'product_page', 'meta_date']]
             self.meta['review_scraped'] = 'N'
 
         if download:
             if fresh_start:
-                fresh()
+                self.fresh()
             else:
                 if Path(self.review_path/'sph_review_progress_tracker').exists():
                     self.meta = pd.read_feather(self.review_path/'sph_review_progress_tracker')
                     if sum(self.meta.review_scraped=='N')==0:
-                        fresh()
+                        self.fresh()
                         self.logger.info('Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info('Continuing Review Extraction From Last Run.')
                 else:
-                    fresh()
+                    self.fresh()
                     self.logger.info('Review Progress Tracker not found. Starting Fresh Extraction.')
 
             #set list or range of product indices to crawl
