@@ -174,7 +174,7 @@ class Cleaner(Sephora):
         clean_prod_type = self.meta.product_type[self.meta.product_type.swifter.apply(
             lambda x: True if x.split('-')[0] == 'clean' else False)].unique()
         self.meta['clean_flag'] = self.meta.swifter.apply(
-            lambda x: 'Yes' if x.product_type in clean_prod_type else 'No', axis=1)
+            lambda x: 'Yes' if x.product_type in clean_prod_type else 'Undefined', axis=1)
 
         self.meta_no_cat = self.meta.loc[:, self.meta.columns.difference(['category'])]
         self.meta_no_cat.drop_duplicates(subset='prod_id', inplace=True)
@@ -265,10 +265,44 @@ class Cleaner(Sephora):
 
         #separate and create user attribute column
         def make_dict(x):
-            return {k:v  for d in literal_eval(x) for k, v in d.items() if k not in ['hair_condition_chemically_treated_(colored,_relaxed,_or', 'age_over']}
+            return {k:v  for d in literal_eval(x) for k, v in d.items() if k not in ['hair_condition_chemically_treated_(colored,_relaxed,_or']}
+        def create_attributes(attr, x):
+            if attr == 'age':
+                if x.get(attr) is not None: return x.get(attr)
+                elif x.get('age_over') is not None: return x.get('age_over')
+                else: return np.nan
+            else:
+                if x.get(attr) is not None: return x.get(attr)
+                else: return np.nan
+
+        def get_attributes(x):
+            if x.get('age') is not None: age = x.get('age')
+            elif x.get('age_over') is not None: age = x.get('age_over')
+            else: age = np.nan
+
+            if x.get('eye_color') is not None: eye_c = x.get('eye_color')
+            else: eye_c = np.nan
+            if x.get('hair_color') is not None: hair_c = x.get('hair_color')
+            else: hair_c = np.nan
+
+            if x.get('skin_tone') is not None: skintn = x.get('skin_tone')
+            else: skintn = np.nan
+
+            if x.get('skin_type') is not None: skinty = x.get('skin_type')
+            else: skinty = np.nan
+
+            return age, eye_c, hair_c, skintn, skinty
+
+        self.review.user_attribute = self.review.user_attribute.swifter.apply(make_dict)
         self.review['age'], self.review['eye_color'], self.review['hair_color'], self.review['skin_tone'], self.review['skin_type'] = \
-            zip(*pd.DataFrame(self.review.user_attribute.swifter.apply(make_dict).tolist()).values)
+            zip(*self.review.user_attribute.swifter.apply(get_attributes))
         self.review.drop('user_attribute', inplace=True, axis=1)
+        # self.review['age'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('age', x))
+        # self.review['eye_color'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('eye_color', x))
+        # self.review['hair_color'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('hair_color', x))
+        # self.review['skin_tone'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_tone', x))
+        # self.review['skin_type'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_type', x))
+        
 
         self.review.reset_index(drop=True, inplace=True)
         return self.review
@@ -357,11 +391,13 @@ class Cleaner(Sephora):
             .str.replace('slash', ' / ').str.lstrip('.')
         self.ing.ingredient = self.ing.ingredient.swifter.apply(lambda x: (' ').join([w if w not in bannedwords else ' ' for w in x.split()]).strip())
         
-        exclusion_list = pd.read_excel(self.detail_path/'banned_phrases.xlsx', sheet_name='banned_phrases')['phrases'].str.strip().tolist()
-        self.ing = self.ing[~self.ing.ingredient.isin(exclusion_list)]
         self.ing.ingredient = self.ing.ingredient.str.replace('er fruit oil', 'lavender fruit oil')
         self.ing.ingredient = self.ing.ingredient.str.lstrip('.').str.rstrip('.').str.rstrip('/').str.lstrip('/').str.strip()
         self.ing = self.ing[~self.ing.ingredient.str.isnumeric()]
+        
+        exclusion_list = pd.read_excel(self.detail_path/'banned_phrases.xlsx', sheet_name='banned_phrases')['phrases'].str.strip().str.lower().tolist()
+        self.ing.ingredient = self.ing.ingredient.str.lower()
+        self.ing = self.ing[~self.ing.ingredient.isin(exclusion_list)]
         self.ing = self.ing[self.ing.ingredient!='']
         self.ing.reset_index(inplace=True, drop=True)
 

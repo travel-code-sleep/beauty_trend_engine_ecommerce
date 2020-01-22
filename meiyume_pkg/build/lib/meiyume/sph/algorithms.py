@@ -23,7 +23,7 @@ from tqdm import tqdm
 class StatAlgorithm(object):
     def __inti__(self, path='.'):
         self.path = Path(path)
-        self.output_path = self.path/'algorithm_output'
+        self.output_path = self.path/'algorithm_outputs'
         self.output_path.mkdir(parents=True, exist_ok=True)
         self.sph = Sephora(path='.')
 
