@@ -238,13 +238,15 @@ class Cleaner(Sephora):
         """
         self.review = self.data
         self.review = self.review[~self.review.review_text.isna()]
+        self.review.dropna(subset=['review_text'], axis=0, inplace=True)
+        # self.review = self.review[self.review.helpful.apply(type)!= 'int']
         self.review.reset_index(inplace=True, drop=True)
 
         #separate helpful/not_helpful
-        self.review['helpful_N'], self.review['helpful_Y']= zip(*self.review.helpful.swifter.apply(lambda x: literal_eval(x)[0]).str.split('\n', expand=True).values)
+        self.review['helpful_N'], self.review['helpful_Y']= zip(*self.review.helpful.swifter.apply(lambda x: literal_eval(x)[0] if type(x)!='int' else '0 \n 0').str.split('\n', expand=True).values)
         hlp_regex = re.compile('[a-zA-Z()]')
-        self.review.helpful_Y = self.review.helpful_Y.swifter.apply(lambda x: hlp_regex.sub('', x))
-        self.review.helpful_N = self.review.helpful_N.swifter.apply(lambda x: hlp_regex.sub('', x))
+        self.review.helpful_Y = self.review.helpful_Y.swifter.apply(lambda x: hlp_regex.sub('', str(x)))
+        self.review.helpful_N = self.review.helpful_N.swifter.apply(lambda x: hlp_regex.sub('', str(x)))
         self.review.drop('helpful', inplace=True, axis=1)
 
         #convert ratings to numbers
@@ -266,14 +268,14 @@ class Cleaner(Sephora):
         #separate and create user attribute column
         def make_dict(x):
             return {k:v  for d in literal_eval(x) for k, v in d.items() if k not in ['hair_condition_chemically_treated_(colored,_relaxed,_or']}
-        def create_attributes(attr, x):
-            if attr == 'age':
-                if x.get(attr) is not None: return x.get(attr)
-                elif x.get('age_over') is not None: return x.get('age_over')
-                else: return np.nan
-            else:
-                if x.get(attr) is not None: return x.get(attr)
-                else: return np.nan
+        # def create_attributes(attr, x):
+        #     if attr == 'age':
+        #         if x.get(attr) is not None: return x.get(attr)
+        #         elif x.get('age_over') is not None: return x.get('age_over')
+        #         else: return np.nan
+        #     else:
+        #         if x.get(attr) is not None: return x.get(attr)
+        #         else: return np.nan
 
         def get_attributes(x):
             if x.get('age') is not None: age = x.get('age')
@@ -302,17 +304,16 @@ class Cleaner(Sephora):
         # self.review['hair_color'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('hair_color', x))
         # self.review['skin_tone'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_tone', x))
         # self.review['skin_type'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_type', x))
-        
 
         self.review.reset_index(drop=True, inplace=True)
         return self.review
 
     def item_cleaner(self):
         """[summary]
-        
+
         Returns:
             [type] -- [description]
-        """        
+        """
         meta_files = self.metadata_clean_path.glob('cat_cleaned_sph_product_metadata_all*')
         meta = pd.read_feather(max(meta_files, key=os.path.getctime))
         clean_prod_type = meta.product_type[meta.product_type.apply(lambda x: True if x.split('-')[0] == 'clean' else False)].unique()

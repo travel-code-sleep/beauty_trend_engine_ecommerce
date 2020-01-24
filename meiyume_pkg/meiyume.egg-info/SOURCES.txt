@@ -1,6 +1,7 @@
 README.md
 setup.py
 meiyume/__init__.py
+meiyume/algorithms.py
 meiyume/utils.py
 meiyume.egg-info/PKG-INFO
 meiyume.egg-info/SOURCES.txt
@@ -8,7 +9,6 @@ meiyume.egg-info/dependency_links.txt
 meiyume.egg-info/namespace_packages.txt
 meiyume.egg-info/top_level.txt
 meiyume/sph/__init__.py
-meiyume/sph/algorithms.py
 meiyume/sph/app.py
 meiyume/sph/cleaner.py
 meiyume/sph/crawler.py

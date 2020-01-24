@@ -238,13 +238,15 @@ class Cleaner(Sephora):
         """
         self.review = self.data
         self.review = self.review[~self.review.review_text.isna()]
+        self.review.dropna(subset=['review_text'], axis=0, inplace=True)
+        # self.review = self.review[self.review.helpful.apply(type)!= 'int']
         self.review.reset_index(inplace=True, drop=True)
 
         #separate helpful/not_helpful
-        self.review['helpful_N'], self.review['helpful_Y']= zip(*self.review.helpful.swifter.apply(lambda x: literal_eval(x)[0]).str.split('\n', expand=True).values)
+        self.review['helpful_N'], self.review['helpful_Y']= zip(*self.review.helpful.swifter.apply(lambda x: literal_eval(x)[0] if type(x)!='int' else '0 \n 0').str.split('\n', expand=True).values)
         hlp_regex = re.compile('[a-zA-Z()]')
-        self.review.helpful_Y = self.review.helpful_Y.swifter.apply(lambda x: hlp_regex.sub('', x))
-        self.review.helpful_N = self.review.helpful_N.swifter.apply(lambda x: hlp_regex.sub('', x))
+        self.review.helpful_Y = self.review.helpful_Y.swifter.apply(lambda x: hlp_regex.sub('', str(x)))
+        self.review.helpful_N = self.review.helpful_N.swifter.apply(lambda x: hlp_regex.sub('', str(x)))
         self.review.drop('helpful', inplace=True, axis=1)
 
         #convert ratings to numbers
@@ -308,7 +310,7 @@ class Cleaner(Sephora):
 
     def item_cleaner(self):
         """[summary]
-        
+
         Returns:
             [type] -- [description]
         """
