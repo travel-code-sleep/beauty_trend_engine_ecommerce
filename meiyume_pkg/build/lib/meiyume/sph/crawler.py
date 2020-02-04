@@ -37,7 +37,7 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 class Metadata(Sephora):
     """[summary]
-    
+
     Arguments:
         Sephora {[type]} -- [description]
     """
