@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import logging
 import time
 import numpy as np
@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import gc
 from pathlib import Path
+import boto3
 
 
 class MeiyumeException(Exception):
@@ -102,6 +103,15 @@ class Sephora(Browser):
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
         self.clean_log_path = self.path/'sephora/cleaner_logs'
         self.clean_log_path.mkdir(parents=True, exist_ok=True)
+
+
+class StatAlgorithm(object):
+    def __init__(self, path='.'):
+        self.path = Path(path)
+        self.output_path = self.path/'algorithm_outputs'
+        self.output_path.mkdir(parents=True, exist_ok=True)
+        self.external_path = self.path/'external_data_sources'
+        self.sph = Sephora(path='.')
 
 
 class Logger(object):
@@ -210,9 +220,135 @@ def convert_ago_to_date(x):
         return x
 
 
+class S3FileManager(object):
+    def __init__(self, bucket='meiyume-datawarehouse-prod'):
+        self.bucket = bucket
+
+    def get_matching_s3_objects(self, prefix="", suffix=""):
+        """
+        Generate objects in an S3 bucket.
+
+        :param bucket: Name of the S3 bucket.
+        :param prefix: Only fetch objects whose key starts with
+            this prefix (optional).
+        :param suffix: Only fetch objects whose keys end with
+            this suffix (optional).
+        """
+        s3 = boto3.client("s3")
+        paginator = s3.get_paginator("list_objects_v2")
+
+        kwargs = {'Bucket': self.bucket}
+
+        # We can pass the prefix directly to the S3 API.  If the user has passed
+        # a tuple or list of prefixes, we go through them one by one.
+        if isinstance(prefix, str):
+            prefixes = (prefix, )
+        else:
+            prefixes = prefix
+
+        for key_prefix in prefixes:
+            kwargs["Prefix"] = key_prefix
+
+            for page in paginator.paginate(**kwargs):
+                try:
+                    contents = page["Contents"]
+                except KeyError:
+                    break
+
+                for obj in contents:
+                    key = obj["Key"]
+                    if key.endswith(suffix):
+                        yield obj
+
+    def get_matching_s3_keys(self, prefix="", suffix=""):
+        """
+        Generate the keys in an S3 bucket.
+
+        :param bucket: Name of the S3 bucket.
+        :param prefix: Only fetch keys that start with this prefix (optional).
+        :param suffix: Only fetch keys that end with this suffix (optional).
+        """
+        for obj in self.get_matching_s3_objects(prefix, suffix):
+            yield obj["Key"]
+
+    def get_prefix_s3(self, job_name):
+        if job_name == 'meta_detail':
+            prefix = 'Feeds/BeautyTrendEngine/Meta_Detail/Staging/'
+        elif job_name == 'item':
+            prefix = 'Feeds/BeautyTrendEngine/Item/Staging/'
+        elif job_name == 'ingredient':
+            prefix = 'Feeds/BeautyTrendEngine/Ingredient/Staging/'
+        elif job_name == 'review':
+            prefix = 'Feeds/BeautyTrendEngine/Review/Staging/'
+        elif job_name == 'review_summary':
+            prefix = 'Feeds/BeautyTrendEngine/Review_Summary/Staging/'
+        else:
+            raise MeiyumeException(
+                'Unrecognizable job. Please input correct job_name.')
+        return prefix
+
+    # @classmethod
+    # def make_manager(cls):
+    #     return cls()
+
+    def push_file_s3(self, file_path, job_name):
+        """[summary]
+
+        Arguments:
+            file_path {[path:str]} -- [File name to store in S3]
+            job_name {[str]} -- [Type of job: One of [meta_detail | item | ingredient | review | review_summary]]
+
+        Raises:
+            MeiyumeException: [if job name is not in above defined list]
+        """
+        # cls.make_manager()
+        file_name = str(file_path).split("\\")[-1]
+
+        prefix = self.get_prefix_s3(job_name)
+        object_name = prefix+file_name
+        # try:
+        s3_client = boto3.client('s3')
+        try:
+            s3_client.upload_file(str(file_path), self.bucket, object_name)
+            print('file pushed successfully.')
+        except:
+            print('file pushing task failed.')
+
+    def pull_file_s3(self, job_name, file_path=None):
+        """pull_file_s3 [summary]
+
+        [extended_summary]
+
+        Args:
+            job_name ([type]): [description]
+            file_path ([type], optional): [description]. Defaults to None.
+        """
+        prefix = get_prefix_s3(job_name)
+        keys = self.get_matching_s3_keys(prefix)
+
+        s3 = boto3.resource('s3')
+        for key in keys:
+            file_name = str(key).split('/')[-1]
+            s3.Bucket(self.bucket).download_file(key, str(file_path/file_name))
+
+    def delete_file_s3(self, key):
+        """delete_file_s3 [summary]
+
+        [extended_summary]
+
+        Args:
+            key ([type]): [description]
+        """
+        s3 = boto3.resource('s3')
+        try:
+            s3.Object(self.bucket, key).delete()
+            print('file deleted.')
+        except:
+            print('delete operation failed')
+
+
 class DataAggregator(object):
-    
+
     def __init__(self):
         self.sph = Sephora(path='.')
         pass
-

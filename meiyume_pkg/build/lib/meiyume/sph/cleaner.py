@@ -18,10 +18,11 @@ import pandas as pd
 import seaborn as sns
 import spacy
 import swifter
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, S3FileManager
 from tqdm import tqdm
 
 nlp = spacy.load('en_core_web_lg')
+file_manager = S3FileManager()
 
 # , category=[FutureWarning, SettingWithCopyWarning])
 warnings.simplefilter(action='ignore')
@@ -96,6 +97,16 @@ class Cleaner(Sephora):
                     self.detail_clean_path/f'{clean_file_name.replace(".csv", "")}')
                 cleaned_ingredient.to_feather(
                     self.detail_clean_path/f'{clean_file_name.replace("item", "ingredient").replace(".csv","")}')
+
+            cleaned_item.fillna('', inplace=True)
+            cleaned_item = cleaned_item.replace('\n', ' ', regex=True)
+            cleaned_item = cleaned_item.replace('~', ' ', regex=True)
+
+            cleaned_item.to_csv(
+                self.detail_clean_path/clean_file_name, index=None, sep='~')
+            file_manager.push_file_s3(file_path=self.detail_clean_path /
+                                      clean_file_name, job_name='item')
+            Path(self.detail_clean_path/clean_file_name).unlink()
             return cleaned_item, cleaned_ingredient
         if data_def == 'review':
             cleaned_review = self.review_cleaner()
@@ -104,6 +115,17 @@ class Cleaner(Sephora):
             if save:
                 cleaned_review.to_feather(
                     self.review_clean_path/f'{clean_file_name}')
+
+            cleaned_review.fillna('', inplace=True)
+            cleaned_review = cleaned_review.replace('\n', ' ', regex=True)
+            cleaned_review = cleaned_review.replace('~', ' ', regex=True)
+
+            clean_file_name = clean_file_name+'.csv'
+            cleaned_review.to_csv(
+                self.review_clean_path/clean_file_name, index=None, sep='~')
+            file_manager.push_file_s3(file_path=self.review_clean_path /
+                                      clean_file_name, job_name='review')
+            Path(self.review_clean_path/clean_file_name).unlink()
             return cleaned_review
 
     def find_data_def(self, filename):
@@ -354,7 +376,8 @@ class Cleaner(Sephora):
         # self.review['hair_color'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('hair_color', x))
         # self.review['skin_tone'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_tone', x))
         # self.review['skin_type'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_type', x))
-
+        self.review.review_text = self.review.review_text.str.replace(
+            '...read more', '')
         self.review.reset_index(drop=True, inplace=True)
         return self.review
 
@@ -528,4 +551,6 @@ class Cleaner(Sephora):
         self.item.reset_index(inplace=True, drop=True)
 
         self.ing['meta_date'] = self.item.meta_date.max()
+        self.item = self.item[['prod_id', 'product_name', 'item_name', 'item_price', 'meta_date',
+                               'size_oz', 'size_ml_gm']]
         return self.item, self.ing

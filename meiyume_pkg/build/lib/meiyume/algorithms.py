@@ -17,17 +17,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import swifter
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException
-from tqdm import tqdm
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, StatAlgorithm, S3FileManager
+from tqdm.notebook import tqdm
 
-
-class StatAlgorithm(object):
-    def __init__(self, path='.'):
-        self.path = Path(path)
-        self.output_path = self.path/'algorithm_outputs'
-        self.output_path.mkdir(parents=True, exist_ok=True)
-        self.external_path = self.path/'external_data_sources'
-        self.sph = Sephora(path='.')
+file_manager = S3FileManager()
 
 
 class Ranker(StatAlgorithm):
@@ -114,8 +107,19 @@ class Ranker(StatAlgorithm):
         meta_detail.drop(columns=['meta_datedetail',
                                   'product_namedetail'], axis=1, inplace=True)
 
-        meta_detail.to_feather(
-            self.output_path/f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}')
+        filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
+        meta_detail.to_feather(self.output_path/filename)
+
+        meta_detail.fillna('', inplace=True)
+        meta_detail = meta_detail.replace('\n', ' ', regex=True)
+        meta_detail = meta_detail.replace('~', ' ', regex=True)
+
+        filename = filename + '.csv'
+        meta_detail.to_csv(self.output_path/filename, index=None, sep='~')
+
+        file_manager.push_file_s3(file_path=self.output_path /
+                                  filename, job_name='meta_detail')
+        Path(self.output_path/filename).unlink()
         return meta_detail
 
 
@@ -238,4 +242,17 @@ class SexyIngredient(StatAlgorithm):
         filename = str(filename).split("\\")[-1]
         self.ingredient.to_feather(
             self.output_path/f'ranked_{filename}')
+
+        self.ingredient.fillna('', inplace=True)
+        self.ingredient = self.ingredient[self.ingredient.ingredient.str.len(
+        ) < 200]
+        self.ingredient = self.ingredient.replace('\n', ' ', regex=True)
+        self.ingredient = self.ingredient.replace('~', ' ', regex=True)
+
+        filename = 'ranked_' + filename + '.csv'
+        self.ingredient.to_csv(self.output_path/filename, index=None, sep='~')
+
+        file_manager.push_file_s3(file_path=self.output_path /
+                                  filename, job_name='ingredient')
+        Path(self.output_path/filename).unlink()
         return self.ingredient
