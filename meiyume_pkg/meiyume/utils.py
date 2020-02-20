@@ -210,11 +210,11 @@ def convert_ago_to_date(x):
             return date.strftime('%d %b %Y')
         elif 'm' in x.lower():
             mins = int(x.split()[0])
-            date = datetime.today() - timedelta(days=10) - timedelta(minutes=mins)
+            date = datetime.today()  # - timedelta(minutes=mins)
             return date.strftime('%d %b %Y')
         elif 'h' in x.lower():
             hours = int(x.split()[0])
-            date = datetime.today() - timedelta(days=10) - timedelta(hours=hours)
+            date = datetime.today()  # - timedelta(hours=hours)
             return date.strftime('%d %b %Y')
     else:
         return x
@@ -269,7 +269,19 @@ class S3FileManager(object):
         :param suffix: Only fetch keys that end with this suffix (optional).
         """
         for obj in self.get_matching_s3_objects(prefix, suffix):
-            yield obj["Key"]
+            yield obj  # obj["Key"]
+
+    def get_last_modified_s3(self, key):
+        """get_last_modified_date_s3 [summary]
+
+        [extended_summary]
+
+        Args:
+            key ([type]): [description]
+        """
+        s3 = boto3.resource('s3')
+        k = s3.Bucket(self.bucket).Object(key)
+        return {'key_name': k.key, 'key_last_modified': str(k.last_modified)}
 
     def get_prefix_s3(self, job_name):
         if job_name == 'meta_detail':

@@ -11,14 +11,14 @@ setup(
     namespace_packages=['meiyume'],
     # Needed for dependencies
     # install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno', 'spacy',
-    #                   # 'fastai', 'torch===1.3.1', 'torchvision ===0.4.2',
+    #                   # 'fastai', 'torch===1.3.1', 'torchvision ===0.4.2', unidecode,
     #                   'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',
     #                   'sklearn', 'swifter', 'keras', 'tensorflow', 'scipy', 'pyarrow',
     #                   ],
-    # *strongly* suggested for sharing
-    version='0.5.6',
+    # *strongly* suggested for in-house use
+    version='0.6',
     # The license can be anything you like
-    license='MIT',
+    license='Private',
     description='Contains all codes for data scraping and cleaning.',
     # We will also need a readme eventually (there will be a warning)
     long_description=open('README.md').read(),

@@ -10,6 +10,8 @@ from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import reduce
 from pathlib import Path
+import unidecode
+
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -183,6 +185,9 @@ class Cleaner(Sephora):
             rtn_typ {[type]} -- [description]
         """
         self.meta = self.data
+        self.meta.product_name = self.meta.product_name.swifter.apply(
+            unidecode.unidecode)
+        self.meta.brand = self.meta.brand.swifter.apply(unidecode.unidecode)
 
         def fix_multi_low_price(x):
             """[summary]
@@ -274,6 +279,12 @@ class Cleaner(Sephora):
             '%', '').astype(float)
         self.detail.rename(
             {'would_recommend': 'would_recommend_percentage'}, inplace=True, axis=1)
+
+        self.detail.first_review_date = pd.to_datetime(
+            self.detail.first_review_date, infer_datetime_format=True)
+        self.detail.meta_date = pd.to_datetime(
+            self.detail.meta_date, infer_datetime_format=True)
+
         return self.detail
 
     def calculate_ratings(self, x):
@@ -295,12 +306,14 @@ class Cleaner(Sephora):
         self.review.reset_index(inplace=True, drop=True)
 
         # separate helpful/not_helpful
-        self.review['helpful_N'], self.review['helpful_Y'] = zip(*self.review.helpful.swifter.apply(
-            lambda x: literal_eval(x)[0] if type(x) != 'int' else '0 \n 0').str.split('\n', expand=True).values)
+        # self.review['helpful_n'], self.review['helpful_y'] = zip(*self.review.helpful.swifter.apply(
+        #     lambda x: literal_eval(x)[0] if type(x) != 'int' else '0 \n 0').str.split('\n', expand=True).values)
+        self.review['helpful_n'], self.review['helpful_y'] = zip(*self.review.helpful.swifter.apply(
+            lambda x: x if type(x) != 'int' else '0 \n 0').str.split('\n', expand=True).values)
         hlp_regex = re.compile('[a-zA-Z()]')
-        self.review.helpful_Y = self.review.helpful_Y.swifter.apply(
+        self.review.helpful_y = self.review.helpful_y.swifter.apply(
             lambda x: hlp_regex.sub('', str(x)))
-        self.review.helpful_N = self.review.helpful_N.swifter.apply(
+        self.review.helpful_n = self.review.helpful_n.swifter.apply(
             lambda x: hlp_regex.sub('', str(x)))
         self.review.drop('helpful', inplace=True, axis=1)
 
@@ -379,6 +392,22 @@ class Cleaner(Sephora):
         self.review.review_text = self.review.review_text.str.replace(
             '...read more', '')
         self.review.reset_index(drop=True, inplace=True)
+        self.review = self.review[["prod_id",
+                                   "product_name",
+                                   "recommend",
+                                   "review_date",
+                                   "review_rating",
+                                   "review_text",
+                                   "review_title",
+                                   "meta_date",
+                                   "helpful_n",
+                                   "helpful_y",
+                                   "age",
+                                   "eye_color",
+                                   "hair_color",
+                                   "skin_tone",
+                                   "skin_type"
+                                   ]]
         return self.review
 
     def item_cleaner(self):
@@ -551,6 +580,11 @@ class Cleaner(Sephora):
         self.item.reset_index(inplace=True, drop=True)
 
         self.ing['meta_date'] = self.item.meta_date.max()
-        self.item = self.item[['prod_id', 'product_name', 'item_name', 'item_price', 'meta_date',
-                               'size_oz', 'size_ml_gm']]
+        self.item = self.item[['prod_id',
+                               'product_name',
+                               'item_name',
+                               'item_price',
+                               'meta_date',
+                               'size_oz',
+                               'size_ml_gm']]
         return self.item, self.ing

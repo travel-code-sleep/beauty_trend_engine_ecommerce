@@ -103,9 +103,41 @@ class Ranker(StatAlgorithm):
         meta_detail.meta_date = pd.to_datetime(
             meta_detail.meta_date, format='%Y-%m-%d')
 
-        rank_file_name = 'ranked_'+str(meta).split('\\')[-1]
         meta_detail.drop(columns=['meta_datedetail',
                                   'product_namedetail'], axis=1, inplace=True)
+
+        meta_detail = meta_detail[["prod_id",
+                                   "product_name",
+                                   "product_page",
+                                   "brand",
+                                   "rating",
+                                   "category",
+                                   "product_type",
+                                   "new_flag",
+                                   "complete_scrape_flag",
+                                   "meta_date",
+                                   "source",
+                                   "low_p",
+                                   "high_p",
+                                   "mrp",
+                                   "clean_flag",
+                                   "abt_product",
+                                   "how_to_use",
+                                   "abt_brand",
+                                   "reviews",
+                                   "votes",
+                                   "would_recommend_percentage",
+                                   "five_star",
+                                   "four_star",
+                                   "three_star",
+                                   "two_star",
+                                   "one_star",
+                                   "total_stars",
+                                   "bayesian_estimate",
+                                   "pstv_to_ngtv_stars",
+                                   "pstv_to_total_stars",
+                                   "first_review_date"
+                                   ]]
 
         filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
         meta_detail.to_feather(self.output_path/filename)
@@ -238,6 +270,23 @@ class SexyIngredient(StatAlgorithm):
             lambda x: 'Yes' if x in banned_ingredients.substances.tolist() else 'No')
         self.ingredient.clean_flag[self.ingredient.ban_flag ==
                                    'Yes'] = 'Unclean'
+
+        self.ingredient = self.ingredient[["prod_id",
+                                           "clean_flag",
+                                           "ingredient",
+                                           "new_flag",
+                                           "meta_date",
+                                           "ingredient_type",
+                                           "brand",
+                                           "category",
+                                           "product_name",
+                                           "product_type",
+                                           "rating",
+                                           "bayesian_estimate",
+                                           "low_p",
+                                           "source",
+                                           "ban_flag"
+                                           ]]
 
         filename = str(filename).split("\\")[-1]
         self.ingredient.to_feather(
