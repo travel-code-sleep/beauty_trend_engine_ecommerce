@@ -392,22 +392,23 @@ class Cleaner(Sephora):
         self.review.review_text = self.review.review_text.str.replace(
             '...read more', '')
         self.review.reset_index(drop=True, inplace=True)
-        self.review = self.review[["prod_id",
-                                   "product_name",
-                                   "recommend",
-                                   "review_date",
-                                   "review_rating",
-                                   "review_text",
-                                   "review_title",
-                                   "meta_date",
-                                   "helpful_n",
-                                   "helpful_y",
-                                   "age",
-                                   "eye_color",
-                                   "hair_color",
-                                   "skin_tone",
-                                   "skin_type"
-                                   ]]
+        columns = ["prod_id",
+                   "product_name",
+                   "recommend",
+                   "review_date",
+                   "review_rating",
+                   "review_text",
+                   "review_title",
+                   "meta_date",
+                   "helpful_n",
+                   "helpful_y",
+                   "age",
+                   "eye_color",
+                   "hair_color",
+                   "skin_tone",
+                   "skin_type"
+                   ]
+        self.review = self.review[columns]
         return self.review
 
     def item_cleaner(self):
@@ -580,11 +581,12 @@ class Cleaner(Sephora):
         self.item.reset_index(inplace=True, drop=True)
 
         self.ing['meta_date'] = self.item.meta_date.max()
-        self.item = self.item[['prod_id',
-                               'product_name',
-                               'item_name',
-                               'item_price',
-                               'meta_date',
-                               'size_oz',
-                               'size_ml_gm']]
+        columns = ['prod_id',
+                   'product_name',
+                   'item_name',
+                   'item_price',
+                   'meta_date',
+                   'size_oz',
+                   'size_ml_gm']
+        self.item = self.item[columns]
         return self.item, self.ing

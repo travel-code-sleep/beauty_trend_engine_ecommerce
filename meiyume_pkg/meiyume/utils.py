@@ -103,7 +103,42 @@ class Sephora(Browser):
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
         self.clean_log_path = self.path/'sephora/cleaner_logs'
         self.clean_log_path.mkdir(parents=True, exist_ok=True)
+        
 
+class Boots(Browser):
+    """ This object is inherited by all crawler classes in sph.crawler module.
+
+        Boots class creates and sets directories for respective data definitions.
+
+    Arguments:
+        Browser {[type]} -- [Browser class serves selenium web-drvier in head and headless
+                             mode. It also provides some additional utilities such as scrolling etc.]
+    """
+
+    def __init__(self, data_def=None, driver_path=None, path=Path.cwd(), show=True):
+        super().__init__(driver_path=driver_path, show=show)
+        self.path = Path(path)
+        # set data paths as per calls from data definition classes
+        self.metadata_path = self.path/'boots/metadata'
+        self.metadata_clean_path = self.metadata_path/'clean'
+        if data_def == 'meta':
+            self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
+        self.detail_path = self.path/'boots/detail'
+        self.detail_clean_path = self.detail_path/'clean'
+        if data_def == 'detail':
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+        self.review_path = self.path/'boots/review'
+        self.review_clean_path = self.review_path/'clean'
+        if data_def == 'review':
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+        # set universal log path for sephora
+        self.crawl_log_path = self.path/'boots/crawler_logs'
+        self.crawl_log_path.mkdir(parents=True, exist_ok=True)
+        self.clean_log_path = self.path/'boots/cleaner_logs'
+        self.clean_log_path.mkdir(parents=True, exist_ok=True)
 
 class StatAlgorithm(object):
     def __init__(self, path='.'):
