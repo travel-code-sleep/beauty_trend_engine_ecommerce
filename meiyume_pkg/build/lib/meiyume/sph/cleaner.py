@@ -117,17 +117,6 @@ class Cleaner(Sephora):
             if save:
                 cleaned_review.to_feather(
                     self.review_clean_path/f'{clean_file_name}')
-
-            cleaned_review.fillna('', inplace=True)
-            cleaned_review = cleaned_review.replace('\n', ' ', regex=True)
-            cleaned_review = cleaned_review.replace('~', ' ', regex=True)
-
-            clean_file_name = clean_file_name+'.csv'
-            cleaned_review.to_csv(
-                self.review_clean_path/clean_file_name, index=None, sep='~')
-            file_manager.push_file_s3(file_path=self.review_clean_path /
-                                      clean_file_name, job_name='review')
-            Path(self.review_clean_path/clean_file_name).unlink()
             return cleaned_review
 
     def find_data_def(self, filename):
@@ -392,22 +381,6 @@ class Cleaner(Sephora):
         self.review.review_text = self.review.review_text.str.replace(
             '...read more', '')
         self.review.reset_index(drop=True, inplace=True)
-        self.review = self.review[["prod_id",
-                                   "product_name",
-                                   "recommend",
-                                   "review_date",
-                                   "review_rating",
-                                   "review_text",
-                                   "review_title",
-                                   "meta_date",
-                                   "helpful_n",
-                                   "helpful_y",
-                                   "age",
-                                   "eye_color",
-                                   "hair_color",
-                                   "skin_tone",
-                                   "skin_type"
-                                   ]]
         return self.review
 
     def item_cleaner(self):
@@ -580,11 +553,12 @@ class Cleaner(Sephora):
         self.item.reset_index(inplace=True, drop=True)
 
         self.ing['meta_date'] = self.item.meta_date.max()
-        self.item = self.item[['prod_id',
-                               'product_name',
-                               'item_name',
-                               'item_price',
-                               'meta_date',
-                               'size_oz',
-                               'size_ml_gm']]
+        columns = ['prod_id',
+                   'product_name',
+                   'item_name',
+                   'item_price',
+                   'meta_date',
+                   'size_oz',
+                   'size_ml_gm']
+        self.item = self.item[columns]
         return self.item, self.ing

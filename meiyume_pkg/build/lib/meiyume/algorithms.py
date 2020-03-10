@@ -10,6 +10,7 @@ from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import reduce
 from pathlib import Path
+import unidecode
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -17,20 +18,27 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import swifter
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, StatAlgorithm, S3FileManager
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager
 from tqdm.notebook import tqdm
+from fastai import *
+from fastai.text import *
+
+import warnings
+warnings.simplefilter(action='ignore')
 
 file_manager = S3FileManager()
 
 
-class Ranker(StatAlgorithm):
-    """[summary]
+class Ranker(ModelsAlgorithms):
+    """Ranker [summary]
 
-    Arguments:
-        StatAlgorithm {[type]} -- [description]
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
 
     Returns:
-        [type] -- [description]
+        [type]: [description]
     """
 
     def __init__(self, path='.'):
@@ -105,39 +113,43 @@ class Ranker(StatAlgorithm):
 
         meta_detail.drop(columns=['meta_datedetail',
                                   'product_namedetail'], axis=1, inplace=True)
-
-        meta_detail = meta_detail[["prod_id",
-                                   "product_name",
-                                   "product_page",
-                                   "brand",
-                                   "rating",
-                                   "category",
-                                   "product_type",
-                                   "new_flag",
-                                   "complete_scrape_flag",
-                                   "meta_date",
-                                   "source",
-                                   "low_p",
-                                   "high_p",
-                                   "mrp",
-                                   "clean_flag",
-                                   "abt_product",
-                                   "how_to_use",
-                                   "abt_brand",
-                                   "reviews",
-                                   "votes",
-                                   "would_recommend_percentage",
-                                   "five_star",
-                                   "four_star",
-                                   "three_star",
-                                   "two_star",
-                                   "one_star",
-                                   "total_stars",
-                                   "bayesian_estimate",
-                                   "pstv_to_ngtv_stars",
-                                   "pstv_to_total_stars",
-                                   "first_review_date"
-                                   ]]
+        columns = ["prod_id",
+                   "product_name",
+                   "product_page",
+                   "brand",
+                   "rating",
+                   "category",
+                   "product_type",
+                   "new_flag",
+                   "complete_scrape_flag",
+                   "meta_date",
+                   "source",
+                   "low_p",
+                   "high_p",
+                   "mrp",
+                   "clean_flag",
+                   "abt_product",
+                   "how_to_use",
+                   "abt_brand",
+                   "reviews",
+                   "votes",
+                   "would_recommend_percentage",
+                   "five_star",
+                   "four_star",
+                   "three_star",
+                   "two_star",
+                   "one_star",
+                   "total_stars",
+                   "bayesian_estimate",
+                   "pstv_to_ngtv_stars",
+                   "pstv_to_total_stars",
+                   "first_review_date"
+                   ]
+        meta_detail = meta_detail[columns]
+        meta_detail.product_name = meta_detail.product_name.swifter.apply(
+            unidecode.unidecode)
+        meta_detail.brand = meta_detail.brand.swifter.apply(
+            unidecode.unidecode)
 
         filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
         meta_detail.to_feather(self.output_path/filename)
@@ -155,7 +167,7 @@ class Ranker(StatAlgorithm):
         return meta_detail
 
 
-class SexyIngredient(StatAlgorithm):
+class SexyIngredient(ModelsAlgorithms):
     def __init__(self, path='.'):
         """[summary]
 
@@ -270,23 +282,23 @@ class SexyIngredient(StatAlgorithm):
             lambda x: 'Yes' if x in banned_ingredients.substances.tolist() else 'No')
         self.ingredient.clean_flag[self.ingredient.ban_flag ==
                                    'Yes'] = 'Unclean'
-
-        self.ingredient = self.ingredient[["prod_id",
-                                           "clean_flag",
-                                           "ingredient",
-                                           "new_flag",
-                                           "meta_date",
-                                           "ingredient_type",
-                                           "brand",
-                                           "category",
-                                           "product_name",
-                                           "product_type",
-                                           "rating",
-                                           "bayesian_estimate",
-                                           "low_p",
-                                           "source",
-                                           "ban_flag"
-                                           ]]
+        columns = ["prod_id",
+                   "clean_flag",
+                   "ingredient",
+                   "new_flag",
+                   "meta_date",
+                   "ingredient_type",
+                   "brand",
+                   "category",
+                   "product_name",
+                   "product_type",
+                   "rating",
+                   "bayesian_estimate",
+                   "low_p",
+                   "source",
+                   "ban_flag"
+                   ]
+        self.ingredient = self.ingredient[columns]
 
         filename = str(filename).split("\\")[-1]
         self.ingredient.to_feather(
@@ -305,3 +317,121 @@ class SexyIngredient(StatAlgorithm):
                                   filename, job_name='ingredient')
         Path(self.output_path/filename).unlink()
         return self.ingredient
+
+
+class PredictSentiment(ModelsAlgorithms):
+    """PredictSentiment [summary]
+
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+
+    def __init__(self, model_file, data_vocab_file, model_path=None, path='.'):
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            model_file ([type]): [description]
+            data_vocab_file ([type]): [description]
+            model_path ([type], optional): [description]. Defaults to None.
+            path (str, optional): [description]. Defaults to '.'.
+        """
+        super().__init__(path=path)
+        if model_path:
+            data_class = load_data(path=model_path,
+                                   file=data_vocab_file)
+        else:
+            data_class = load_data(path=self.model_path,
+                                   file=Path(f'data/{data_vocab_file}'))
+
+        self.learner = text_classifier_learner(
+            data_class, AWD_LSTM, drop_mult=0.5)
+        self.learner.load(model_file)
+
+    def predict_instance(self, text):
+        """predict_instance [summary]
+
+        [extended_summary]
+
+        Args:
+            text ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
+        pred = self.learner.predict(text)
+        return pred[0], pred[1].numpy(), pred[2].numpy()
+
+    def predict_batch(self, text_column_name, data, save=True, pushS3=True):
+
+        if type(data) != pd.core.frame.DataFrame:
+            filename = data
+            try:
+                data = pd.read_feather(Path(data))
+            except:
+                data = pd.read_csv(Path(data))
+        else:
+            filename = None
+
+        data.reset_index(inplace=True, drop=True)
+
+        self.learner.data.add_test(data[text_column_name])
+        prob_preds = self.learner.get_preds(
+            ds_type=DatasetType.Test, ordered=True)
+
+        data = pd.concat([data, pd.DataFrame(
+            prob_preds[0].numpy(), columns=['neg_prob', 'pos_prob'])], axis=1)
+
+        data.neg_prob = data.neg_prob.swifter.apply(lambda x: round(x, 3))
+        data.pos_prob = data.pos_prob.swifter.apply(lambda x: round(x, 3))
+
+        data['sentiment'] = data.swifter.apply(
+            lambda x: 'positive' if x.pos_prob > x.neg_prob else 'negative', axis=1)
+        data.reset_index(inplace=True, drop=True)
+
+        if filename:
+            filename = str(filename).split('\\')[-1]
+
+            columns = ["prod_id",
+                       "product_name",
+                       "recommend",
+                       "review_date",
+                       "review_rating",
+                       "review_text",
+                       "review_title",
+                       "meta_date",
+                       "helpful_n",
+                       "helpful_y",
+                       "age",
+                       "eye_color",
+                       "hair_color",
+                       "skin_tone",
+                       "skin_type",
+                       'neg_prob',
+                       'pos_prob',
+                       'sentiment'
+                       ]
+            data = data[columns]
+
+            if save:
+                data.to_feather(
+                    self.output_path/f'with_sentiment_{filename}')
+
+            if pushS3:
+                data.fillna('', inplace=True)
+                data = data.replace('\n', ' ', regex=True)
+                data = data.replace('~', ' ', regex=True)
+
+                filename = 'with_sentiment_' + filename + '.csv'
+                data.to_csv(
+                    self.output_path/filename, index=None, sep='~')
+                file_manager.push_file_s3(file_path=self.output_path /
+                                          filename, job_name='review')
+                Path(self.output_path/filename).unlink()
+        return data
