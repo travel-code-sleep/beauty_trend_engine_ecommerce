@@ -380,7 +380,11 @@ class Cleaner(Sephora):
         # self.review['skin_type'] = self.review.user_attribute.swifter.apply(lambda x: create_attributes('skin_type', x))
         self.review.review_text = self.review.review_text.str.replace(
             '...read more', '')
+        self.review.review_text = self.review.review_text.str.replace(
+            '…read more', '')
+        self.review = self.review.replace('\n', ' ', regex=True)
         self.review.reset_index(drop=True, inplace=True)
+
         return self.review
 
     def item_cleaner(self):

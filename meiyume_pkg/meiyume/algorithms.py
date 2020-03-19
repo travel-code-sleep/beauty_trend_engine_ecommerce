@@ -1,16 +1,13 @@
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-
-import os
-import re
-import string
-import time
 import warnings
-from ast import literal_eval
+import os
+from pathlib import Path
+import time
 from datetime import datetime, timedelta
 from functools import reduce
-from pathlib import Path
-import unidecode
+from collections import Counter
+import math
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,11 +16,28 @@ import pandas as pd
 import seaborn as sns
 import swifter
 from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager
+
+# fast ai imports
 from tqdm.notebook import tqdm
 from fastai import *
 from fastai.text import *
 
-import warnings
+# text lib imports
+import re
+import string
+import unidecode
+from ast import literal_eval
+import textacy
+import textacy.ke as ke
+import pke
+from nltk.corpus import stopwords
+# spaCy based imports
+import spacy
+from spacy.lang.en.stop_words import STOP_WORDS
+from spacy.lang.en import English
+from spacy.matcher import Matcher
+
+# spacy.load('en_core_web_lg')
 warnings.simplefilter(action='ignore')
 
 file_manager = S3FileManager()
@@ -319,6 +333,83 @@ class SexyIngredient(ModelsAlgorithms):
         return self.ingredient
 
 
+class KeyWords(ModelsAlgorithms):
+    def __init__(self, path='.'):
+        super().__init__(path=path)
+        self.en = textacy.load_spacy_lang(
+            'en', disable=("parser",))
+
+    def get_no_of_words(self, l):
+        p = 0.2
+        if l < 50:
+            k = 2
+        elif l >= 50 and l <= 100:
+            k = 6
+        elif l > 100 and l <= 300:
+            k = 15
+        elif l > 300 and l <= 1000:
+            p = 0.18
+            k = 35
+        elif l > 1000 and l <= 5000:
+            p = 0.16
+            k = 60
+        elif l > 5000:
+            p = 0.14
+            k = 100
+        return int(round(k)), p
+
+    def extract_keywords(self, text, include_pke=False):
+        try:
+            l = len(text.split())
+            if l > 7:
+                k, p = self.get_no_of_words(l)
+
+                doc = textacy.make_spacy_doc(text, lang=self.en)
+
+                if include_pke:
+                    self.extractor_por = pke.unsupervised.PositionRank()
+                    self.extractor_por.load_document(input=text, language='en')
+                    self.extractor_por.candidate_selection()
+                    self.extractor_por.candidate_weighting()
+
+                    self.extractor_yke = pke.unsupervised.YAKE()
+                    self.extractor_yke.load_document(
+                        input=text, language='en')
+                    stoplist = stopwords.words('english')
+                    self.extractor_yke.candidate_selection(
+                        n=3, stoplist=stoplist)
+                    self.extractor_yke.candidate_weighting(
+                        window=4, stoplist=stoplist, use_stems=False)
+                    pke_keywords = [i[0] for i in self.extractor_por.get_n_best(n=k) if i[1] > 0.02] +\
+                        [i[0] for i in self.extractor_yke.get_n_best(
+                            n=k, threshold=0.8, redundancy_removal=True) if i[1] > 0.02]
+                else:
+                    pke_keywords = []
+
+                keywords = [i[0] for i in ke.textrank(doc, window_size=4, normalize='lower', topn=k) if i[1] > 0.02] +\
+                    [i[0] for i in ke.sgrank(doc, ngrams=(
+                        1, 2, 3, 4, 5), normalize="lower", topn=p) if i[1] > 0.02] + pke_keywords
+
+                self.keywords = sorted(list(set(keywords)), reverse=False,
+                                       key=lambda x: len(x))
+
+                if len(self.keywords) > 0:
+                    self.bad_words = []
+                    for i in range(len(self.keywords)):
+                        for j in range(i + 1, len(self.keywords)):
+                            if self.keywords[i] in self.keywords[j]:
+                                self.bad_words.append(self.keywords[i])
+
+                clean_keywords = [
+                    word for word in self.keywords if word not in self.bad_words]
+
+                return ', '.join(clean_keywords)  # list(set(keywords))
+            else:
+                return None
+        except IndexError:
+            return 'failed'
+
+
 class PredictSentiment(ModelsAlgorithms):
     """PredictSentiment [summary]
 
@@ -368,7 +459,19 @@ class PredictSentiment(ModelsAlgorithms):
         pred = self.learner.predict(text)
         return pred[0], pred[1].numpy(), pred[2].numpy()
 
-    def predict_batch(self, text_column_name, data, save=True, pushS3=True):
+    def predict_batch(self, text_column_name, data, save=False):
+        """predict_batch [summary]
+
+        [extended_summary]
+
+        Args:
+            text_column_name ([type]): Name of the text field for which sentiment will be predicted.
+            data (str:dataframe): Filename of the data file with or without complete path variable.
+            save (bool, optional): True if you want to save the resulting dataframe with sentiment and probabilities. Defaults to True.
+
+        Returns:
+            [type]: [description]
+        """
 
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -394,9 +497,139 @@ class PredictSentiment(ModelsAlgorithms):
         data['sentiment'] = data.swifter.apply(
             lambda x: 'positive' if x.pos_prob > x.neg_prob else 'negative', axis=1)
         data.reset_index(inplace=True, drop=True)
-
         if filename:
             filename = str(filename).split('\\')[-1]
+            if save:
+                data.to_feather(
+                    self.output_path/f'with_sentiment_{filename}')
+        return data
+
+
+class PredictInfluence(ModelsAlgorithms):
+
+    def __init__(self):
+        super().__init__()
+        self.lookup_ = ['free sample', 'free test', 'complimentary test', 'complimentary review', 'complimentary review',
+                        'complimentary test', 'receive product free', 'receive product complimentary', 'product complimentary',
+                        'free test', 'product free', 'test purpose']
+        self.punctuations = string.punctuation
+        self.stopwords = list(STOP_WORDS)
+        self.parser = English()
+
+    def spacy_tokenizer(self, text):
+        """spacy_tokenizer [summary]
+
+        [extended_summary]
+
+        Args:
+            text ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
+        tokens = self.parser(text)
+        tokens = [word.lemma_.lower().strip() if word.lemma_ !=
+                  "-PRON-" else word.lower_ for word in tokens]
+        tokens = [
+            word for word in tokens if word not in self.stopwords and word not in self.punctuations]
+        tokens = " ".join([i for i in tokens])
+        return tokens
+
+    def predict_instance(self, text):
+        tokenized_text = self.spacy_tokenizer(text)
+        if any(i in tokenized_text for i in self.lookup_):
+            return 'Influenced'
+        else:
+            return 'Not Influenced'
+
+    def predict_batch(self, text_column_name, data, save=False):
+        """predict_batch [summary]
+
+        [extended_summary]
+
+        Args:
+            text_column_name ([type]): [description]
+            data ([type]): [description]
+            save (bool, optional): [description]. Defaults to False.
+        """
+        if type(data) != pd.core.frame.DataFrame:
+            filename = data
+            try:
+                data = pd.read_feather(Path(data))
+            except:
+                data = pd.read_csv(Path(data))
+        else:
+            filename = None
+
+        data['tokenized_text'] = data[text_column_name].swifter.apply(
+            self.spacy_tokenizer)
+        data['is_influenced'] = data.tokenized_text.swifter.apply(lambda x: "Yes" if
+                                                                  any(y in x for y in self.lookup_) else "No")
+
+        data.reset_index(inplace=True, drop=True)
+        if filename:
+            filename = str(filename).split('\\')[-1]
+            if save:
+                data.to_feather(
+                    self.output_path/f'{filename}')
+        return data
+
+
+class SexyReview(ModelsAlgorithms):
+    def __init__(self, path='.'):
+        super().__init__(path=path)
+        self.sentiment_model = PredictSentiment(model_file='sentiment_model_two_class',
+                                                data_vocab_file='sentiment_class_databunch_two_class.pkl')
+        self.influence_model = PredictInfluence()
+        self.keys = KeyWords()
+
+    def make(self, review_file, text_column_name='review_text', predict_sentiment=True,
+             predict_influence=True, extract_keywords=True):
+        """make [summary]
+
+        [extended_summary]
+
+        Args:
+            review_file ([type]): [description]
+            predict_sentiment (bool, optional): [description]. Defaults to True.
+            predict_influence (bool, optional): [description]. Defaults to True.
+            extract_keywords (bool, optional): [description]. Defaults to True.
+
+        Returns:
+            [type]: [description]
+        """
+        if type(review_file) != pd.core.frame.DataFrame:
+            filename = review_file
+            try:
+                self.review = pd.read_feather(Path(review_file))
+            except:
+                self.review = pd.read_csv(Path(review_file))
+        else:
+            filename = None
+            self.review = review_file
+
+        self.review.review_text = self.review.review_text.str.replace(
+            '…read more', '')
+        self.review = self.review.replace('\n', ' ', regex=True)
+        self.review.reset_index(inplace=True, drop=True)
+
+        if predict_sentiment:
+            self.review = self.sentiment_model.predict_batch(
+                data=self.review, text_column_name=text_column_name, save=False)
+
+        if predict_influence:
+            self.review = self.influence_model.predict_batch(
+                data=self.review, text_column_name=text_column_name, save=False)
+
+        if extract_keywords:
+            self.review['text'] = self.review.swifter.apply(
+                lambda x: x.review_title + ". " + x.review_text if x.review_title is not None else x.review_text, axis=1)
+            self.review.text = self.review.text.str.lower().str.strip()
+            self.review['keywords'] = self.review.text.swifter.apply(
+                self.keys.extract_keywords)
+
+        if filename:
+            filename = str(review_file).split('\\')[-1]
 
             columns = ["prod_id",
                        "product_name",
@@ -415,23 +648,27 @@ class PredictSentiment(ModelsAlgorithms):
                        "skin_type",
                        'neg_prob',
                        'pos_prob',
-                       'sentiment'
+                       'sentiment',
+                       'is_influenced',
+                       'keywords'
                        ]
-            data = data[columns]
+            self.review = self.review[columns]
 
-            if save:
-                data.to_feather(
-                    self.output_path/f'with_sentiment_{filename}')
+            self.review.to_feather(
+                self.output_path/f'with_keywords_sentiment_{filename}')
 
-            if pushS3:
-                data.fillna('', inplace=True)
-                data = data.replace('\n', ' ', regex=True)
-                data = data.replace('~', ' ', regex=True)
+            self.review.fillna('', inplace=True)
+            self.review = self.review.replace('\n', ' ', regex=True)
+            self.review = self.review.replace('~', ' ', regex=True)
 
-                filename = 'with_sentiment_' + filename + '.csv'
-                data.to_csv(
-                    self.output_path/filename, index=None, sep='~')
-                file_manager.push_file_s3(file_path=self.output_path /
-                                          filename, job_name='review')
-                Path(self.output_path/filename).unlink()
-        return data
+            filename = 'with_keywords_sentiment_' + filename + '.csv'
+            self.review.to_csv(
+                self.output_path/filename, index=None, sep='~')
+            file_manager.push_file_s3(file_path=self.output_path /
+                                      filename, job_name='review')
+            Path(self.output_path/filename).unlink()
+
+        return self.review
+
+    def make_summary(self, review_file, text_column_name='review_text', extract_keywords=True):
+        pass
