@@ -11,7 +11,7 @@ setup(
     namespace_packages=['meiyume'],
     # Needed for dependencies
     # install_requires=['numpy', 'logging', 'pandas', 'selenium', 'missingno', 'spacy',
-    #                   # 'fastai', 'torch===1.3.1', 'torchvision ===0.4.2', unidecode,
+    #                   'fastai', 'torch', 'torchvision', 'unidecode', 'boto3',
     #                   'matplotlib', 'tldextract', 'tqdm', 'plotly', 'seaborn',
     #                   'sklearn', 'swifter', 'keras', 'tensorflow', 'scipy', 'pyarrow',
     #                   ],

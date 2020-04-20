@@ -375,7 +375,7 @@ class S3FileManager(object):
         except:
             print('file pushing task failed.')
 
-    def pull_file_s3(self, job_name, file_path=None):
+    def pull_file_s3(self, key, file_path='.', suffix=None):
         """pull_file_s3 [summary]
 
         [extended_summary]
@@ -384,13 +384,13 @@ class S3FileManager(object):
             job_name ([type]): [description]
             file_path ([type], optional): [description]. Defaults to None.
         """
-        prefix = get_prefix_s3(job_name)
-        keys = self.get_matching_s3_keys(prefix)
+        # prefix = self.get_prefix_s3(job_name)
+        # keys = self.get_matching_s3_keys(prefix)
 
         s3 = boto3.resource('s3')
-        for key in keys:
-            file_name = str(key).split('/')[-1]
-            s3.Bucket(self.bucket).download_file(key, str(file_path/file_name))
+        file_name = str(key).split('/')[-1]
+        s3.Bucket(self.bucket).download_file(
+            key, f'{file_path}/{file_name}')
 
     def delete_file_s3(self, key):
         """delete_file_s3 [summary]

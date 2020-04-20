@@ -74,7 +74,55 @@ class Ranker(ModelsAlgorithms):
             meta_files = self.sph.metadata_clean_path.glob(
                 'cat_cleaned_sph_product_metadata_all*')
             meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+
+        dft = meta.groupby('prod_id').product_type.apply(
+            ' '.join).reset_index()
+
+        exclude_pdt = ["bath-set-gifts",
+                       "beauty-tool-gifts",
+                       "clean-fragrance",
+                       "clean-hair-care",
+                       "clean-makeup",
+                       "clean-skin-care",
+                       "bath-set-gifts",
+                       "cologne-gift-sets",
+                       "fragrance-gift-sets",
+                       "fragrance-gifts-gift-value-sets-men",
+                       "gifts-for-her",
+                       "gifts-for-men",
+                       "gifts-for-teenage-girls",
+                       "gifts-for-them",
+                       "gifts-under-10",
+                       "gifts-under-100",
+                       "gifts-under-15",
+                       "gifts-under-25",
+                       "gifts-under-50",
+                       "gifts-under-75",
+                       "hair-gift-sets",
+                       "home-fragrance-candle-gift-sets",
+                       "makeup-bags-accessories-by-category-gifts",
+                       "makeup-gift-sets",
+                       "mens-gifts",
+                       "perfume-gift-sets",
+                       "skin-care-gift-sets"]
+
+        def choose_type(x):
+            x = x.split()
+            t = list(set(x) - set(exclude_pdt))
+            if len(t) > 0:
+                return t[0]
+            else:
+                return x[0]
+        dft.product_type = dft.product_type.swifter.apply(choose_type)
+
         meta.drop_duplicates(subset='prod_id', inplace=True)
+
+        dft.set_index('prod_id', inplace=True)
+        meta.set_index('prod_id', inplace=True)
+        meta.drop('product_type', inplace=True, axis=1)
+
+        meta = meta.join(dft, how='left')
+        meta.reset_index(inplace=True)
 
         if detail_file:
             detail = pd.read_feather(detail_file)
@@ -97,13 +145,15 @@ class Ranker(ModelsAlgorithms):
         prior_rating = meta_detail.groupby(by=['category', 'product_type'])[
             'rating'].mean().reset_index()
 
+        meta_detail.sort_index(inplace=True)
+
         def total_stars(x): return x.reviews * x.rating
 
         def bayesian_estimate(x):
-            c = int(round(review_conf['reviews'][(review_conf.category == x.category) & (
-                review_conf.product_type == x.product_type)].values[0]))
-            prior = int(round(prior_rating['rating'][(prior_rating.category == x.category) & (
-                prior_rating.product_type == x.product_type)].values[0]))
+            c = round(review_conf['reviews'][(review_conf.category == x.category) & (
+                review_conf.product_type == x.product_type)].values[0])
+            prior = round(prior_rating['rating'][(prior_rating.category == x.category) & (
+                prior_rating.product_type == x.product_type)].values[0])
             return (c * prior + x.rating * x.reviews	) / (c + x.reviews)
 
         meta_detail['total_stars'] = meta_detail.swifter.apply(
@@ -127,6 +177,7 @@ class Ranker(ModelsAlgorithms):
 
         meta_detail.drop(columns=['meta_datedetail',
                                   'product_namedetail'], axis=1, inplace=True)
+
         columns = ["prod_id",
                    "product_name",
                    "product_page",
@@ -358,13 +409,19 @@ class KeyWords(ModelsAlgorithms):
             k = 100
         return int(round(k)), p
 
-    def extract_keywords(self, text, include_pke=False):
+    def extract_keywords(self, text, include_pke=False, is_doc=False):
         try:
-            l = len(text.split())
+            if is_doc:
+                doc = text
+                l = len(doc.text.split())
+            else:
+                l = len(text.split())
+                doc = None
             if l > 7:
                 k, p = self.get_no_of_words(l)
 
-                doc = textacy.make_spacy_doc(text, lang=self.en)
+                if doc is None:
+                    doc = textacy.make_spacy_doc(text, lang=self.en)
 
                 if include_pke:
                     self.extractor_por = pke.unsupervised.PositionRank()
@@ -575,6 +632,54 @@ class PredictInfluence(ModelsAlgorithms):
         return data
 
 
+class CandidateSelection(ModelsAlgorithms):
+    """Review_Summarizer [summary]
+
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def select(self, data, weight_column, groupby_columns, fraction=0.3, select_column=None,
+               drop_weights=True, **kwargs):
+
+        if type(data) != pd.core.frame.DataFrame:
+            filename = data
+            try:
+                data = pd.read_feather(Path(filename))
+            except:
+                data = pd.read_csv(Path(filename))
+        else:
+            filename = None
+
+        data[weight_column][data[weight_column] == ''] = 0
+        data[weight_column] = data[weight_column].astype(int) + 1
+
+        data['weight_avg'] = data.groupby(by=groupby_columns)[
+            weight_column].transform('mean')
+        data['candidate_weight'] = data[weight_column].astype(
+            int)/data.weight_avg.astype(float)
+
+        data = data.groupby(by=groupby_columns, group_keys=False).apply(
+            pd.DataFrame.sample, frac=fraction, weights='candidate_weight')
+
+        data[weight_column] = data[weight_column].astype(int) - 1
+
+        if drop_weights:
+            data.drop(['weight_avg', 'candidate_weight'], inplace=True, axis=1)
+
+        if select_column:
+            data_select = data.groupby(by=groupby_columns)[
+                select_column].progress_apply(' '.join).reset_index()
+            return data_select
+
+        return data
+
+
 class SexyReview(ModelsAlgorithms):
     def __init__(self, path='.'):
         super().__init__(path=path)
@@ -582,6 +687,7 @@ class SexyReview(ModelsAlgorithms):
                                                 data_vocab_file='sentiment_class_databunch_two_class.pkl')
         self.influence_model = PredictInfluence()
         self.keys = KeyWords()
+        self.candidate_selector = CandidateSelection()
 
     def make(self, review_file, text_column_name='review_text', predict_sentiment=True,
              predict_influence=True, extract_keywords=True):
@@ -670,5 +776,33 @@ class SexyReview(ModelsAlgorithms):
 
         return self.review
 
-    def make_summary(self):
-        pass
+    def make_summary(self, review_file, text_column_names='text', summarize_review=True,  # candidate_criterion=[],
+                     summarize_keywords=True, extract_ngrams=True, extract_topic=True):
+
+        if type(review_file) != pd.core.frame.DataFrame:
+            filename = review_file
+            try:
+                self.review = pd.read_feather(Path(review_file))
+            except:
+                self.review = pd.read_csv(Path(review_file))
+        else:
+            filename = None
+            self.review = review_file
+
+        self.review = self.review[['prod_id', 'product_name', 'review_text', 'review_title', 'helpful_n',
+                                   'helpful_y', 'sentiment', 'is_influenced', 'keywords']]
+        self.review = self.review.replace('\n', ' ', regex=True)
+        self.review.reset_index(inplace=True, drop=True)
+
+        self.review['text'] = self.review.swifter.apply(
+            lambda x: x.review_title + ". " + x.review_text if x.review_title is not None else x.review_text, axis=1)
+
+        pos_review = self.review[self.review.sentiment == 'positive']
+        neg_review = self.review[self.review.sentiment == 'negative']
+
+        if summarize_review or extract_topic:
+            pos_review_selected = self.candidate_selector.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
+                'prod_id'], fraction=0.35, select_column='text')
+
+            neg_review_selected = self.candidate_selector.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
+                'prod_id'], fraction=0.55, select_column='text')
