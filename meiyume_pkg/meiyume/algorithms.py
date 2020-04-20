@@ -42,6 +42,8 @@ warnings.simplefilter(action='ignore')
 
 file_manager = S3FileManager()
 
+np.random.seed(1337)
+
 
 class Ranker(ModelsAlgorithms):
     """Ranker [summary]
@@ -479,14 +481,15 @@ class PredictSentiment(ModelsAlgorithms):
         [type]: [description]
     """
 
-    def __init__(self, model_file, data_vocab_file, model_path=None, path='.'):
+    def __init__(self, model_file='sentiment_model_two_class', data_vocab_file='sentiment_class_databunch_two_class.pkl',
+                 model_path=None, path='.'):
         """__init__ [summary]
 
         [extended_summary]
 
         Args:
-            model_file ([type]): [description]
-            data_vocab_file ([type]): [description]
+            model_file (str, optional): [description]. Defaults to 'sentiment_model_two_class'.
+            data_vocab_file (str, optional): [description]. Defaults to 'sentiment_class_databunch_two_class.pkl'.
             model_path ([type], optional): [description]. Defaults to None.
             path (str, optional): [description]. Defaults to '.'.
         """
@@ -632,13 +635,16 @@ class PredictInfluence(ModelsAlgorithms):
         return data
 
 
-class CandidateSelection(ModelsAlgorithms):
-    """Review_Summarizer [summary]
+class SelectCandidate(ModelsAlgorithms):
+    """SelectCandidate [summary]
 
     [extended_summary]
 
     Args:
         ModelsAlgorithms ([type]): [description]
+
+    Returns:
+        [type]: [description]
     """
 
     def __init__(self):
@@ -687,7 +693,7 @@ class SexyReview(ModelsAlgorithms):
                                                 data_vocab_file='sentiment_class_databunch_two_class.pkl')
         self.influence_model = PredictInfluence()
         self.keys = KeyWords()
-        self.candidate_selector = CandidateSelection()
+        self.select_ = SelectCandidate()
 
     def make(self, review_file, text_column_name='review_text', predict_sentiment=True,
              predict_influence=True, extract_keywords=True):
@@ -801,8 +807,8 @@ class SexyReview(ModelsAlgorithms):
         neg_review = self.review[self.review.sentiment == 'negative']
 
         if summarize_review or extract_topic:
-            pos_review_selected = self.candidate_selector.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
+            pos_review_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
                 'prod_id'], fraction=0.35, select_column='text')
 
-            neg_review_selected = self.candidate_selector.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
+            neg_review_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
                 'prod_id'], fraction=0.55, select_column='text')
