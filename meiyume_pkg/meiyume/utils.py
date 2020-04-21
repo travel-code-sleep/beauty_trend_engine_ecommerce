@@ -254,7 +254,6 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
-
 def convert_ago_to_date(x):
     if 'ago' in x.lower() and x is not np.nan:
         if 'd' in x.lower():

@@ -15,12 +15,19 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import swifter
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager
+from tqdm import tqdm
+from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager, chunks
 
 # fast ai imports
 from tqdm.notebook import tqdm
 from fastai import *
 from fastai.text import *
+
+# transformers imports
+import torch
+from transformers import pipeline
+from transformers import BartForConditionalGeneration, BartTokenizer
+import argparse
 
 # text lib imports
 import re
@@ -650,8 +657,26 @@ class SelectCandidate(ModelsAlgorithms):
     def __init__(self):
         super().__init__()
 
-    def select(self, data, weight_column, groupby_columns, fraction=0.3, select_column=None,
-               drop_weights=True, **kwargs):
+    def select(self, data: Union[str, Path, DataFrame], weight_column: str, groupby_columns: Union[str, list], fraction=0.3,
+               select_column=None, drop_weights=True, keep_all=True, **kwargs):
+        """select [summary]
+
+        [extended_summary]
+
+        Args:
+            data (Union[str, Path, DataFrame]): [description]
+            weight_column (str): [description]
+            groupby_columns (str): [description]
+            fraction (float, optional): [description]. Defaults to 0.3.
+            select_column ([type], optional): [description]. Defaults to None.
+            drop_weights (bool, optional): [description]. Defaults to True.
+            keep_all (bool, optional): [description]. Defaults to True.
+
+        Returns:
+            DataFrame: [description]
+        """
+        if type(groupby_columns) != list:
+            groupby_columns = [groupby_columns]
 
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -670,20 +695,185 @@ class SelectCandidate(ModelsAlgorithms):
         data['candidate_weight'] = data[weight_column].astype(
             int)/data.weight_avg.astype(float)
 
-        data = data.groupby(by=groupby_columns, group_keys=False).apply(
+        data_sample = data.groupby(by=groupby_columns, group_keys=False).apply(
             pd.DataFrame.sample, frac=fraction, weights='candidate_weight')
 
-        data[weight_column] = data[weight_column].astype(int) - 1
+        if keep_all:
+            missing_groups = set(set(data[groupby_columns[0]].tolist(
+            ))-set(data_sample[groupby_columns[0]].tolist()))
+
+            data_sample = pd.concat([data_sample, data[data[groupby_columns[0]].isin(
+                missing_groups)]], axis=0)
 
         if drop_weights:
-            data.drop(['weight_avg', 'candidate_weight'], inplace=True, axis=1)
+            data_sample.drop(
+                ['weight_avg', 'candidate_weight'], inplace=True, axis=1)
+
+        data_sample[weight_column] = data_sample[weight_column].astype(int) - 1
 
         if select_column:
-            data_select = data.groupby(by=groupby_columns)[
+            data_select = data_sample.groupby(by=groupby_columns)[
                 select_column].progress_apply(' '.join).reset_index()
             return data_select
 
+        return data_sample
+
+
+class Summarizer(ModelsAlgorithms):
+    """Summarizer [summary]
+
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+    """
+
+    def __init__(self, current_device=-1):
+        super().__init__()
+
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        current_device = 0 if torch.cuda.is_available() else -1
+
+        self.bart_summarizer = pipeline(
+            task='summarization', model='bart-large-cnn', device=current_device)
+
+    def generate_summary(self, text: str, min_length=150):
+        l = len(text.split())
+        if l > 1024:
+            max_length = 1024
+        else:
+            max_length = l
+
+        if l < min_length+30:
+            return text
+        else:
+            summary = self.bart_summarizer(text, min_length=min_length,
+                                           max_length=max_length)
+            return summary[0]['summary_text']
+
+    def generate_summary_batch(self, examples: list, model_name: str = "bart-large-cnn", min_length: int = 150,
+                               max_length: int = 1024, batch_size: int = 12):
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        generated_summaries = []
+        model = BartForConditionalGeneration.from_pretrained(
+            model_name).to(self.device)
+        tokenizer = BartTokenizer.from_pretrained("bart-large")
+
+        for batch in tqdm(list(chunks(examples, batch_size))):
+            dct = tokenizer.batch_encode_plus(
+                batch, max_length=1024, return_tensors="pt", pad_to_max_length=True)
+
+            summaries = model.generate(input_ids=dct["input_ids"].to(self.device),
+                                       attention_mask=dct["attention_mask"].to(
+                self.device),
+                num_beams=4,
+                length_penalty=2.0,
+                # +2 from original because we start at step=1 and stop before max_length
+                max_length=max_length + 2,
+                min_length=min_length + 1,  # +1 from original because we start at step=1
+                no_repeat_ngram_size=3,
+                early_stopping=True,
+                decoder_start_token_id=model.config.eos_token_id,
+            )
+
+            dec = [tokenizer.decode(
+                g, skip_special_tokens=True, clean_up_tokenization_spaces=True) for g in summaries]
+
+            generated_summaries.extend(dec)
+
+        return generated_summaries
+
+    def summarize_instance(self, text, min_length=150):
+        return self.generate_summary(text, min_length=min_length)
+
+    def summarize_batch(self, data: Union[str, Path, DataFrame], text_column_name: str, min_length=150, save=False):
+        """summarize_batch [summary]
+
+        [extended_summary]
+
+        Args:
+            data (Union[str, Path, DataFrame]): [description]
+            text_column_name (str): [description]
+            min_length (int, optional): [description]. Defaults to 150.
+            save (bool, optional): [description]. Defaults to False.
+        """
+        if type(data) != pd.core.frame.DataFrame:
+            filename = data
+            try:
+                data = pd.read_feather(Path(data))
+            except:
+                data = pd.read_csv(Path(data))
+        else:
+            filename = None
+
+        data.reset_index(inplace=True, drop=True)
+
+        data['summary'] = data[text_column_name].swifter.apply(
+            lambda x: self.generate_summary(x, min_length=min_length))
+
+        if filename:
+            filename = str(filename).split('\\')[-1]
+            if save:
+                data.to_feather(
+                    self.output_path/f'with_summary_{filename}')
+
         return data
+
+    def summarize_batch_plus(self, data: Union[str, Path, DataFrame], id_column_name: str = 'prod_id', text_column_name: str = 'text',
+                             min_length: int = 150, max_length: int = 1024, batch_size: int = 12,
+                             summary_column_name: str = 'summary', save=False):
+        """summarize_batch_plus
+
+        [extended_summary]
+
+        Args:
+            data (Union[str, Path, DataFrame]): [description]
+            id_column_name (str, optional): [description]. Defaults to 'prod_id'.
+            text_column_name (str, optional): [description]. Defaults to 'text'.
+            min_length (int, optional): [description]. Defaults to 150.
+            max_length (int, optional): [description]. Defaults to 1024.
+            batch_size (int, optional): [description]. Defaults to 12.
+            summary_column_name (str, optional): [description]. Defaults to 'summary'.
+            save (bool, optional): [description]. Defaults to False.
+
+        Returns:
+            DataFrame: [description]
+        """
+        if type(data) != pd.core.frame.DataFrame:
+            filename = data
+            try:
+                data = pd.read_feather(Path(data))
+            except:
+                data = pd.read_csv(Path(data))
+        else:
+            filename = None
+
+        data.reset_index(inplace=True, drop=True)
+
+        data['word_count'] = data[text_column_name].str.split().apply(len)
+
+        data_to_summarize = data[data.word_count >= min_length+100]
+
+        data_not_to_summarize = data[~data[id_column_name].isin(
+            data_to_summarize[id_column_name].tolist())]
+
+        data_to_summarize.reset_index(drop=True, inplace=True)
+        data_not_to_summarize.reset_index(drop=True, inplace=True)
+
+        summaries = self.generate_summary_batch(
+            data_to_summarize[text_column_name].tolist(), min_length=min_length, max_length=max_length, batch_size=batch_size)
+
+        data_to_summarize[summary_column_name] = pd.Series(summaries)
+
+        data_not_to_summarize.rename(
+            columns={text_column_name: summary_column_name}, inplace=True)
+
+        data_summary = pd.concat([data_to_summarize[[id_column_name, summary_column_name]],
+                                  data_not_to_summarize[[id_column_name, summary_column_name]]], axis=0)
+
+        data_summary.reset_index(drop=True, inplace=True)
+
+        return data_summary
 
 
 class SexyReview(ModelsAlgorithms):
@@ -695,20 +885,21 @@ class SexyReview(ModelsAlgorithms):
         self.keys = KeyWords()
         self.select_ = SelectCandidate()
 
-    def make(self, review_file, text_column_name='review_text', predict_sentiment=True,
+    def make(self, review_file: Union[str, Path, DataFrame], text_column_name='review_text', predict_sentiment=True,
              predict_influence=True, extract_keywords=True):
         """make [summary]
 
         [extended_summary]
 
         Args:
-            review_file ([type]): [description]
+            review_file (Union[str, Path, DataFrame]): [description]
+            text_column_name (str, optional): [description]. Defaults to 'review_text'.
             predict_sentiment (bool, optional): [description]. Defaults to True.
             predict_influence (bool, optional): [description]. Defaults to True.
             extract_keywords (bool, optional): [description]. Defaults to True.
 
         Returns:
-            [type]: [description]
+            review(DataFrame): [description]
         """
         if type(review_file) != pd.core.frame.DataFrame:
             filename = review_file
@@ -782,7 +973,7 @@ class SexyReview(ModelsAlgorithms):
 
         return self.review
 
-    def make_summary(self, review_file, text_column_names='text', summarize_review=True,  # candidate_criterion=[],
+    def make_summary(self, review_file: Union[str, Path, DataFrame], text_column_names='text', summarize_review=True,  # candidate_criterion=[],
                      summarize_keywords=True, extract_ngrams=True, extract_topic=True):
 
         if type(review_file) != pd.core.frame.DataFrame:
