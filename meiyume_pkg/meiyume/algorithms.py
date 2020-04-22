@@ -728,16 +728,27 @@ class Summarizer(ModelsAlgorithms):
         ModelsAlgorithms ([type]): [description]
     """
 
-    def __init__(self, current_device=-1):
+    def __init__(self, current_device: int = -1, initialize_model: bool = False):
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            current_device (int, optional): [description]. Defaults to -1.
+            initialize_model (bool, optional): Set to True if using method summarize_instance or summarize_batch.
+                                               Set to False if using method summarize_batch_plus. Defaults to False.
+        """
         super().__init__()
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        current_device = 0 if torch.cuda.is_available() else -1
+        self.current_device = 0 if torch.cuda.is_available() else -1
 
-        self.bart_summarizer = pipeline(
-            task='summarization', model='bart-large-cnn', device=current_device)
+        if initialize_model:
+            self.bart_summarizer = pipeline(
+                task='summarization', model='bart-large-cnn', device=self.current_device)
 
     def generate_summary(self, text: str, min_length=150):
+
         l = len(text.split())
         if l > 1024:
             max_length = 1024
@@ -868,12 +879,12 @@ class Summarizer(ModelsAlgorithms):
         data_not_to_summarize.rename(
             columns={text_column_name: summary_column_name}, inplace=True)
 
-        data_summary = pd.concat([data_to_summarize[[id_column_name, summary_column_name]],
-                                  data_not_to_summarize[[id_column_name, summary_column_name]]], axis=0)
+        self.data_summary = pd.concat([data_to_summarize[[id_column_name, summary_column_name]],
+                                       data_not_to_summarize[[id_column_name, summary_column_name]]], axis=0)
 
-        data_summary.reset_index(drop=True, inplace=True)
+        self.data_summary.reset_index(drop=True, inplace=True)
 
-        return data_summary
+        return self.data_summary
 
 
 class SexyReview(ModelsAlgorithms):
@@ -884,6 +895,7 @@ class SexyReview(ModelsAlgorithms):
         self.influence_model = PredictInfluence()
         self.keys = KeyWords()
         self.select_ = SelectCandidate()
+        self.summarizer = Summarizer()
 
     def make(self, review_file: Union[str, Path, DataFrame], text_column_name='review_text', predict_sentiment=True,
              predict_influence=True, extract_keywords=True):
@@ -1003,3 +1015,18 @@ class SexyReview(ModelsAlgorithms):
 
             neg_review_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
                 'prod_id'], fraction=0.55, select_column='text')
+
+        if summarize_review:
+            pos_review_summary = self.summarizer.summarize_batch_plus(data=pos_review_selected, id_column_name='prod_id', text_column_name='text',
+                                                                      min_length=150, max_length=1024, batch_size=8, summary_column_name='pos_summary')
+
+            neg_review_summary = self.summarizer.summarize_batch_plus(data=neg_review_selected, id_column_name='prod_id', text_column_name='text',
+                                                                      min_length=80, max_length=1024, batch_size=8, summary_column_name='neg_summary')
+            pos_review_summary.set_index('prod_id', inplace=True)
+            neg_review_summary.set_index('prod_id', inplace=True)
+
+            self.review_summary = pos_review_summary.join(
+                neg_review_summary, how='outer')
+            self.review_summary.reset_index(inplace=True)
+
+        return self.review_summary
