@@ -4,5 +4,19 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"sqltools.connections": [
+			{
+				"database": "lifungdb",
+				"dialect": "AWS Redshift",
+				"isActive": true,
+				"isConnected": true,
+				"name": "bte_redshift",
+				"password": "Lifung123",
+				"port": 5439,
+				"server": "lifungprod.cctlwakofj4t.ap-southeast-1.redshift.amazonaws.com",
+				"username": "btemymuser"
+			}
+		]
+	}
 }
