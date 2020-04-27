@@ -2,6 +2,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 import warnings
 import os
+import gc
 from pathlib import Path
 import time
 from datetime import datetime, timedelta
@@ -44,6 +45,7 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.lang.en import English
 from spacy.matcher import Matcher
 
+nlp = spacy.load("en_core_web_lg")
 # spacy.load('en_core_web_lg')
 warnings.simplefilter(action='ignore')
 
@@ -475,6 +477,56 @@ class KeyWords(ModelsAlgorithms):
         except IndexError:
             return 'failed'
 
+    def summarize_keywords(self, keywords: Union[str, list], sep: str = ',', exclude_keys: list = []):
+        """summarize_keywords [summary]
+
+        [extended_summary]
+
+        Args:
+            keywords (Union[str, list]): combined multiple keywords of either individual reviews, products, brands etc joined by a
+                                         string or as combined list
+            sep (str, optional): separator string that was used to join the keywords originally. Defaults to ','.
+            exclude_keys (list, optional): [description]. Defaults to [].
+
+        Returns:
+            keyword_summary(dict): summarized keywords with keyword and frequency
+        """
+
+        bad_keys = ['', 'product', 'easy', 'glad', 'minutes', 'fingers', 'job', 'year',
+                    'negative reviews', 'negative review']
+        if exclude_keys:
+            bad_keys = bad_keys + exclude_keys
+
+        if type(keywords) == list:
+            keywords = Counter(keywords).items()
+        else:
+            keywords = Counter(keywords.split(f'{sep}')).items()
+
+        skw = sorted([(k.strip(), v) for k, v in keywords if v >= 3 and k.strip() != ''],
+                     reverse=False, key=lambda x: len(x[0]))
+
+        bad_token = []
+        for i in skw:
+            tags = []
+            tokens = nlp(i[0])
+            for token in tokens:
+                tags.append(token.pos_)
+            if all(t not in ['NOUN', 'PROPN', 'PRON'] for t in tags):
+                bad_token.append(i[0])
+        skw = [item for item in skw if item[0] not in bad_token]
+
+        bad_items = []
+        for i in range(len(skw)):
+            for j in range(i + 1, len(skw)):
+                if skw[i][0] in skw[j][0]:
+                    bad_items.append(skw[i][0])
+
+        self.bad_items = bad_items+bad_keys
+
+        keyword_summary = {item[0]: item[1]
+                           for item in skw if item[0] not in self.bad_items}
+        return keyword_summary
+
 
 class PredictSentiment(ModelsAlgorithms):
     """PredictSentiment [summary]
@@ -657,23 +709,25 @@ class SelectCandidate(ModelsAlgorithms):
     def __init__(self):
         super().__init__()
 
-    def select(self, data: Union[str, Path, DataFrame], weight_column: str, groupby_columns: Union[str, list], fraction=0.3,
-               select_column=None, drop_weights=True, keep_all=True, **kwargs):
+    def select(self, data: Union[str, Path, DataFrame], weight_column: str, groupby_columns: Union[str, list], fraction: float = 0.3,
+               select_column=None, sep: str = ' ', drop_weights: bool = True, keep_all: bool = True, **kwargs):
         """select [summary]
 
         [extended_summary]
 
         Args:
-            data (Union[str, Path, DataFrame]): [description]
-            weight_column (str): [description]
-            groupby_columns (str): [description]
-            fraction (float, optional): [description]. Defaults to 0.3.
-            select_column ([type], optional): [description]. Defaults to None.
-            drop_weights (bool, optional): [description]. Defaults to True.
-            keep_all (bool, optional): [description]. Defaults to True.
+            data (Union[str, Path, DataFrame]): dataset. prefarably dataframe, csv or feather file.
+            weight_column (str): numerical column on which weights will be calculated
+            groupby_columns (Union[str, list]): columns over which values the sampling candidate groups will be generated
+            fraction (float, optional): fraction of data to keep. Defaults to 0.3.
+            select_column ([type], optional): the column of which rows will be combined over groups and
+                                              be returned as group columns + combined data column. Defaults to None.
+            sep (str, optional): separator by which the select column rows will be joined over groups. Defaults to ' '.
+            drop_weights (bool, optional): whether to drop the weight column values. Defaults to True.
+            keep_all (bool, optional): keep all the original groups. Defaults to True.
 
         Returns:
-            DataFrame: [description]
+            data_sample(DataFrame): [description]
         """
         if type(groupby_columns) != list:
             groupby_columns = [groupby_columns]
@@ -713,7 +767,7 @@ class SelectCandidate(ModelsAlgorithms):
 
         if select_column:
             data_select = data_sample.groupby(by=groupby_columns)[
-                select_column].progress_apply(' '.join).reset_index()
+                select_column].progress_apply(f'{sep}'.join).reset_index()
             return data_select
 
         return data_sample
@@ -746,8 +800,13 @@ class Summarizer(ModelsAlgorithms):
         if initialize_model:
             self.bart_summarizer = pipeline(
                 task='summarization', model='bart-large-cnn', device=self.current_device)
+        else:
+            self.bart_summarizer = None
 
     def generate_summary(self, text: str, min_length=150):
+
+        assert self.bart_summarizer is not None, "Set initialize model parameter to True when using summarize_instance or \
+                                                  summarize_batch methods. "
 
         l = len(text.split())
         if l > 1024:
@@ -985,7 +1044,7 @@ class SexyReview(ModelsAlgorithms):
 
         return self.review
 
-    def make_summary(self, review_file: Union[str, Path, DataFrame], text_column_names='text', summarize_review=True,  # candidate_criterion=[],
+    def make_summary(self, review_file: Union[str, Path, DataFrame], summarize_review=True,  # candidate_criterion=[],
                      summarize_keywords=True, extract_ngrams=True, extract_topic=True):
 
         if type(review_file) != pd.core.frame.DataFrame:
@@ -1009,24 +1068,64 @@ class SexyReview(ModelsAlgorithms):
         pos_review = self.review[self.review.sentiment == 'positive']
         neg_review = self.review[self.review.sentiment == 'negative']
 
+        if summarize_keywords:
+            pos_kw_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=['prod_id'],
+                                                  fraction=0.7, select_column='keywords', sep=', ')
+            neg_kw_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
+                'prod_id'], fraction=0.7, select_column='keywords', sep=', ')
+
+            pos_kw_selected['pos_keywords_summary'] = pos_kw_selected.keywords.swifter.apply(
+                self.keys.summarize_keywords)
+            neg_kw_selected['neg_keywords_summary'] = neg_kw_selected.keywords.swifter.apply(
+                self.keys.summarize_keywords)
+
+            pos_kw_selected.drop(columns='keywords', inplace=True)
+            neg_kw_selected.drop(columns='keywords', inplace=True)
+
+            pos_kw_selected.set_index('prod_id', inplace=True)
+            neg_kw_selected.set_index('prod_id', inplace=True)
+
+            self.keyword_summary = pos_kw_selected.join(
+                neg_kw_selected, how='outer')
+            self.keyword_summary.reset_index(inplace=True)
+
+            del pos_kw_selected, neg_kw_selected
+            gc.collect()
+
         if summarize_review or extract_topic:
             pos_review_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.35, select_column='text')
+                'prod_id'], fraction=0.35, select_column='text', sep=' ')
 
             neg_review_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.55, select_column='text')
+                'prod_id'], fraction=0.55, select_column='text', sep=' ')
 
         if summarize_review:
             pos_review_summary = self.summarizer.summarize_batch_plus(data=pos_review_selected, id_column_name='prod_id', text_column_name='text',
-                                                                      min_length=150, max_length=1024, batch_size=8, summary_column_name='pos_summary')
+                                                                      min_length=150, max_length=1024, batch_size=10, summary_column_name='pos_summary')
 
             neg_review_summary = self.summarizer.summarize_batch_plus(data=neg_review_selected, id_column_name='prod_id', text_column_name='text',
-                                                                      min_length=80, max_length=1024, batch_size=8, summary_column_name='neg_summary')
+                                                                      min_length=80, max_length=1024, batch_size=10, summary_column_name='neg_summary')
             pos_review_summary.set_index('prod_id', inplace=True)
             neg_review_summary.set_index('prod_id', inplace=True)
 
             self.review_summary = pos_review_summary.join(
                 neg_review_summary, how='outer')
             self.review_summary.reset_index(inplace=True)
+
+            del pos_review_summary, neg_review_summary
+            gc.collect()
+
+        if extract_topic:
+
+            del pos_review_selected, neg_review_selected
+            gc.collect()
+            pass
+
+        if extract_ngrams:
+            df_pos_ngram = pos_review.groupby(by='prod_id')[
+                'text'].progress_apply(' '.join).reset_index()
+
+            df_neg_ngram = neg_review.groupby(by='prod_id')[
+                'text'].progress_apply(' '.join).reset_index()
 
         return self.review_summary

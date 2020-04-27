@@ -411,7 +411,7 @@ class Detail(Sephora):
                                           path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_log.start_log()
 
-    def download_detail(self, lst, detail_data=[], item_data=[],
+    def download_detail(self, lst: list, detail_data: list = [], item_data: list = [],
                         item_df=pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
                                                       'item_size', 'item_price', 'item_ingredients'])):
         """[summary]
