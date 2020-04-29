@@ -37,16 +37,16 @@ import unidecode
 from ast import literal_eval
 import textacy
 import textacy.ke as ke
+from textacy import preprocessing
 import pke
 from nltk.corpus import stopwords
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 # spaCy based imports
 import spacy
 from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.lang.en import English
 from spacy.matcher import Matcher
 
-nlp = spacy.load("en_core_web_lg")
-# spacy.load('en_core_web_lg')
 warnings.simplefilter(action='ignore')
 
 file_manager = S3FileManager()
@@ -396,10 +396,20 @@ class SexyIngredient(ModelsAlgorithms):
 
 
 class KeyWords(ModelsAlgorithms):
-    def __init__(self, path='.'):
+    def __init__(self, path: Union[str, Path] = '.'):
+        """KeyWords [summary]
+
+        [extended_summary]
+
+        Args:
+            ModelsAlgorithms (type): parent class. instantitates the required libs and sets system paths
+            path (Union[str, Path], optional): root path. Defaults to '.' (current working directory).
+        """
         super().__init__(path=path)
         self.en = textacy.load_spacy_lang(
-            'en', disable=("parser",))
+            'en_core_web_lg', disable=("parser",))
+        self.analyser = SentimentIntensityAnalyzer()
+        self.nlp = spacy.load("en_core_web_lg")
 
     def get_no_of_words(self, l):
         p = 0.2
@@ -420,7 +430,19 @@ class KeyWords(ModelsAlgorithms):
             k = 100
         return int(round(k)), p
 
-    def extract_keywords(self, text, include_pke=False, is_doc=False):
+    def extract_keywords(self, text: Union[str, spacy.tokens.doc.Doc], include_pke: bool = False, is_doc: bool = False):
+        """extract_keywords [summary]
+
+        [extended_summary]
+
+        Args:
+            text (Union[str, spacy.tokens.doc.Doc]): [description]
+            include_pke (bool, optional): [description]. Defaults to False.
+            is_doc (bool, optional): [description]. Defaults to False.
+
+        Returns:
+            [type]: [description]
+        """
         try:
             if is_doc:
                 doc = text
@@ -477,25 +499,23 @@ class KeyWords(ModelsAlgorithms):
         except IndexError:
             return 'failed'
 
-    def summarize_keywords(self, keywords: Union[str, list], sep: str = ',', exclude_keys: list = []):
+    def summarize_keywords(self, keywords: Union[str, list], sep: str = ',', exclude_keys: list = [], max_keys: int = -1):
         """summarize_keywords [summary]
 
         [extended_summary]
 
         Args:
-            keywords (Union[str, list]): combined multiple keywords of either individual reviews, products, brands etc joined by a
-                                         string or as combined list
-            sep (str, optional): separator string that was used to join the keywords originally. Defaults to ','.
+            keywords (Union[str, list]): [description]
+            sep (str, optional): [description]. Defaults to ','.
             exclude_keys (list, optional): [description]. Defaults to [].
+            max_keys (int, optional): [description]. Defaults to -1.
 
         Returns:
-            keyword_summary(dict): summarized keywords with keyword and frequency
+            [type]: [description]
         """
-
-        bad_keys = ['', 'product', 'easy', 'glad', 'minutes', 'fingers', 'job', 'year',
-                    'negative reviews', 'negative review']
-        if exclude_keys:
-            bad_keys = bad_keys + exclude_keys
+        self.exclude_keys = ['', 'product', 'easy', 'glad', 'minutes', 'fingers', 'job', 'year',
+                             'negative reviews', 'negative review', 'stuff', 'store', ]
+        self.exclude_keys.extend(exclude_keys)
 
         if type(keywords) == list:
             keywords = Counter(keywords).items()
@@ -505,27 +525,112 @@ class KeyWords(ModelsAlgorithms):
         skw = sorted([(k.strip(), v) for k, v in keywords if v >= 3 and k.strip() != ''],
                      reverse=False, key=lambda x: len(x[0]))
 
-        bad_token = []
+        self.irrelevant_keys = []
         for i in skw:
             tags = []
-            tokens = nlp(i[0])
+            tokens = self.nlp(i[0])
             for token in tokens:
                 tags.append(token.pos_)
             if all(t not in ['NOUN', 'PROPN', 'PRON'] for t in tags):
-                bad_token.append(i[0])
-        skw = [item for item in skw if item[0] not in bad_token]
+                self.irrelevant_keys.append(i[0])
+        skw = [item for item in skw if item[0] not in self.irrelevant_keys]
 
-        bad_items = []
         for i in range(len(skw)):
             for j in range(i + 1, len(skw)):
                 if skw[i][0] in skw[j][0]:
-                    bad_items.append(skw[i][0])
-
-        self.bad_items = bad_items+bad_keys
+                    self.exclude_keys.append(skw[i][0])
 
         keyword_summary = {item[0]: item[1]
-                           for item in skw if item[0] not in self.bad_items}
-        return keyword_summary
+                           for item in skw if item[0] not in self.exclude_keys}
+
+        if len(keyword_summary.keys()) > max_keys and max_keys != -1:
+            self.keyword_summary = dict(sorted(keyword_summary.items(), key=lambda x: len(
+                x[0].split()), reverse=True)[:max_keys])
+        else:
+            self.keyword_summary = keyword_summary
+
+        return self.keyword_summary
+
+    def generate_sentiment_ngrams(self, text: str, n: list = [2, 3, 4, 5, 6], min_freq: int = 2, max_terms: int = -1, exclude_ngrams: list = [],
+                                  sentiment: str = 'negative', sentiment_threshold: float = 0.0, increase_threshold_by: float = 0.2):
+        """generate_sentiment_ngrams [summary]
+
+        [extended_summary]
+
+        Args:
+            text (str): [description]
+            n (list, optional): [description]. Defaults to [2, 3, 4, 5, 6].
+            min_freq (int, optional): [description]. Defaults to 2.
+            max_terms (int, optional): [description]. Defaults to -1.
+            exclude_ngrams (list, optional): [description]. Defaults to [].
+            sentiment (str, optional): [description]. Defaults to 'negative'.
+            sentiment_threshold (float, optional): [description]. Defaults to 0.0.
+            increase_threshold_by (float, optional): [description]. Defaults to 0.2.
+
+        Returns:
+            [type]: [description]
+        """
+        self.exclude_ngram_list = ['good product', 'great product', 'works best', 'love love', 'great job', 'great tool', 'useful tool', 'works good', 'tool is great',
+                                   'recommend this product', 'tool works great', 'like this tool', 'best way to use', 'ready to come', 'better to use', 'works pretty',
+                                   'skin care', ]
+        self.exclude_ngram_list.extend(exclude_ngrams)
+        self.sentiment_threshold_ = sentiment_threshold
+
+        doc = textacy.make_spacy_doc(text, lang=self.en)
+
+        ngrams = []
+        while len(ngrams) == 0:
+            if min_freq == 0:
+                break
+            for gram in n:
+                ngrams.extend(list(textacy.extract.ngrams(doc, gram, filter_stops=True, filter_punct=True,
+                                                          filter_nums=True, min_freq=min_freq)))
+
+            ngrams = [str(n) for n in ngrams]
+            ngrams = [n.replace('nt ', 'dont ') for n in ngrams]
+
+            if min_freq == 1:
+                self.sentiment_threshold_ += increase_threshold_by
+            if sentiment == 'negative':
+                self.sentiment_threshold_ = -self.sentiment_threshold_
+
+            if sentiment == 'positive':
+                ngrams = [n for n in ngrams if self.analyser.polarity_scores(
+                    n)['compound'] > self.sentiment_threshold_]
+            elif sentiment == 'negative':
+                ngrams = [n for n in ngrams if self.analyser.polarity_scores(
+                    n)['compound'] < self.sentiment_threshold_]
+
+            min_freq -= 1
+
+        if len(ngrams) > 1:
+            ngrams_u = list(set(ngrams))
+            ngrams_u = sorted(ngrams_u, reverse=False, key=lambda x: len(x))
+            for i in range(len(ngrams_u)):
+                for j in range(i + 1, len(ngrams_u)):
+                    if ngrams_u[i] in ngrams_u[j]:
+                        self.exclude_ngram_list.append(ngrams_u[i])
+            ngrams = [n for n in ngrams if n not in self.exclude_ngram_list]
+
+            self.irrelevant_ngrams = []
+            ngrams_u = list(set(ngrams))
+            for i in ngrams_u:
+                tags = []
+                tokens = self.nlp(i)
+                for token in tokens:
+                    tags.append(token.pos_)
+                if all(t not in ['NOUN', 'PROPN', 'PRON', 'ADJ', ] for t in tags):
+                    self.irrelevant_ngrams.append(i)
+            selected_grams = [
+                n for n in ngrams if n not in self.irrelevant_ngrams]
+            selected_grams = dict(Counter(selected_grams))
+
+        if len(selected_grams.keys()) > max_terms and max_terms != -1:
+            self.ngrams = dict(sorted(selected_grams.items(), key=lambda x: len(
+                x[0].split()), reverse=True)[:max_terms])
+        else:
+            self.ngrams = selected_grams
+        return self.ngrams
 
 
 class PredictSentiment(ModelsAlgorithms):
@@ -630,7 +735,7 @@ class PredictInfluence(ModelsAlgorithms):
         super().__init__()
         self.lookup_ = ['free sample', 'free test', 'complimentary test', 'complimentary review', 'complimentary review',
                         'complimentary test', 'receive product free', 'receive product complimentary', 'product complimentary',
-                        'free test', 'product free', 'test purpose']
+                        'free test', 'product free', 'test purpose', 'got this as a sample']
         self.punctuations = string.punctuation
         self.stopwords = list(STOP_WORDS)
         self.parser = English()
@@ -956,8 +1061,8 @@ class SexyReview(ModelsAlgorithms):
         self.select_ = SelectCandidate()
         self.summarizer = Summarizer()
 
-    def make(self, review_file: Union[str, Path, DataFrame], text_column_name='review_text', predict_sentiment=True,
-             predict_influence=True, extract_keywords=True):
+    def make(self, review_file: Union[str, Path, DataFrame], text_column_name: str = 'review_text', predict_sentiment: bool = True,
+             predict_influence: bool = True, extract_keywords: bool = True):
         """make [summary]
 
         [extended_summary]
@@ -982,7 +1087,7 @@ class SexyReview(ModelsAlgorithms):
             filename = None
             self.review = review_file
 
-        self.review.review_text = self.review.review_text.str.replace(
+        self.review.review_text = self.review.review_text.str.lower().str.replace(
             '…read more', '')
         self.review = self.review.replace('\n', ' ', regex=True)
         self.review.reset_index(inplace=True, drop=True)
@@ -1061,9 +1166,11 @@ class SexyReview(ModelsAlgorithms):
                                    'helpful_y', 'sentiment', 'is_influenced', 'keywords']]
         self.review = self.review.replace('\n', ' ', regex=True)
         self.review.reset_index(inplace=True, drop=True)
-
+        self.review.fillna('', inplace=True)
         self.review['text'] = self.review.swifter.apply(
-            lambda x: x.review_title + ". " + x.review_text if x.review_title is not None else x.review_text, axis=1)
+            lambda x: x.review_title + ". " + x.review_text if x.review_title is not None and x.review_title != '' else x.review_text, axis=1)
+        self.review.text = self.review.text.str.lower()
+        self.review.keywords = self.review.keywords.str.lower()
 
         pos_review = self.review[self.review.sentiment == 'positive']
         neg_review = self.review[self.review.sentiment == 'negative']
