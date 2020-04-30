@@ -17,6 +17,7 @@ import pandas as pd
 import seaborn as sns
 import swifter
 from tqdm import tqdm
+from tqdm.notebook import tqdm
 from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager, chunks
 
 # fast ai imports
@@ -47,11 +48,19 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.lang.en import English
 from spacy.matcher import Matcher
 
+# multiprocessing
+import multiprocessing as mp
+from multiprocessing import Pool
+from concurrent.futures import process
+
+process_manager = mp.Pool(mp.cpu_count())
+
 warnings.simplefilter(action='ignore')
 
 file_manager = S3FileManager()
 
 np.random.seed(1337)
+tqdm.pandas()
 
 
 class Ranker(ModelsAlgorithms):
@@ -222,9 +231,9 @@ class Ranker(ModelsAlgorithms):
                    "first_review_date"
                    ]
         meta_detail = meta_detail[columns]
-        meta_detail.product_name = meta_detail.product_name.swifter.apply(
+        meta_detail.product_name = meta_detail.product_name.progress_apply.apply(
             unidecode.unidecode)
-        meta_detail.brand = meta_detail.brand.swifter.apply(
+        meta_detail.brand = meta_detail.brand.progress_apply.apply(
             unidecode.unidecode)
 
         filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
@@ -625,11 +634,13 @@ class KeyWords(ModelsAlgorithms):
                 n for n in ngrams if n not in self.irrelevant_ngrams]
             selected_grams = dict(Counter(selected_grams))
 
-        if len(selected_grams.keys()) > max_terms and max_terms != -1:
-            self.ngrams = dict(sorted(selected_grams.items(), key=lambda x: len(
-                x[0].split()), reverse=True)[:max_terms])
+            if len(selected_grams.keys()) > max_terms and max_terms != -1:
+                self.ngrams = dict(sorted(selected_grams.items(), key=lambda x: len(
+                    x[0].split()), reverse=True)[:max_terms])
+            else:
+                self.ngrams = selected_grams
         else:
-            self.ngrams = selected_grams
+            self.ngrams = {}
         return self.ngrams
 
 
@@ -785,10 +796,10 @@ class PredictInfluence(ModelsAlgorithms):
         else:
             filename = None
 
-        data['tokenized_text'] = data[text_column_name].swifter.apply(
+        data['tokenized_text'] = data[text_column_name].progress_apply(
             self.spacy_tokenizer)
-        data['is_influenced'] = data.tokenized_text.swifter.apply(lambda x: "Yes" if
-                                                                  any(y in x for y in self.lookup_) else "No")
+        data['is_influenced'] = data.tokenized_text.progress_apply(lambda x: "Yes" if
+                                                                   any(y in x for y in self.lookup_) else "No")
 
         data.reset_index(inplace=True, drop=True)
         if filename:
@@ -983,7 +994,7 @@ class Summarizer(ModelsAlgorithms):
 
         data.reset_index(inplace=True, drop=True)
 
-        data['summary'] = data[text_column_name].swifter.apply(
+        data['summary'] = data[text_column_name].progress_apply(
             lambda x: self.generate_summary(x, min_length=min_length))
 
         if filename:
@@ -1101,11 +1112,11 @@ class SexyReview(ModelsAlgorithms):
                 data=self.review, text_column_name=text_column_name, save=False)
 
         if extract_keywords:
-            self.review['text'] = self.review.swifter.apply(
+            self.review['text'] = self.review.progress_apply(
                 lambda x: x.review_title + ". " + x.review_text if x.review_title is not None else x.review_text, axis=1)
             self.review.text = self.review.text.str.lower().str.strip()
-            self.review['keywords'] = self.review.text.swifter.apply(
-                self.keys.extract_keywords)
+            self.review['keywords'] = process_manager.map(
+                self.keys.extract_keywords, self.review.text)
 
         if filename:
             filename = str(review_file).split('\\')[-1]
@@ -1167,9 +1178,12 @@ class SexyReview(ModelsAlgorithms):
         self.review = self.review.replace('\n', ' ', regex=True)
         self.review.reset_index(inplace=True, drop=True)
         self.review.fillna('', inplace=True)
-        self.review['text'] = self.review.swifter.apply(
+
+        self.review['text'] = self.review.progress_apply(
             lambda x: x.review_title + ". " + x.review_text if x.review_title is not None and x.review_title != '' else x.review_text, axis=1)
-        self.review.text = self.review.text.str.lower()
+
+        self.review.text = process_manager.map(
+            preprocessing.normalize_whitespace, self.review.text.str.lower())
         self.review.keywords = self.review.keywords.str.lower()
 
         pos_review = self.review[self.review.sentiment == 'positive']
@@ -1181,10 +1195,11 @@ class SexyReview(ModelsAlgorithms):
             neg_kw_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
                 'prod_id'], fraction=0.7, select_column='keywords', sep=', ')
 
-            pos_kw_selected['pos_keywords_summary'] = pos_kw_selected.keywords.swifter.apply(
-                self.keys.summarize_keywords)
-            neg_kw_selected['neg_keywords_summary'] = neg_kw_selected.keywords.swifter.apply(
-                self.keys.summarize_keywords)
+            pos_kw_selected['pos_keywords_summary'] = process_manager.map(
+                self.keys.summarize_keywords, pos_kw_selected.keywords)
+
+            neg_kw_selected['neg_keywords_summary'] = process_manager.map(
+                self.keys.summarize_keywords, neg_kw_selected.keywords)
 
             pos_kw_selected.drop(columns='keywords', inplace=True)
             neg_kw_selected.drop(columns='keywords', inplace=True)

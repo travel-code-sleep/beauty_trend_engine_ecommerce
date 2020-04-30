@@ -625,11 +625,13 @@ class KeyWords(ModelsAlgorithms):
                 n for n in ngrams if n not in self.irrelevant_ngrams]
             selected_grams = dict(Counter(selected_grams))
 
-        if len(selected_grams.keys()) > max_terms and max_terms != -1:
-            self.ngrams = dict(sorted(selected_grams.items(), key=lambda x: len(
-                x[0].split()), reverse=True)[:max_terms])
+            if len(selected_grams.keys()) > max_terms and max_terms != -1:
+                self.ngrams = dict(sorted(selected_grams.items(), key=lambda x: len(
+                    x[0].split()), reverse=True)[:max_terms])
+            else:
+                self.ngrams = selected_grams
         else:
-            self.ngrams = selected_grams
+            self.ngrams = {}
         return self.ngrams
 
 
@@ -1169,7 +1171,8 @@ class SexyReview(ModelsAlgorithms):
         self.review.fillna('', inplace=True)
         self.review['text'] = self.review.swifter.apply(
             lambda x: x.review_title + ". " + x.review_text if x.review_title is not None and x.review_title != '' else x.review_text, axis=1)
-        self.review.text = self.review.text.str.lower()
+        self.review.text = self.review.text.str.lower().swifter.apply(
+            preprocessing.normalize_whitespace)
         self.review.keywords = self.review.keywords.str.lower()
 
         pos_review = self.review[self.review.sentiment == 'positive']
