@@ -53,12 +53,9 @@ import multiprocessing as mp
 from multiprocessing import Pool
 from concurrent.futures import process
 
-process_manager = mp.Pool(mp.cpu_count())
-
-warnings.simplefilter(action='ignore')
-
 file_manager = S3FileManager()
-
+process_manager = mp.Pool(mp.cpu_count())
+warnings.simplefilter(action='ignore')
 np.random.seed(1337)
 tqdm.pandas()
 
@@ -523,7 +520,8 @@ class KeyWords(ModelsAlgorithms):
             [type]: [description]
         """
         self.exclude_keys = ['', 'product', 'easy', 'glad', 'minutes', 'fingers', 'job', 'year',
-                             'negative reviews', 'negative review', 'stuff', 'store', ]
+                             'negative reviews', 'negative review', 'stuff', 'store', 'lot',
+                             ]
         self.exclude_keys.extend(exclude_keys)
 
         if type(keywords) == list:
@@ -581,7 +579,8 @@ class KeyWords(ModelsAlgorithms):
         """
         self.exclude_ngram_list = ['good product', 'great product', 'works best', 'love love', 'great job', 'great tool', 'useful tool', 'works good', 'tool is great',
                                    'recommend this product', 'tool works great', 'like this tool', 'best way to use', 'ready to come', 'better to use', 'works pretty',
-                                   'skin care', ]
+                                   'skin care', 'love this product', 'like this product', 'stuff is amazing',
+                                   'love this stuff', 'love love love', 'far so good', ]
         self.exclude_ngram_list.extend(exclude_ngrams)
         self.sentiment_threshold_ = sentiment_threshold
 
@@ -826,7 +825,7 @@ class SelectCandidate(ModelsAlgorithms):
         super().__init__()
 
     def select(self, data: Union[str, Path, DataFrame], weight_column: str, groupby_columns: Union[str, list], fraction: float = 0.3,
-               select_column=None, sep: str = ' ', drop_weights: bool = True, keep_all: bool = True, **kwargs):
+               select_column=None, sep: str = ' ', drop_weights: bool = True, inverse_weights: bool = True, keep_all: bool = True, **kwargs):
         """select [summary]
 
         [extended_summary]
@@ -1164,7 +1163,7 @@ class SexyReview(ModelsAlgorithms):
                      summarize_keywords=True, extract_ngrams=True, extract_topic=True):
 
         if type(review_file) != pd.core.frame.DataFrame:
-            filename = review_file
+            filename = str(review_file)
             try:
                 self.review = pd.read_feather(Path(review_file))
             except:
@@ -1189,17 +1188,18 @@ class SexyReview(ModelsAlgorithms):
         pos_review = self.review[self.review.sentiment == 'positive']
         neg_review = self.review[self.review.sentiment == 'negative']
 
+        generated_dataframes = []
+
         if summarize_keywords:
             pos_kw_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=['prod_id'],
                                                   fraction=0.7, select_column='keywords', sep=', ')
             neg_kw_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
                 'prod_id'], fraction=0.7, select_column='keywords', sep=', ')
 
-            pos_kw_selected['pos_keywords_summary'] = process_manager.map(
-                self.keys.summarize_keywords, pos_kw_selected.keywords)
-
-            neg_kw_selected['neg_keywords_summary'] = process_manager.map(
-                self.keys.summarize_keywords, neg_kw_selected.keywords)
+            pos_kw_selected['pos_keyword_summary'] = pos_kw_selected.keywords.progress_apply(lambda x:
+                                                                                             self.keys.summarize_keywords(x, max_keys=15))
+            neg_kw_selected['neg_keyword_summary'] = neg_kw_selected.keywords.progress_apply(lambda x:
+                                                                                             self.keys.summarize_keywords(x, max_keys=15))
 
             pos_kw_selected.drop(columns='keywords', inplace=True)
             neg_kw_selected.drop(columns='keywords', inplace=True)
@@ -1214,6 +1214,8 @@ class SexyReview(ModelsAlgorithms):
             del pos_kw_selected, neg_kw_selected
             gc.collect()
 
+            generated_dataframes.append(self.keyword_summary)
+
         if summarize_review or extract_topic:
             pos_review_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
                 'prod_id'], fraction=0.35, select_column='text', sep=' ')
@@ -1223,10 +1225,10 @@ class SexyReview(ModelsAlgorithms):
 
         if summarize_review:
             pos_review_summary = self.summarizer.summarize_batch_plus(data=pos_review_selected, id_column_name='prod_id', text_column_name='text',
-                                                                      min_length=150, max_length=1024, batch_size=10, summary_column_name='pos_summary')
+                                                                      min_length=150, max_length=1024, batch_size=10, summary_column_name='pos_review_summary')
 
             neg_review_summary = self.summarizer.summarize_batch_plus(data=neg_review_selected, id_column_name='prod_id', text_column_name='text',
-                                                                      min_length=80, max_length=1024, batch_size=10, summary_column_name='neg_summary')
+                                                                      min_length=80, max_length=1024, batch_size=10, summary_column_name='neg_review_summary')
             pos_review_summary.set_index('prod_id', inplace=True)
             neg_review_summary.set_index('prod_id', inplace=True)
 
@@ -1237,6 +1239,8 @@ class SexyReview(ModelsAlgorithms):
             del pos_review_summary, neg_review_summary
             gc.collect()
 
+            generated_dataframes.append(self.review_summary)
+
         if extract_topic:
 
             del pos_review_selected, neg_review_selected
@@ -1244,10 +1248,73 @@ class SexyReview(ModelsAlgorithms):
             pass
 
         if extract_ngrams:
-            df_pos_ngram = pos_review.groupby(by='prod_id')[
-                'text'].progress_apply(' '.join).reset_index()
+            pos_ngram_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
+                'prod_id'], fraction=0.5, select_column='text')
 
-            df_neg_ngram = neg_review.groupby(by='prod_id')[
-                'text'].progress_apply(' '.join).reset_index()
+            neg_ngram_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
+                'prod_id'], fraction=0.7, select_column='text', sep=' ')
 
-        return self.review_summary
+            pos_ngram_selected['pos_talking_points'] = pos_ngram_selected.text.progress_apply(lambda x:
+                                                                                              self.keys.generate_sentiment_ngrams(x, min_freq=2, max_terms=15, sentiment='positive',
+                                                                                                                                  sentiment_threshold=0.3, increase_threshold_by=0.2))
+
+            neg_ngram_selected['neg_talking_points'] = neg_ngram_selected.text.progress_apply(lambda x:
+                                                                                              self.keys.generate_sentiment_ngrams(x, min_freq=2, max_terms=15, sentiment='negative',
+                                                                                                                                  sentiment_threshold=0.0, increase_threshold_by=0.2))
+            pos_ngram_selected.drop(columns='text', inplace=True)
+            neg_ngram_selected.drop(columns='text', inplace=True)
+
+            pos_ngram_selected.set_index('prod_id', inplace=True)
+            neg_ngram_selected.set_index('prod_id', inplace=True)
+
+            self.sentiment_ngram = pos_ngram_selected.join(
+                neg_ngram_selected, how='outer')
+            self.sentiment_ngram.reset_index(inplace=True)
+
+            del pos_ngram_selected, neg_ngram_selected
+            gc.collect()
+
+            generated_dataframes.append(self.sentiment_ngram)
+
+        self.review_summary_all = reduce(lambda x, y: pd.merge(
+            x, y, on='prod_id'), generated_dataframes)
+
+        del generated_dataframes
+        gc.collect()
+
+        if filename:
+            if 'sph' in filename:
+                filename = 'sph' + \
+                    f'_product_review_summary_all_{time.strftime("%Y-%m-%d")}'
+            elif 'bts' in filename:
+                filename = 'bts' + \
+                    f'_product_review_summary_all_{time.strftime("%Y-%m-%d")}'
+
+            columns = ['prod_id',
+                       'pos_review_summary',
+                       'neg_review_summary',
+                       'pos_talking_points',
+                       'neg_talking_points',
+                       'pos_keyword_summary',
+                       'neg_keyword_summary'
+                       ]
+
+            self.review_summary_all = self.review_summary_all[columns]
+
+            # self.review_summary_all.to_feather(
+            #     self.output_path/f'{filename}')
+
+            self.review_summary_all.fillna('', inplace=True)
+            self.review_summary_all = self.review_summary_all.replace(
+                '\n', ' ', regex=True)
+            self.review_summary_all = self.review_summary_all.replace(
+                '~', ' ', regex=True)
+
+            filename = filename + '.csv'
+
+            self.review_summary_all.to_csv(
+                self.output_path/filename, index=None, sep='~')
+            file_manager.push_file_s3(file_path=self.output_path /
+                                      filename, job_name='review_summary')
+            # Path(self.output_path/filename).unlink()
+        return self.review_summary_all
