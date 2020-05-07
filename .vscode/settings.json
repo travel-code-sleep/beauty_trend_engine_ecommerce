@@ -1,31 +1,6 @@
 {
-    "python.pythonPath": "C:\\Anaconda3\\python.exe",
     "cSpell.words": [
-        "column",
-        "dataset",
-        "decoder",
-        "extract",
-        "generated",
-        "id",
-        "initialize",
-        "meiyume",
-        "model",
-        "name",
-        "neg",
-        "ngram",
-        "no",
-        "pos",
-        "repeat",
-        "review",
-        "selected",
-        "size",
-        "start",
-        "summaries",
-        "summarize",
-        "text",
-        "token",
-        "topic",
-        "tqdm",
-        "type"
+        "exception",
+        "meiyume"
     ]
 }

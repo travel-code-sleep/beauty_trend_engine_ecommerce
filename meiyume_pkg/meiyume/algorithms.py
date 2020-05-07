@@ -21,7 +21,6 @@ from tqdm.notebook import tqdm
 from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager, chunks
 
 # fast ai imports
-from tqdm.notebook import tqdm
 from fastai import *
 from fastai.text import *
 
@@ -1062,14 +1061,16 @@ class Summarizer(ModelsAlgorithms):
 
 
 class SexyReview(ModelsAlgorithms):
-    def __init__(self, path='.'):
+    def __init__(self, path='.', initialize_sentiment_model: bool = True, initialize_summarizer_model: bool = False):
         super().__init__(path=path)
-        self.sentiment_model = PredictSentiment(model_file='sentiment_model_two_class',
-                                                data_vocab_file='sentiment_class_databunch_two_class.pkl')
+        if initialize_sentiment_model:
+            self.sentiment_model = PredictSentiment(model_file='sentiment_model_two_class',
+                                                    data_vocab_file='sentiment_class_databunch_two_class.pkl')
         self.influence_model = PredictInfluence()
         self.keys = KeyWords()
         self.select_ = SelectCandidate()
-        self.summarizer = Summarizer()
+        if initialize_summarizer_model:
+            self.summarizer = Summarizer()
 
     def make(self, review_file: Union[str, Path, DataFrame], text_column_name: str = 'review_text', predict_sentiment: bool = True,
              predict_influence: bool = True, extract_keywords: bool = True):
