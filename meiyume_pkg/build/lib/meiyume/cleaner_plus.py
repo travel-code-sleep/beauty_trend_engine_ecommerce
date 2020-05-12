@@ -22,7 +22,6 @@ from pathlib import Path
 import warnings
 import time
 import os
-import gc
 from typing import *
 from meiyume.utils import (Logger, Sephora, Boots, nan_equal,
                            show_missing_value,
@@ -181,78 +180,7 @@ class Cleaner():
         return reduce(lambda a, kv: a.replace(*kv), replace_strings, price)
 
     def metadata_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
-        """metadata_cleaner [summary]
-
-        [extended_summary]
-
-        Args:
-            data (pd.DataFrame): [description]
-            save (bool): [description]
-
-        Returns:
-            pd.DataFrame: [description]
-        """
-        self.meta = data
-        del data
-        gc.collect()
-
-        self.meta.product_name = self.meta.product_name.apply(
-            unidecode.unidecode)
-        self.meta.brand = self.meta.brand.apply(unidecode.unidecode)
-
-        def fix_multi_low_price(x):
-            """[summary]
-
-            Arguments:
-                x {[type]} -- [description]
-            """
-            if len(x) > 7 and ' ' in x:
-                p = x.split()
-                return p[-1], p[0]
-            else:
-                return 'no_value', 'no_value'
-
-        # clean price
-        if self.source == 'sph':
-            self.meta['low_p'], self.meta['high_p'], self.meta['mrp'] = zip(
-                *self.meta.price.apply(lambda x:
-                                       Cleaner.clean_price(x)).apply(lambda y:
-                                                                     Cleaner.make_price(y)))
-            self.meta.drop('price', axis=1, inplace=True)
-
-            self.meta.low_p[self.meta.low_p.apply(len) > 7],
-            self.meta.mrp[self.meta.low_p.apply(len) > 7] =\
-                zip(*self.meta.low_p[self.meta.low_p.apply(len)
-                                     > 7].apply(fix_multi_low_price))
-        else:
-            self.meta.mrp = self.meta.mrp.apply(Cleaner.clean_price)
-            self.meta.low_p = self.meta.low_p.apply(Cleaner.clean_price)
-            self.meta.high_p = self.meta.high_p.apply(Cleaner.clean_price)
-
-        # create product id
-        self.meta['prod_id'] = self.meta.product_page.apply(
-            lambda x: 'sph_'+x.split(':')[-1] if self.source == 'sph'
-            else 'bts_'+x.split('-')[-1])
-        '''
-        if self.source == 'sph':
-            self.meta['prod_id'] = self.meta.product_page.apply(
-                lambda x: 'sph_'+x.split(':')[-1])
-        if self.source == 'bts':
-            self.meta['prod_id'] = self.meta.product_page.apply(
-                lambda x: 'bts_'+x.split('-')[-1])
-        '''
-        # clean rating
-        remove_chars = re.compile('stars|star|No')
-        self.meta.rating = self.meta.rating.apply(
-            lambda x: remove_chars.sub('', x))
-        self.meta.rating[self.meta.rating == ' '] = '0'
-        self.meta.rating = self.meta.rating.astype(float)
-
-        # clean ingredient flag
-        if self.source = 'sph': clean_prod_type = self.meta.product_type[self.meta.product_type.apply(
-                lambda x: True if x.split('-')[0] == 'clean' else False)].unique()
-            self.meta['clean_flag'] = self.meta.apply(
-                lambda x: 'Yes' if x.product_type in clean_prod_type else 'Undefined', axis=1)
+        pass
 
     def detail_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
         pass

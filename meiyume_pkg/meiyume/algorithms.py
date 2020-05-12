@@ -227,9 +227,9 @@ class Ranker(ModelsAlgorithms):
                    "first_review_date"
                    ]
         meta_detail = meta_detail[columns]
-        meta_detail.product_name = meta_detail.product_name.progress_apply.apply(
+        meta_detail.product_name = meta_detail.product_name.apply(
             unidecode.unidecode)
-        meta_detail.brand = meta_detail.brand.progress_apply.apply(
+        meta_detail.brand = meta_detail.brand.apply(
             unidecode.unidecode)
 
         filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
@@ -297,7 +297,7 @@ class SexyIngredient(ModelsAlgorithms):
                     return 'New_Ingredient'
             else:
                 return x.new_flag
-        self.ingredient.new_flag = self.ingredient.swifter.apply(
+        self.ingredient.new_flag = self.ingredient.apply(
             find_new_ingredient, axis=1)
 
         # rule based category assignment of ingredients
@@ -316,7 +316,7 @@ class SexyIngredient(ModelsAlgorithms):
             else:
                 return np.nan
 
-        self.ingredient['ingredient_type'] = self.ingredient.ingredient.swifter.apply(
+        self.ingredient['ingredient_type'] = self.ingredient.ingredient.apply(
             assign_food_type)
 
         def assign_organic_chemical_type(x):
@@ -330,7 +330,7 @@ class SexyIngredient(ModelsAlgorithms):
             else:
                 return x.ingredient_type
 
-        self.ingredient['ingredient_type'] = self.ingredient.swifter.apply(
+        self.ingredient['ingredient_type'] = self.ingredient.apply(
             assign_organic_chemical_type, axis=1)
 
         # assign vegan type
@@ -359,7 +359,7 @@ class SexyIngredient(ModelsAlgorithms):
         # banned_ingredients.substances = banned_ingredients.substances.append(
         #     s1).reset_index(drop=True)
 
-        self.ingredient['ban_flag'] = self.ingredient.ingredient.swifter.apply(
+        self.ingredient['ban_flag'] = self.ingredient.ingredient.apply(
             lambda x: 'Yes' if x in banned_ingredients.substances.tolist() else 'No')
         self.ingredient.clean_flag[self.ingredient.ban_flag ==
                                    'Yes'] = 'Unclean'

@@ -2,6 +2,7 @@ README.md
 setup.py
 meiyume/__init__.py
 meiyume/algorithms.py
+meiyume/cleaner_plus.py
 meiyume/utils.py
 meiyume.egg-info/PKG-INFO
 meiyume.egg-info/SOURCES.txt

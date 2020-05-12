@@ -21,7 +21,6 @@ from tqdm.notebook import tqdm
 from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager, chunks
 
 # fast ai imports
-from tqdm.notebook import tqdm
 from fastai import *
 from fastai.text import *
 
@@ -228,9 +227,9 @@ class Ranker(ModelsAlgorithms):
                    "first_review_date"
                    ]
         meta_detail = meta_detail[columns]
-        meta_detail.product_name = meta_detail.product_name.progress_apply.apply(
+        meta_detail.product_name = meta_detail.product_name.apply(
             unidecode.unidecode)
-        meta_detail.brand = meta_detail.brand.progress_apply.apply(
+        meta_detail.brand = meta_detail.brand.apply(
             unidecode.unidecode)
 
         filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
@@ -298,7 +297,7 @@ class SexyIngredient(ModelsAlgorithms):
                     return 'New_Ingredient'
             else:
                 return x.new_flag
-        self.ingredient.new_flag = self.ingredient.swifter.apply(
+        self.ingredient.new_flag = self.ingredient.apply(
             find_new_ingredient, axis=1)
 
         # rule based category assignment of ingredients
@@ -317,7 +316,7 @@ class SexyIngredient(ModelsAlgorithms):
             else:
                 return np.nan
 
-        self.ingredient['ingredient_type'] = self.ingredient.ingredient.swifter.apply(
+        self.ingredient['ingredient_type'] = self.ingredient.ingredient.apply(
             assign_food_type)
 
         def assign_organic_chemical_type(x):
@@ -331,7 +330,7 @@ class SexyIngredient(ModelsAlgorithms):
             else:
                 return x.ingredient_type
 
-        self.ingredient['ingredient_type'] = self.ingredient.swifter.apply(
+        self.ingredient['ingredient_type'] = self.ingredient.apply(
             assign_organic_chemical_type, axis=1)
 
         # assign vegan type
@@ -360,7 +359,7 @@ class SexyIngredient(ModelsAlgorithms):
         # banned_ingredients.substances = banned_ingredients.substances.append(
         #     s1).reset_index(drop=True)
 
-        self.ingredient['ban_flag'] = self.ingredient.ingredient.swifter.apply(
+        self.ingredient['ban_flag'] = self.ingredient.ingredient.apply(
             lambda x: 'Yes' if x in banned_ingredients.substances.tolist() else 'No')
         self.ingredient.clean_flag[self.ingredient.ban_flag ==
                                    'Yes'] = 'Unclean'
@@ -1062,14 +1061,16 @@ class Summarizer(ModelsAlgorithms):
 
 
 class SexyReview(ModelsAlgorithms):
-    def __init__(self, path='.'):
+    def __init__(self, path='.', initialize_sentiment_model: bool = True, initialize_summarizer_model: bool = False):
         super().__init__(path=path)
-        self.sentiment_model = PredictSentiment(model_file='sentiment_model_two_class',
-                                                data_vocab_file='sentiment_class_databunch_two_class.pkl')
+        if initialize_sentiment_model:
+            self.sentiment_model = PredictSentiment(model_file='sentiment_model_two_class',
+                                                    data_vocab_file='sentiment_class_databunch_two_class.pkl')
         self.influence_model = PredictInfluence()
         self.keys = KeyWords()
         self.select_ = SelectCandidate()
-        self.summarizer = Summarizer()
+        if initialize_summarizer_model:
+            self.summarizer = Summarizer()
 
     def make(self, review_file: Union[str, Path, DataFrame], text_column_name: str = 'review_text', predict_sentiment: bool = True,
              predict_influence: bool = True, extract_keywords: bool = True):

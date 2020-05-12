@@ -254,7 +254,18 @@ def chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
+
 def convert_ago_to_date(x):
+    """convert_ago_to_date [summary]
+
+    [extended_summary]
+
+    Args:
+        x ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
     if 'ago' in x.lower() and x is not np.nan:
         if 'd' in x.lower():
             days = int(x.split()[0])
@@ -371,7 +382,7 @@ class S3FileManager(object):
         try:
             s3_client.upload_file(str(file_path), self.bucket, object_name)
             print('file pushed successfully.')
-        except:
+        except Exception:
             print('file pushing task failed.')
 
     def pull_file_s3(self, key, file_path='.', suffix=None):
@@ -403,7 +414,7 @@ class S3FileManager(object):
         try:
             s3.Object(self.bucket, key).delete()
             print('file deleted.')
-        except:
+        except Exception:
             print('delete operation failed')
 
 

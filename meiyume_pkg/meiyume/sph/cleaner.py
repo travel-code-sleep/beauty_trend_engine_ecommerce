@@ -64,7 +64,7 @@ class Cleaner(Sephora):
             filename = Path(data)
             try:
                 self.data = pd.read_feather(data)
-            except:
+            except Exception:
                 self.data = pd.read_csv(data)
 
         data_def = self.find_data_def(str(filename))
