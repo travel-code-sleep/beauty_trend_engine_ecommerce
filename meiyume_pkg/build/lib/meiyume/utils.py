@@ -1,3 +1,10 @@
+""" [summary]
+
+[extended_summary]
+
+Returns:
+    [type]: [description]
+"""
 from datetime import datetime, timedelta, date
 import logging
 import time
@@ -6,9 +13,14 @@ import os
 import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.proxy import Proxy, ProxyType
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from webdriver_manager.chrome import ChromeDriverManager
 import gc
 from pathlib import Path
 import boto3
+os.environ['WDM_LOG_LEVEL'] = '0'
 
 
 class MeiyumeException(Exception):
@@ -21,32 +33,78 @@ class MeiyumeException(Exception):
 
 
 class Browser(object):
-    """Browser class serves selenium web-drvier in head and headless
+    """Browser class serves selenium web-driver in head and headless
        mode. It also provides some additional utilities such as scrolling etc.
 
     Arguments:
         object {[type]} -- [description]
     """
 
-    def __init__(self, driver_path, show):
-        """ pass """
-        self.show = show
-        self.driver_path = driver_path
+    def __init__(self):
+        pass
 
-    def open_headless(self, show=False):
-        self.show = show
+    def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                     open_with_proxy_server: bool = False, path: Path = Path.cwd())-> webdriver:
+        """open_browser [summary]
 
-    def open_browser(self):
-        """[summary]
+        [extended_summary]
+
+        Args:
+            open_headless (bool, optional): [description]. Defaults to False.
+            open_for_screenshot (bool, optional): True enables image high resolution. If used to take screenshot open_headless must be set to True.
+                                                  Defaults to False.
+            open_with_proxy_server (bool, optional): [description]. Defaults to False.
+
+        Returns:
+            webdriver: [description]
         """
-        if self.show:
-            return webdriver.Chrome(executable_path=self.driver_path)
-        else:
-            chrome_options = Options()
-            # chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--headless')
-            return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
+        # chrome_options = Options()
+        chrome_options = webdriver.ChromeOptions()
+        # chrome_options.add_argument('--no-sandbox')
 
+        if open_headless:
+            chrome_options.add_argument('--headless')
+
+        if open_for_screenshot:
+            WINDOW_SIZE = "1920,1080"
+            chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
+
+        if open_with_proxy_server:
+            chrome_options.add_argument('--ignore-ssl-errors=yes')
+            chrome_options.add_argument('--ignore-certificate-errors')
+            headless_proxy = "127.0.0.1:3128"
+            proxy = Proxy({
+                'proxyType': ProxyType.MANUAL,
+                'httpProxy': headless_proxy,
+                'ftpProxy': headless_proxy,
+                'sslProxy': headless_proxy,
+                'noProxy': ''
+            })
+            capabilities = dict(DesiredCapabilities.CHROME)
+            proxy.add_to_capabilities(capabilities)
+            driver = webdriver.Chrome(ChromeDriverManager(path=path, log_level=0).install(),
+                                      desired_capabilities=capabilities, options=chrome_options)
+            return driver
+
+        return webdriver.Chrome(ChromeDriverManager(path=path,
+                                                    log_level=0).install(),
+                                options=chrome_options)
+    '''
+    def open_browser_to_take_screenshot(self):
+        """open_browser_to_take_screenshot [summary]
+
+        [extended_summary]
+
+        Returns:
+            [type]: [description]
+        """
+        WINDOW_SIZE = "1920,1080"
+
+        chrome_options = Options()
+        chrome_options.add_argument('--headless')
+        chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
+        return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
+    '''
     @staticmethod
     def scroll_down_page(driver, speed=8, h1=0, h2=1):
         """[summary]
@@ -69,18 +127,28 @@ class Browser(object):
 
 
 class Sephora(Browser):
-    """ This object is inherited by all crawler and cleaner classes in sph_crwaler
+    """ This object is inherited by all crawler and cleaner classes in sph_crawler
         and sph_cleaner modules.
 
         Sephora class creates and sets directories for respective data definitions.
 
     Arguments:
-        Browser {[type]} -- [Browser class serves selenium web-drvier in head and headless
+        Browser {[type]} -- [Browser class serves selenium webdriver in head and headless
                              mode. It also provides some additional utilities such as scrolling etc.]
     """
 
-    def __init__(self, data_def=None, driver_path=None, path=Path.cwd(), show=True):
-        super().__init__(driver_path=driver_path, show=show)
+    def __init__(self, data_def=None, path=Path.cwd()):
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            data_def ([type], optional): [description]. Defaults to None.
+            driver_path ([type], optional): [description]. Defaults to None.
+            path ([type], optional): [description]. Defaults to Path.cwd().
+            show (bool, optional): [description]. Defaults to True.
+        """
+        super().__init__()
         self.path = Path(path)
         # set data paths as per calls from data definition classes
         self.metadata_path = self.path/'sephora/metadata'
@@ -98,6 +166,11 @@ class Sephora(Browser):
         if data_def == 'review':
             self.review_path.mkdir(parents=True, exist_ok=True)
             self.review_clean_path.mkdir(parents=True, exist_ok=True)
+        self.image_path = self.path/'sephora/product_images'
+        self.image_processed_path = self.image_path/'processed_product_images'
+        if data_def == 'image':
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
         # set universal log path for sephora
         self.crawl_log_path = self.path/'sephora/crawler_logs'
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
@@ -115,7 +188,7 @@ class Boots(Browser):
                              mode. It also provides some additional utilities such as scrolling etc.
     """
 
-    def __init__(self, data_def=None, path=Path.cwd(), driver_path=None, show=True):
+    def __init__(self, data_def=None, path=Path.cwd()):
         """__init__ [summary]
 
         [extended_summary]
@@ -126,7 +199,7 @@ class Boots(Browser):
             driver_path (path:str, optional): [description]. Defaults to None.
             show (bool, optional): [description]. Defaults to True.
         """
-        super().__init__(driver_path=driver_path, show=show)
+        super().__init__()
         self.path = Path(path)
         # set data paths as per calls from data definition classes
         self.metadata_path = self.path/'boots/metadata'
@@ -144,6 +217,11 @@ class Boots(Browser):
         if data_def == 'review':
             self.review_path.mkdir(parents=True, exist_ok=True)
             self.review_clean_path.mkdir(parents=True, exist_ok=True)
+        self.image_path = self.path/'boots/product_images'
+        self.image_processed_path = self.image_path/'processed_product_images'
+        if data_def == 'image':
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
         # set universal log path for sephora
         self.crawl_log_path = self.path/'boots/crawler_logs'
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
@@ -152,7 +230,22 @@ class Boots(Browser):
 
 
 class ModelsAlgorithms(object):
+    """ModelsAlgorithms [summary]
+
+    [extended_summary]
+
+    Args:
+        object ([type]): [description]
+    """
+
     def __init__(self, path='.'):
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            path (str, optional): [description]. Defaults to '.'.
+        """
         self.path = Path(path)
         self.output_path = self.path/'algorithm_outputs'
         self.output_path.mkdir(parents=True, exist_ok=True)
@@ -284,7 +377,22 @@ def convert_ago_to_date(x):
 
 
 class S3FileManager(object):
+    """S3FileManager [summary]
+
+    [extended_summary]
+
+    Args:
+        object ([type]): [description]
+    """
+
     def __init__(self, bucket='meiyume-datawarehouse-prod'):
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            bucket (str, optional): [description]. Defaults to 'meiyume-datawarehouse-prod'.
+        """
         self.bucket = bucket
 
     def get_matching_s3_objects(self, prefix="", suffix=""):
@@ -347,6 +455,19 @@ class S3FileManager(object):
         return {'key_name': k.key, 'key_last_modified': str(k.last_modified)}
 
     def get_prefix_s3(self, job_name):
+        """get_prefix_s3 [summary]
+
+        [extended_summary]
+
+        Args:
+            job_name ([type]): [description]
+
+        Raises:
+            MeiyumeException: [description]
+
+        Returns:
+            [type]: [description]
+        """
         if job_name == 'meta_detail':
             prefix = 'Feeds/BeautyTrendEngine/Meta_Detail/Staging/'
         elif job_name == 'item':
@@ -419,6 +540,13 @@ class S3FileManager(object):
 
 
 class DataAggregator(object):
+    """DataAggregator [summary]
+
+    [extended_summary]
+
+    Args:
+        object ([type]): [description]
+    """
 
     def __init__(self):
         self.sph = Sephora(path='.')

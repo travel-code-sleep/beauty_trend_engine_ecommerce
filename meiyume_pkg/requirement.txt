@@ -1,0 +1,2 @@
+# please refer setup.py for package dependencies. No need separate installations are required.
+# Setup.py will install all dependencies and the meiyume package.

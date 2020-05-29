@@ -1,1 +1,1 @@
-data engineering and science package.
+data engineering and science package for beauty trend engine.
