@@ -40,11 +40,11 @@ class Browser(object):
         object {[type]} -- [description]
     """
 
-    def __init__(self):
-        pass
+    # def __init__(self):
+    #     pass
 
     def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
-                     open_with_proxy_server: bool = False, path: Path = Path.cwd())-> webdriver:
+                     open_with_proxy_server: bool = False, path: Path = Path.cwd())-> webdriver.Chrome:
         """open_browser [summary]
 
         [extended_summary]
