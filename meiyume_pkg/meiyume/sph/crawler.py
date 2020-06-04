@@ -1294,7 +1294,7 @@ class Review(Sephora):
     def extract(self, metadata: pd.DataFrame, open_headless: bool = False, download: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 fresh_start: bool = False, incremental: bool = True, delete_progress: bool = False,
-                clean: bool = True, n_workers: int = 5,):
+                clean: bool = True, n_workers: int = 5,)->None:
         """extract [summary]
 
         [extended_summary]
@@ -1358,14 +1358,19 @@ class Review(Sephora):
             else:  # By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
                 lst_of_lst = list(
                     chunks(indices, len(indices)//n_workers))  # type: list
-                # review_Data and item_data are lists of empty lists so that each namepace of function call will have its separate detail_data
+                '''
+                # review_Data and item_data are lists of empty lists so that each namepace of function call will
+                # have its separate detail_data
                 # list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
+                '''
                 review_data = [[] for i in lst_of_lst]  # type: list
                 inc_list = [incremental for i in lst_of_lst]  # type: list
                 with concurrent.futures.ThreadPoolExecutor() as executor:
+                    '''
                     # but each of the function namespace will be modifying only one metadata tracing file so that progress saving
                     # is tracked correctly. else multiple progress tracker file will be created with difficulty to combine correct
                     # progress information
+                    '''
                     executor.map(self.get_reviews, lst_of_lst,
                                  review_data, inc_list, )
 
@@ -1393,15 +1398,16 @@ class Review(Sephora):
         print(
             f'Review file created. Please look for file sph_product_review_all in path {self.review_path}')
 
+        if clean:
+            cleaner = Cleaner()
+            self.review_clean_df = cleaner.clean(
+                self.review_path/review_filename)
+
         if delete_progress:
             shutil.rmtree(
                 f'{self.review_path}\\current_progress', ignore_errors=True)
             self.logger.info('Progress files deleted')
 
-        if clean:
-            cleaner = Cleaner()
-            self.review_clean_df = cleaner.clean(
-                self.review_path/review_filename)
         self.logger.handlers.clear()
         self.prod_review_log.stop_log()
 
