@@ -55,7 +55,7 @@ class Metadata(Sephora):
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
 
-    def __init__(self, log: bool = True, path: Path = Path.cwd())->None:
+    def __init__(self, log: bool = True, path: Path = Path.cwd()):
         """[summary]
 
         Arguments:
@@ -420,7 +420,7 @@ class Detail(Sephora):
         Sephora ([type]): [description]
     """
 
-    def __init__(self, path: Path = Path.cwd(), log: bool = True) -> None:
+    def __init__(self, path: Path = Path.cwd(), log: bool = True):
         """__init__ [summary]
 
         [extended_summary]
@@ -478,19 +478,24 @@ class Detail(Sephora):
                 self.detail_path/'sph_detail_progress_tracker')
             return [], item_df
 
-        def get_item_attributes(product_name: str, prod_id: str, use_button: bool = False,
+        def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str, use_button: bool = False,
                                 multi_variety: bool = False, typ=None, )->Tuple[str, str, str, str]:
             """get_item_attributes [summary]
 
             [extended_summary]
 
             Args:
+                drv (webdriver.Chrome): [description]
+                product_name (str): [description]
+                prod_id (str): [description]
+                use_button (bool, optional): [description]. Defaults to False.
                 multi_variety (bool, optional): [description]. Defaults to False.
                 typ ([type], optional): [description]. Defaults to None.
 
             Returns:
-                [type]: [description]
+                Tuple[str, str, str, str]: [description]
             """
+            # drv # type: webdriver.Chrome
             item_price = drv.find_element_by_class_name('css-slwsq8').text
 
             if multi_variety:
@@ -570,10 +575,15 @@ class Detail(Sephora):
 
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(product_name: str, prod_id: str)->list:
+        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str)->list:
             """get_product_attributes [summary]
 
             [extended_summary]
+
+            Args:
+                drv (webdriver.Chrome): [description]
+                product_name (str): [description]
+                prod_id (str): [description]
 
             Returns:
                 list: [description]
@@ -606,22 +616,30 @@ class Detail(Sephora):
                     except Exception:
                         continue
                     time.sleep(8)
-                    item_name, item_size, item_price, item_ingredients = get_item_attributes(product_name, prod_id,
-                                                                                             multi_variety=True, typ=typ, use_button=use_button)
-                    product_attributes.append({"prod_id": prod_id, "product_name": product_name, "item_name": item_name,
-                                               "item_size": item_size, "item_price": item_price, "item_ingredients": item_ingredients})
+                    item_name, item_size, item_price, item_ingredients = get_item_attributes(drv, product_name, prod_id,
+                                                                                             multi_variety=True, typ=typ,
+                                                                                             use_button=use_button)
+                    product_attributes.append({"prod_id": prod_id, "product_name": product_name,
+                                               "item_name": item_name, "item_size": item_size,
+                                               "item_price": item_price, "item_ingredients": item_ingredients})
             else:
-                item_name, item_size, item_price, item_ingredients = get_item_attributes(
-                    product_name, prod_id)
+                item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
+                                                                                         product_name, prod_id)
                 product_attributes.append({"prod_id": prod_id, "product_name": product_name, "item_name": item_name,
                                            "item_size": item_size, "item_price": item_price, "item_ingredients": item_ingredients})
 
             return product_attributes
 
-        def get_first_review_date()->str:
-            """get_first_review_date [scrapes the date of first review of this product.]
+        def get_first_review_date(drv: webdriver.Chrome)->str:
+            """get_first_review_date [summary]
 
             [extended_summary]
+
+            Args:
+                drv (webdriver.Chrome): [description]
+
+            Returns:
+                str: [description]
             """
             drv.find_element_by_id('review_filter_sort_trigger').click()
             for btn in drv.find_elements_by_class_name('css-1khw9z2'):
@@ -633,24 +651,18 @@ class Detail(Sephora):
             rev = drv.find_elements_by_class_name('css-1ecc607')[2:]
             return convert_ago_to_date(rev[0].find_element_by_class_name('css-1t84k9w').text)
 
-        # create first instance of webdriver
-        drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=True,
-                                path=self.detail_path)
         for prod in self.meta.index[self.meta.index.isin(indices)]:
-            # create driver
-            if prod % 10 == 0 and prod != 0:
-                drv.quit()
-                use_proxy = np.random.choice([True, False])
-                if use_proxy:
-                    drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=True,
-                                            path=self.detail_path)
-                else:
-                    drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
-                                            path=self.detail_path)
-
             #  ignore already extracted products
             if self.meta.loc[prod, 'detail_scraped'] in ['Y', 'NA']:
                 continue
+            # create webdriver
+            use_proxy = np.random.choice([True, False])
+            if use_proxy:
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=True,
+                                        path=self.detail_path)
+            else:
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                        path=self.detail_path)
 
             prod_id = self.meta.loc[prod, 'prod_id']
             product_name = self.meta.loc[prod, 'product_name']
@@ -780,7 +792,7 @@ class Detail(Sephora):
             drv.find_element_by_class_name('css-1pjru6n').click()
 
             try:
-                first_review_date = get_first_review_date()
+                first_review_date = get_first_review_date(drv)
             except Exception:
                 first_review_date = ""
                 self.logger.info(str.encode(
@@ -811,7 +823,7 @@ class Detail(Sephora):
                     f'product: {product_name} (prod_id: {prod_id}) would_recommend does not exist.', 'utf-8', 'ignore'))
 
             product_attributes = pd.DataFrame(
-                get_product_attributes(product_name, prod_id))
+                get_product_attributes(drv, product_name, prod_id))
             item_df = pd.concat(
                 [item_df, pd.DataFrame(product_attributes)], axis=0)
 
@@ -827,15 +839,12 @@ class Detail(Sephora):
                 if len(detail_data) > 0:
                     detail_data, item_df = store_data_refresh_mem(
                         detail_data, item_df)
+            drv.quit()
         # save the final file
         detail_data, item_df = store_data_refresh_mem(detail_data, item_df)
 
         self.logger.info(
             f'Detail Extraction Complete for start_idx: (indices[0]) to end_idx: {indices[-1]}. Or for list of values.')
-
-        # close the final driver
-        if drv:
-            drv.quit()
 
     def extract(self, metadata: pd.DataFrame, download: bool = True, open_headless: bool = False,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None,
@@ -991,18 +1000,15 @@ class Review(Sephora):
         Sephora {[type]} -- [description]
     """
 
-    def __init__(self, driver_path, path='.', show=True, log=True):
-        """[summary]
+    def __init__(self, log: bool = True, path: Path = Path.cwd()):
+        """__init__ [summary]
 
-        Arguments:
-            driver_path {[type]} -- [description]
+        [extended_summary]
 
-        Keyword Arguments:
-            path {str} -- [description] (default: {'.'})
-            show {bool} -- [description] (default: {True})
-            log {bool} -- [description] (default: {True})
+        Args:
+            log (bool, optional): [description]. Defaults to True.
         """
-        super().__init__(driver_path=driver_path, show=show, path=path, data_def='review')
+        super().__init__(path=path, data_def='review')
         self.current_progress_path = self.review_path/'current_progress'
         self.current_progress_path.mkdir(parents=True, exist_ok=True)
         if log:
@@ -1010,20 +1016,19 @@ class Review(Sephora):
                 "sph_prod_review_extraction", path=self.crawl_log_path)
             self.logger, _ = self.prod_review_log.start_log()
 
-    def get_reviews(self, indices, review_data=[], incremental=True):
+    def get_reviews(self, indices: list, open_headless: bool = False,
+                    review_data: list = [], incremental: bool = True):
         """get_reviews [summary]
 
         [extended_summary]
 
         Args:
-            indices (list): list of indices.
+            indices (list): [description]
+            open_headless (bool, optional): [description]. Defaults to False.
             review_data (list, optional): [description]. Defaults to [].
             incremental (bool, optional): [description]. Defaults to True.
-
-        Returns:
-            [type]: [description]
         """
-        def store_data_refresh_mem(review_data):
+        def store_data_refresh_mem(review_data: list)->list:
             """[summary]
 
             Arguments:
@@ -1033,7 +1038,8 @@ class Review(Sephora):
                 [type] -- [description]
             """
             pd.DataFrame(review_data).to_csv(self.current_progress_path /
-                                             f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv', index=None)
+                                             f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv',
+                                             index=None)
 
             self.meta.to_csv(
                 self.review_path/'sph_review_progress_tracker.csv', index=None)
@@ -1047,27 +1053,25 @@ class Review(Sephora):
             product_page = self.meta.loc[prod, 'product_page']
 
             # change it to correct table read from database
-            last_review_date = self.meta.loc[prod, 'last_review_date']
-            # print(last_review_date)
+            last_scraped_review_date = self.meta.loc[prod,
+                                                     'last_scraped_review_date']
+            # print(last_scraped_review_date)
 
-            drv = self.open_browser()
+            use_proxy = np.random.choice([True, False])
+            if use_proxy:
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=True,
+                                        path=self.detail_path)
+            else:
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                        path=self.detail_path)
+
             drv.get(product_page)
             time.sleep(8)
 
             # close popup windows
             webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
-            time.sleep(0.5)
+            time.sleep(1)
             webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
-            # try:
-            #     drv.find_element_by_xpath(
-            #         '/html/body/div[9]/div/div/div[1]/div/div/button').click()
-            # except:
-            #     pass
-            # try:
-            #     drv.find_element_by_xpath(
-            #         '/html/body/div[6]/div/div/div/div[1]/div/div/button').click()
-            # except:
-            #     pass
 
             self.scroll_down_page(drv, speed=20, h2=0.6)
 
@@ -1080,13 +1084,13 @@ class Review(Sephora):
                                               available for sell currently.(page: {product_page})', 'utf-8', 'ignore'))
                 no_of_reviews = 0
                 self.meta.loc[prod, 'review_scraped'] = 'NA'
-                drv.close()
+                drv.quit()
                 # print('in except - continue')
                 continue
 
             # print(no_of_reviews)
             # drv.find_element_by_class_name('css-2rg6q7').click()
-            if incremental and last_review_date != '':
+            if incremental and last_scraped_review_date != '':
                 for n in range(no_of_reviews//6):
                     if n > 250:
                         break
@@ -1097,31 +1101,40 @@ class Review(Sephora):
 
                     try:
                         if pd.to_datetime(convert_ago_to_date(revs[-1].find_element_by_class_name('css-1t84k9w').text),
-                                          infer_datetime_format=True) < pd.to_datetime(last_review_date, infer_datetime_format=True):
+                                          infer_datetime_format=True)\
+                                < pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                             # print('breaking incremental')
                             break
                     except Exception:
                         try:
                             if pd.to_datetime(convert_ago_to_date(revs[-2].find_element_by_class_name('css-1t84k9w').text),
-                                              infer_datetime_format=True) < pd.to_datetime(last_review_date, infer_datetime_format=True):
+                                              infer_datetime_format=True)\
+                                    < pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                                 # print('breaking incremental')
                                 break
                         except Exception:
-                            self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} last_review_date to current review date \
-                                                         comparision failed.(page: {product_page})', 'utf-8', 'ignore'))
-                            print('in second except block')
+                            self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} \
+                                                         last_scraped_review_date to current review date \
+                                                         comparision failed.(page: {product_page})',
+                                                        'utf-8', 'ignore'))
+                            # print('in second except block')
                             continue
                     try:
-                        drv.find_element_by_class_name(
-                            'css-frqcui').click()
+                        show_more_review_button = drv.find_element_by_class_name(
+                            'css-frqcui')
+                        ActionChains(drv).move_to_element(
+                            show_more_review_button).click(show_more_review_button).perform()
                     except Exception:
                         webdriver.ActionChains(drv).send_keys(
                             Keys.ESCAPE).perform()
+                        time.sleep(0.5)
                         webdriver.ActionChains(drv).send_keys(
                             Keys.ESCAPE).perform()
                         try:
-                            drv.find_element_by_class_name(
-                                'css-frqcui').click()
+                            show_more_review_button = drv.find_element_by_class_name(
+                                'css-frqcui')
+                            ActionChains(drv).move_to_element(
+                                show_more_review_button).click(show_more_review_button).perform()
                         except Exception:
                             pass
 
@@ -1129,33 +1142,51 @@ class Review(Sephora):
                 print('inside get all reviews')
                 # 6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
                 for n in range(no_of_reviews//6+25):
-                    if n >= 250:  # 200:
-                        break  # code will stop after getting 6000 reviews of one particular product
+                    '''
+                    code will stop after getting 1800 reviews of one particular product
+                    when crawling all reviews. By default it will get latest 1800 reviews.
+                    then in subsequent incremental runs it will get al new reviews on weekly basis
+                    '''
+                    if n >= 300:  # 200:
+                        break
                     time.sleep(0.4)
                     # close any opened popups by escape
                     try:
                         # drv.find_element_by_css_selector('#ratings-reviews > div.css-ilr0fu > button').click()
-                        drv.find_element_by_class_name('css-frqcui').click()
+                        show_more_review_button = drv.find_element_by_class_name(
+                            'css-frqcui')
+                        ActionChains(drv).move_to_element(
+                            show_more_review_button).click(show_more_review_button).perform()
                     except Exception:
                         webdriver.ActionChains(drv).send_keys(
                             Keys.ESCAPE).perform()
+                        time.sleep(0.5)
+                        webdriver.ActionChains(drv).send_keys(
+                            Keys.ESCAPE).perform()
                         try:
-                            drv.find_element_by_class_name(
-                                'css-frqcui').click()
+                            show_more_review_button = drv.find_element_by_class_name(
+                                'css-frqcui')
+                            ActionChains(drv).move_to_element(
+                                show_more_review_button).click(show_more_review_button).perform()
                         except Exception:
                             webdriver.ActionChains(drv).send_keys(
                                 Keys.ESCAPE).perform()
                             try:
-                                drv.find_element_by_class_name(
-                                    'css-frqcui').click()
+                                show_more_review_button = drv.find_element_by_class_name(
+                                    'css-frqcui')
+                                ActionChains(drv).move_to_element(
+                                    show_more_review_button).click(show_more_review_button).perform()
                             except Exception:
                                 webdriver.ActionChains(drv).send_keys(
                                     Keys.ESCAPE).perform()
+                                time.sleep(1)
                                 webdriver.ActionChains(drv).send_keys(
                                     Keys.ESCAPE).perform()
                                 try:
-                                    drv.find_element_by_class_name(
-                                        'css-frqcui').click()
+                                    show_more_review_button = drv.find_element_by_class_name(
+                                        'css-frqcui')
+                                    ActionChains(drv).move_to_element(
+                                        show_more_review_button).click(show_more_review_button).perform()
                                 except Exception:
                                     if n < (no_of_reviews//6):
                                         self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} breaking click next review loop.\
@@ -1167,6 +1198,7 @@ class Review(Sephora):
                                     break
 
             webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+            time.sleep(1)
             webdriver.ActionChains(drv).send_keys(Keys.ESCAPE).perform()
 
             product_reviews = drv.find_elements_by_class_name(
@@ -1179,6 +1211,7 @@ class Review(Sephora):
                 if r % 20 == 0:
                     webdriver.ActionChains(drv).send_keys(
                         Keys.ESCAPE).perform()
+                    time.sleep(1)
                     webdriver.ActionChains(drv).send_keys(
                         Keys.ESCAPE).perform()
                 try:
@@ -1191,7 +1224,7 @@ class Review(Sephora):
                     review_date = convert_ago_to_date(
                         rev.find_element_by_class_name('css-1t84k9w').text)
                     if pd.to_datetime(review_date, infer_datetime_format=True) < \
-                            pd.to_datetime(last_review_date, infer_datetime_format=True):
+                            pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                         continue
                 except NoSuchElementException or StaleElementReferenceException:
                     review_date = ''
@@ -1201,6 +1234,12 @@ class Review(Sephora):
                         'css-85k18d').text
                 except NoSuchElementException or StaleElementReferenceException:
                     review_title = ''
+
+                try:
+                    product_variant = rev.find_element_by_class_name(
+                        'css-gjgyg3').text
+                except Exception:
+                    product_variant = ''
 
                 try:
                     user_rating = rev.find_element_by_class_name(
@@ -1233,11 +1272,11 @@ class Review(Sephora):
                     helpful = []
 
                 review_data.append({'prod_id': prod_id, 'product_name': product_name,
-                                    'user_attribute': user_attribute, 'timestamp': time.strftime("%Y-%m-%d-%H-%M"),
+                                    'user_attribute': user_attribute, 'product_variant': product_variant,
                                     'review_title': review_title, 'review_text': review_text,
                                     'review_rating': user_rating, 'recommend': recommend,
                                     'review_date': review_date,   'helpful': helpful})
-            drv.close()
+            drv.quit()
             self.meta.loc[prod, 'review_scraped'] = 'Y'
             review_data = store_data_refresh_mem(review_data)
             if not incremental:
@@ -1249,32 +1288,36 @@ class Review(Sephora):
                     f'Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
                         (no_of_new_extracted_reviews: {len(product_reviews)},\
                          page: {product_page})', 'utf-8', 'ignore'))
-
+        # save the final review file
         review_data = store_data_refresh_mem(review_data)
 
-    def extract(self, start_idx=None, end_idx=None, list_of_index=None, fresh_start=False, incremental=True,
-                delete_progress=False, clean=True, n_workers=5, download=True):
+    def extract(self, metadata: pd.DataFrame, open_headless: bool = False, download: bool = True,
+                start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
+                fresh_start: bool = False, incremental: bool = True, delete_progress: bool = False,
+                clean: bool = True, n_workers: int = 5,):
         """extract [summary]
 
         [extended_summary]
 
         Args:
-            start_idx (int, optional): [description]. Defaults to None.
-            end_idx (int, optional): [description]. Defaults to None.
-            list_of_index (list, optional): [description]. Defaults to None.
+            metadata (pd.DataFrame): [description]
+            open_headless (bool, optional): [description]. Defaults to False.
+            download (bool, optional): [description]. Defaults to True.
+            start_idx (Optional[int], optional): [description]. Defaults to None.
+            end_idx (Optional[int], optional): [description]. Defaults to None.
+            list_of_index (Optional[list], optional): [description]. Defaults to None.
             fresh_start (bool, optional): [description]. Defaults to False.
             incremental (bool, optional): [description]. Defaults to True.
             delete_progress (bool, optional): [description]. Defaults to False.
             clean (bool, optional): [description]. Defaults to True.
             n_workers (int, optional): [description]. Defaults to 5.
-            download (bool, optional): [description]. Defaults to True.
         """
         def fresh():
             list_of_files = self.metadata_clean_path.glob(
                 'no_cat_cleaned_sph_product_metadata_all*')
             self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[
-                ['prod_id', 'product_name', 'product_page', 'meta_date', 'last_review_date']]
-            self.meta.last_review_date.fillna('', inplace=True)
+                ['prod_id', 'product_name', 'product_page', 'meta_date', 'last_scraped_review_date']]
+            self.meta.last_scraped_review_date.fillna('', inplace=True)
             self.meta['review_scraped'] = 'N'
 
         if download:
@@ -1311,19 +1354,20 @@ class Review(Sephora):
 
             if list_of_index:
                 self.get_reviews(
-                    indices=list_of_index, incremental=incremental)
+                    indices=list_of_index, incremental=incremental, open_headless=open_headless)
             else:  # By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
-                lst_of_lst = list(chunks(indices, len(indices)//n_workers))
+                lst_of_lst = list(
+                    chunks(indices, len(indices)//n_workers))  # type: list
                 # review_Data and item_data are lists of empty lists so that each namepace of function call will have its separate detail_data
                 # list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
-                review_data = [[] for i in lst_of_lst]
-                inc_list = [incremental for i in lst_of_lst]
+                review_data = [[] for i in lst_of_lst]  # type: list
+                inc_list = [incremental for i in lst_of_lst]  # type: list
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     # but each of the function namespace will be modifying only one metadata tracing file so that progress saving
                     # is tracked correctly. else multiple progress tracker file will be created with difficulty to combine correct
                     # progress information
                     executor.map(self.get_reviews, lst_of_lst,
-                                 review_data, inc_list)
+                                 review_data, inc_list, )
 
         self.logger.info('Creating Combined Review File')
         rev_li = []
@@ -1356,8 +1400,8 @@ class Review(Sephora):
 
         if clean:
             cleaner = Cleaner()
-            self.review_clean_df = cleaner.clean_data(
-                data=rev_df, filename=review_filename)
+            self.review_clean_df = cleaner.clean(
+                self.review_path/review_filename)
         self.logger.handlers.clear()
         self.prod_review_log.stop_log()
 
