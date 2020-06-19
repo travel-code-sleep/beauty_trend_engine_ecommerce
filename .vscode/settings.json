@@ -3,6 +3,5 @@
         "exception",
         "meiyume"
     ],
-    "python.pythonPath": "D:\\amit\\conda_env\\meiyume-master-env\\python.exe",
     "python.linting.enabled": true
 }

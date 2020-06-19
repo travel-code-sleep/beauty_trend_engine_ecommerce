@@ -60,6 +60,8 @@ class Browser(object):
         """
         # chrome_options = Options()
         chrome_options = webdriver.ChromeOptions()
+        chrome_options.set_capability('unhandledPromptBehavior', 'accept')
+        chrome_options.set_capability('unexpectedAlertBehaviour', 'accept')
         # chrome_options.add_argument('--no-sandbox')
 
         if open_headless:
@@ -78,17 +80,26 @@ class Browser(object):
                 'httpProxy': headless_proxy,
                 'ftpProxy': headless_proxy,
                 'sslProxy': headless_proxy,
-                'noProxy': ''
+                "noProxy": None,
+                "proxyType": "MANUAL",
+                "class": "org.openqa.selenium.Proxy",
+                "autodetect": False,
+                "acceptSslCerts": True,
+                "unexpectedAlertBehaviour": "accept"
             })
             capabilities = dict(DesiredCapabilities.CHROME)
             proxy.add_to_capabilities(capabilities)
             driver = webdriver.Chrome(ChromeDriverManager(path=path, log_level=0).install(),
                                       desired_capabilities=capabilities, options=chrome_options)
+            driver.set_page_load_timeout(600)
             return driver
 
-        return webdriver.Chrome(ChromeDriverManager(path=path,
-                                                    log_level=0).install(),
-                                options=chrome_options)
+        driver = webdriver.Chrome(ChromeDriverManager(path=path,
+                                                      log_level=0).install(),
+                                  options=chrome_options)
+        driver.set_page_load_timeout(200)
+        return driver
+
     '''
     def open_browser_to_take_screenshot(self):
         """open_browser_to_take_screenshot [summary]
@@ -149,32 +160,50 @@ class Sephora(Browser):
             show (bool, optional): [description]. Defaults to True.
         """
         super().__init__()
-        self.path = Path(path)
+        self.path = Path(Path(path)/'sephora')
+
         # set data paths as per calls from data definition classes
-        self.metadata_path = self.path/'sephora/metadata'
+        self.metadata_path = self.path/'metadata'
+        self.old_metadata_files_path = self.metadata_path/'old_metadata_files'
         self.metadata_clean_path = self.metadata_path/'clean'
+        self.old_metadata_clean_files_path = self.metadata_path/'cleaned_old_metadata_files'
         if data_def == 'meta':
             self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
             self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
-        self.detail_path = self.path/'sephora/detail'
+            self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+
+        self.detail_path = self.path/'detail'
+        self.old_detail_files_path = self.detail_path/'old_detail_files'
         self.detail_clean_path = self.detail_path/'clean'
+        self.old_detail_clean_files_path = self.detail_path/'cleaned_old_detail_files'
         if data_def == 'detail':
             self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
             self.detail_clean_path.mkdir(parents=True, exist_ok=True)
-        self.review_path = self.path/'sephora/review'
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.review_path = self.path/'review'
+        self.old_review_files_path = self.review_path/'old_review_files'
         self.review_clean_path = self.review_path/'clean'
+        self.old_review_clean_files_path = self.review_path/'cleaned_old_review_files'
         if data_def == 'review':
             self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
             self.review_clean_path.mkdir(parents=True, exist_ok=True)
-        self.image_path = self.path/'sephora/product_images'
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.image_path = self.path/'product_images'
         self.image_processed_path = self.image_path/'processed_product_images'
         if data_def == 'image':
             self.image_path.mkdir(parents=True, exist_ok=True)
             self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
         # set universal log path for sephora
-        self.crawl_log_path = self.path/'sephora/crawler_logs'
+        self.crawl_log_path = self.path/'crawler_logs'
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
-        self.clean_log_path = self.path/'sephora/cleaner_logs'
+        self.clean_log_path = self.path/'cleaner_logs'
         self.clean_log_path.mkdir(parents=True, exist_ok=True)
 
 
@@ -200,32 +229,49 @@ class Boots(Browser):
             show (bool, optional): [description]. Defaults to True.
         """
         super().__init__()
-        self.path = Path(path)
+        self.path = Path(Path(path)/'boots')
         # set data paths as per calls from data definition classes
-        self.metadata_path = self.path/'boots/metadata'
+        self.metadata_path = self.path/'metadata'
+        self.old_metadata_files_path = self.metadata_path/'old_metadata_files'
         self.metadata_clean_path = self.metadata_path/'clean'
+        self.old_metadata_clean_files_path = self.metadata_path/'cleaned_old_metadata_files'
         if data_def == 'meta':
             self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
             self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
-        self.detail_path = self.path/'boots/detail'
+            self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+
+        self.detail_path = self.path/'detail'
+        self.old_detail_files_path = self.detail_path/'old_detail_files'
         self.detail_clean_path = self.detail_path/'clean'
+        self.old_detail_clean_files_path = self.detail_path/'cleaned_old_detail_files'
         if data_def == 'detail':
             self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
             self.detail_clean_path.mkdir(parents=True, exist_ok=True)
-        self.review_path = self.path/'boots/review'
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.review_path = self.path/'review'
+        self.old_review_files_path = self.review_path/'old_review_files'
         self.review_clean_path = self.review_path/'clean'
+        self.old_review_clean_files_path = self.review_path/'cleaned_old_review_files'
         if data_def == 'review':
             self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
             self.review_clean_path.mkdir(parents=True, exist_ok=True)
-        self.image_path = self.path/'boots/product_images'
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.image_path = self.path/'product_images'
         self.image_processed_path = self.image_path/'processed_product_images'
         if data_def == 'image':
             self.image_path.mkdir(parents=True, exist_ok=True)
             self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
         # set universal log path for sephora
-        self.crawl_log_path = self.path/'boots/crawler_logs'
+        self.crawl_log_path = self.path/'crawler_logs'
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
-        self.clean_log_path = self.path/'boots/cleaner_logs'
+        self.clean_log_path = self.path/'cleaner_logs'
         self.clean_log_path.mkdir(parents=True, exist_ok=True)
 
 
@@ -273,12 +319,6 @@ class Logger(object):
     def __init__(self, task_name, path):
         self.filename = path / \
             f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}.log'
-
-    def if_exist(self):
-        try:
-            os.remove(filename)
-        except OSError:
-            pass
 
     def start_log(self):
         """[summary]
@@ -385,7 +425,7 @@ class S3FileManager(object):
         object ([type]): [description]
     """
 
-    def __init__(self, bucket='meiyume-datawarehouse-prod'):
+    def __init__(self, bucket: str = 'meiyume-datawarehouse-prod'):
         """__init__ [summary]
 
         [extended_summary]
@@ -395,7 +435,7 @@ class S3FileManager(object):
         """
         self.bucket = bucket
 
-    def get_matching_s3_objects(self, prefix="", suffix=""):
+    def get_matching_s3_objects(self, prefix: str = "", suffix: str = ""):
         """
         Generate objects in an S3 bucket.
 
@@ -431,7 +471,7 @@ class S3FileManager(object):
                     if key.endswith(suffix):
                         yield obj
 
-    def get_matching_s3_keys(self, prefix="", suffix=""):
+    def get_matching_s3_keys(self, prefix: str = "", suffix: str = ""):
         """
         Generate the keys in an S3 bucket.
 
@@ -451,7 +491,7 @@ class S3FileManager(object):
             key ([type]): [description]
         """
         s3 = boto3.resource('s3')
-        k = s3.Bucket(self.bucket).Object(key)
+        k = s3.Bucket(self.bucket).Object(key)  # pylint: disable=no-member
         return {'key_name': k.key, 'key_last_modified': str(k.last_modified)}
 
     def get_prefix_s3(self, job_name):
@@ -520,7 +560,7 @@ class S3FileManager(object):
 
         s3 = boto3.resource('s3')
         file_name = str(key).split('/')[-1]
-        s3.Bucket(self.bucket).download_file(
+        s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
             key, f'{file_path}/{file_name}')
 
     def delete_file_s3(self, key):
@@ -533,7 +573,7 @@ class S3FileManager(object):
         """
         s3 = boto3.resource('s3')
         try:
-            s3.Object(self.bucket, key).delete()
+            s3.Object(self.bucket, key).delete()  # pylint: disable=no-member
             print('file deleted.')
         except Exception:
             print('delete operation failed')

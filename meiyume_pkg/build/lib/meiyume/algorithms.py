@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import swifter
 from tqdm import tqdm
 from tqdm.notebook import tqdm
 from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager, chunks
@@ -152,7 +151,9 @@ class Ranker(ModelsAlgorithms):
         detail.set_index('prod_id', inplace=True)
         meta_detail = meta.join(detail, how='inner', rsuffix='detail')
         meta_detail[['rating', 'reviews', 'votes', 'would_recommend_percentage', 'five_star', 'four_star', 'three_star',
-                                          'two_star', 'one_star']] = meta_detail[['rating', 'reviews', 'votes', 'would_recommend_percentage', 'five_star', 'four_star', 'three_star',
+                                          'two_star', 'one_star']] = meta_detail[['rating', 'reviews', 'votes',
+                                                                                  'would_recommend_percentage',
+                                                                                  'five_star', 'four_star', 'three_star',
                                                                                   'two_star', 'one_star']].apply(pd.to_numeric)
         meta_detail.reset_index(inplace=True)
 

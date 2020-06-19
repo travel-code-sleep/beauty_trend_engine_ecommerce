@@ -25,7 +25,7 @@ import os
 import gc
 from typing import *
 from meiyume.utils import (Logger, Sephora, Boots, nan_equal,
-                           show_missing_value,
+                           show_missing_value, ModelsAlgorithms,
                            MeiyumeException, S3FileManager)
 # text lib imports
 import re
@@ -33,7 +33,6 @@ import string
 import unidecode
 import spacy
 
-# nlp = spacy.load('en_core_web_lg')
 file_manager = S3FileManager()
 tqdm.pandas()
 warnings.simplefilter(action='ignore')
@@ -56,10 +55,11 @@ class Cleaner():
         """
         self.sph = Sephora()
         self.bts = Boots()
+        self.out = ModelsAlgorithms()
         self.path = Path(path)
 
     def clean(self, data: Union[str, Path, pd.DataFrame], save: bool = True,
-              logs: bool = False, include_category: bool = True) -> pd.DataFrame:
+              logs: bool = False, source: Optional[str] = None, definition: Optional[str] = None) -> pd.DataFrame:
         """clean [summary]
 
         [extended_summary]
@@ -68,7 +68,8 @@ class Cleaner():
             data (Union[str, Path, pd.DataFrame]): [description]
             save (bool, optional): [description]. Defaults to True.
             logs (bool, optional): [description]. Defaults to False.
-            include_category (bool, optional): [description]. Defaults to True.
+            source (Optional[str], optional): [description]. Defaults to None.
+            definition (Optional[str], optional): [description]. Defaults to None.
 
         Raises:
             MeiyumeException: [description]
@@ -76,7 +77,6 @@ class Cleaner():
         Returns:
             pd.DataFrame: [description]
         """
-
         if not isinstance(data, pd.core.frame.DataFrame):
             filename = str(data).split('\\')[-1]
             try:
@@ -88,6 +88,7 @@ class Cleaner():
 
         if filename == '':
             save = False
+            self.source, self.definition = source, definition
         else:
             words = filename.split('_')
 
@@ -106,25 +107,24 @@ class Cleaner():
         return cleaned_data
 
     def get_cleaner_utility(self) -> Callable[[pd.DataFrame, bool], pd.DataFrame]:
-        """get_cleaner_utility [summary]
+        """get_cleaner_utility chooses the correct cleaning function based on the data definition.
 
         [extended_summary]
 
         Raises:
-            MeiyumeException: [description]
+            MeiyumeException: raises exception if incorrect data definition is passed to the utility function.
 
         Returns:
-            Callable[[pd.DataFrame, bool], pd.DataFrame]: [description]
+            Callable[[pd.DataFrame, bool], pd.DataFrame]: the cleaning utility function to clean the data.
+
         """
-        if self.definition == 'metadata':
-            return self.metadata_cleaner
-        elif self.definition == 'detail':
-            return self.detail_cleaner
-        elif self.definition == 'item':
-            return self.item_cleaner
-        elif self.definition == 'review':
-            return self.review_cleaner
-        else:
+        clean_utility_dict = {'metadata': self.metadata_cleaner,
+                              'detail': self.detail_cleaner,
+                              'item': self.item_cleaner,
+                              'review': self.review_cleaner}
+        try:
+            return clean_utility_dict[str(self.definition)]
+        except KeyError:
             raise MeiyumeException(
                 "Invalid data definition. Please provide correct file")
 
@@ -141,7 +141,7 @@ class Cleaner():
             Tuple[str, str, str]: [description]
         """
         if '/' not in price and '-' not in price:
-            return price, 'no_value', 'no_value'
+            return price, '', ''
 
         elif '/' in price and '-' in price:
             p = re.split('-|/', price)
@@ -149,7 +149,7 @@ class Cleaner():
 
         elif '/' in price and '-' not in price:
             p = re.split('/', price)
-            return p[0], 'no_value', p[1]
+            return p[0], '', p[1]
 
         elif price.count('-') > 1 and '/' not in price:
             ts = [m.start() for m in re.finditer(' ', price)]
@@ -158,10 +158,10 @@ class Cleaner():
 
         elif '-' in price and price.count('-') < 2 and '/' not in price:
             p = re.split('-', price)
-            return p[0], p[1], 'no_value'
+            return p[0], p[1], ''
 
         else:
-            return 'no_value', 'no_value', 'no_value'
+            return '', '', ''
 
     @staticmethod
     def clean_price(price: str)-> str:
@@ -197,12 +197,10 @@ class Cleaner():
         del data
         gc.collect()
 
-        self.meta.product_name = self.meta.product_name.apply(
-            unidecode.unidecode)
-        if self.source == 'sph':
-            self.meta.brand = self.meta.brand.apply(unidecode.unidecode)
-
-        self.meta.source = self.meta.source.str.lower()
+        self.meta[self.meta.columns.difference(['product_name', 'product_page', 'brand'])] \
+            = self.meta[self.meta.columns.difference(['product_name', 'product_page', 'brand'])]\
+            .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
+        # self.meta.source = self.meta.source.str.lower()
 
         def fix_multi_low_price(x):
             """[summary]
@@ -214,7 +212,7 @@ class Cleaner():
                 p = x.split()
                 return p[-1], p[0]
             else:
-                return 'no_value', 'no_value'
+                return '', ''
 
         # clean price
         if self.source == 'sph':
@@ -244,9 +242,9 @@ class Cleaner():
                 lambda x: 'bts_'+x.split('-')[-1])
         '''
         # clean rating
-        remove_chars = re.compile('stars|star|No|nan')
+        remove_chars = re.compile('stars|star|no|nan')
         self.meta.rating = self.meta.rating.apply(
-            lambda x: remove_chars.sub('', x))
+            lambda x: remove_chars.sub('', x)).str.strip()
         self.meta.rating[self.meta.rating.isin([' ', ''])] = '0'
         self.meta.rating = self.meta.rating.astype(float)
 
@@ -256,12 +254,12 @@ class Cleaner():
 
         # clean ingredient flag
         if self.source == 'sph':
-            clean_prod_type = self.meta.product_type[self.meta.product_type.apply(
+            clean_product_list = self.meta.prod_id[self.meta.product_type.apply(
                 lambda x: True if x.split('-')[0] == 'clean' else False)].unique()
-            self.meta['clean_flag'] = self.meta.product_type.apply(
-                lambda x: 'Yes' if x in clean_prod_type else 'Undefined')
+            self.meta['clean_flag'] = self.meta.prod_id.apply(
+                lambda x: 'clean' if x in clean_product_list else '')
         else:
-            self.meta['clean_flag'] = 'Undefined'
+            self.meta['clean_flag'] = ''
 
         self.meta_no_cat = self.meta.loc[:,
                                          self.meta.columns.difference(['category'])]
@@ -285,7 +283,6 @@ class Cleaner():
 
     def detail_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
         """detail_cleaner [summary]
-
         [extended_summary]
 
         Args:
@@ -302,11 +299,13 @@ class Cleaner():
         self.detail.replace('nan', '', regex=True, inplace=True)
         self.detail.product_name = self.detail.product_name.apply(
             unidecode.unidecode)
+        self.detail = self.detail.apply(lambda x: x.str.lower()
+                                        if(x.dtype == 'object') else x)
 
         if self.source == 'sph':
             # convert votes to numbers
-            self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('K', ''))*1000
-                                                        if x is not np.nan and 'k' in x.lower() else float(x))
+            self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
+                                                        if x is not np.nan and 'k' in x else float(x))
 
             # split sephora rating distribution
             def split_rating_dist(x):
@@ -360,7 +359,7 @@ class Cleaner():
                     self.sph.detail_clean_path/f'{self.clean_file_name}', index=None)
             elif self.source == 'bts':
                 self.detail.to_csv(
-                    self.bts.detail_clean_path/f'cat_{self.clean_file_name}.csv', index=None)
+                    self.bts.detail_clean_path/f'{self.clean_file_name}.csv', index=None)
 
         return self.detail
 
@@ -376,9 +375,206 @@ class Cleaner():
         Returns:
             pd.DataFrame: [description]
         """
+        nlp = spacy.load('en_core_web_lg')
+
+        meta_files = self.sph.metadata_clean_path.glob(
+            'cat_cleaned_sph_product_metadata_all*')
+        meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+
+        new_product_list = meta.prod_id[meta.new_flag == 'new'].unique()
+        clean_product_list = meta.prod_id[meta.clean_flag == 'clean'].unique()
+        vegan_product_list = meta.prod_id[meta.product_type.apply(
+            lambda x: True if 'vegan' in x else False)].unique()
+
         self.item = data
         del data
         gc.collect()
+        self.item[self.item.columns.difference(['product_name', 'item_name'])] \
+            = self.item[self.item.columns.difference(['product_name', 'item_name'])]\
+            .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
+
+        def get_item_price(x: list)->float:
+            """get_item_price [summary]
+            Args:
+                x (list): [description]
+
+            Returns:
+                float: [description]
+            """
+            x = [float(i) for i in x]
+            if len(x) == 1:
+                return x[0]
+            return min(x)
+
+        self.item.item_price = self.item.item_price.apply(
+            lambda x: Cleaner.clean_price(x)).str.replace('/', ' ').str.split().apply(
+            get_item_price)
+        # self.item.item_price = self.item.item_price.apply(
+        #     get_item_price)
+        self.item.item_size = self.item.item_size.fillna('not_available')
+        self.item.item_name = self.item.item_name.str.replace(
+            'selected', '').str.replace('-', ' ').str.strip()
+
+        def get_item_size_from_item_name(x: str)->str:
+            """get_item_size_from_item_name [summary]
+
+            Args:
+                x (str): [description]
+
+            Returns:
+                str: [description]
+            """
+            if x.item_size == 'not_available' and x.item_name is not np.nan:
+                if ' oz' in x.item_name or x.item_name.count(' ml') >= 1:
+                    return x.item_name
+                else:
+                    return np.nan
+            else:
+                return x.item_size
+        self.item.item_size = self.item.apply(
+            get_item_size_from_item_name, axis=1)
+
+        def get_item_size(x: str)->Tuple[str, str]:
+            """get_item_size [summary]
+
+            Args:
+                x (str): [description]
+
+            Returns:
+                Tuple[str, str]: [description]
+            """
+            if x != 'not_available' and x is not np.nan:
+                lst = str(x).split('/')
+                if len(lst) == 1:
+                    size_oz, size_ml_gm = lst[0], 'not_available'
+                else:
+                    size_oz, size_ml_gm = lst[0], lst[1]
+                return size_oz, size_ml_gm
+            else:
+                return 'not_available', 'not_available'
+
+        self.item.item_size = self.item.item_size.str.replace(
+            'size', '').str.replace('•', '')
+        self.item['size_oz'], self.item['size_ml_gm'] = zip(
+            *self.item.item_size.apply(get_item_size))
+        self.item.drop('item_size', inplace=True, axis=1)
+
+        self.item.meta_date = pd.to_datetime(
+            self.item.meta_date, infer_datetime_format=True)
+
+        self.item['clean_flag'] = self.item.prod_id.apply(
+            lambda x: 'clean' if x in clean_product_list else '')
+        # self.item['new_flag'] = self.item.prod_id.apply(
+        #     lambda x: 'New' if x in new_product_list else '')
+
+        def clean_ing_sep(x: str)->str:
+            """clean_ing_sep [summary]
+
+            Args:
+                x (str): [description]
+
+            Returns:
+                str: [description]
+            """
+            if x.clean_flag == 'Clean' and x.item_ingredients is not np.nan:
+                return x.item_ingredients.split('clean at sephora')[0]+'\n'
+            else:
+                return x.item_ingredients
+
+        replace_strings_before = (('(and)', ', '), (';', ', '),
+                                  ('may contain', 'xxcont'), ('(', '/'),
+                                  (')', ' '), ('\n', ','),
+                                  ('%', ' percent '), ('.', ' dott '),
+                                  ('/', ' slash '), ('\n', ','))
+        self.item.item_ingredients = self.item.apply(lambda x: clean_ing_sep(x), axis=1).apply(
+            lambda x: reduce(lambda a, kv: a.replace(*kv),
+                             replace_strings_before, x)
+            if x is not np.nan else np.nan).apply(lambda x: re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', x)
+                                                  if x is not np.nan else np.nan)
+        self.item['ingredient'] = self.item.item_ingredients.apply(
+            lambda x: [text for text in nlp(x).text.split(',')]
+            if x is not np.nan else np.nan)
+
+        self.ing = self.item[['prod_id', 'ingredient']]
+        self.ing = self.ing.explode('ingredient').drop_duplicates()
+        self.ing.dropna(inplace=True)
+
+        self.ing['vegan_flag'] = self.ing.prod_id.apply(
+            lambda x: 'vegan' if x in vegan_product_list else '')
+        self.ing['clean_flag'] = self.ing.prod_id.apply(
+            lambda x: 'clean' if x in clean_product_list else '')
+        self.ing['new_flag'] = self.ing.prod_id.apply(
+            lambda x: 'new' if x in new_product_list else '')
+
+        self.ing = self.ing[~self.ing.ingredient.isin(
+            ['synthetic fragrances synthetic fragrances 1 synthetic fragrances 1 12 2 \
+            synthetic fragrances concentration 1 formula type acrylates ethyl acrylate', '1'])]
+
+        replace_strings_after = (('percent', '% '), ('dott', '.'),
+                                 ('xxcont', ':may contain '), ('slash', ' / '),
+                                 ('er fruit oil', 'lavender fruit oil')
+                                 )
+        self.ing.ingredient = self.ing.ingredient.apply(
+            lambda x: reduce(lambda a, kv: a.replace(*kv),
+                             replace_strings_after, x) if x is not np.nan else np.nan)
+
+        bannedwords = pd.read_excel(self.out.external_path/'banned_words.xlsx',
+                                    sheet_name='banned_words')['words'].str.strip().str.lower().tolist()
+        banned_phrases = pd.read_excel(self.out.external_path/'banned_phrases.xlsx',
+                                       sheet_name='banned_phrases')['phrases'].str.strip().str.lower().tolist()
+
+        strip_strings = ('/', '.', '-', '', ' ')
+        i = 0
+        while i < 5:
+            self.ing.ingredient = self.ing.ingredient.apply(lambda x: (' ').join(
+                [w if w not in bannedwords else ' ' for w in x.split()]).strip())
+            self.ing.ingredient = self.ing.ingredient.apply(
+                lambda x: reduce(lambda a, v: a.strip(v), strip_strings, x))
+            self.ing = self.ing[~self.ing.ingredient.isin(banned_phrases)]
+            self.ing = self.ing[self.ing.ingredient != '']
+            self.ing.ingredient = self.ing.ingredient.apply(
+                lambda x: reduce(lambda a, v: a.strip(v), strip_strings, x))
+            self.ing = self.ing[~self.ing.ingredient.str.isnumeric()]
+            self.ing = self.ing[self.ing.ingredient != '']
+            i += 1
+
+        del banned_phrases, bannedwords
+        gc.collect()
+
+        self.ing.reset_index(inplace=True, drop=True)
+        self.ing['meta_date'] = self.item.meta_date.max()
+
+        self.item.drop(columns=['item_ingredients', 'ingredient', 'clean_flag'],
+                       inplace=True, axis=1)
+        self.item.reset_index(inplace=True, drop=True)
+        columns = ['prod_id',
+                   'product_name',
+                   'item_name',
+                   'item_price',
+                   'meta_date',
+                   'size_oz',
+                   'size_ml_gm']
+        self.item = self.item[columns]
+
+        if save:
+            if self.source == 'sph':
+                self.item.to_feather(
+                    self.sph.detail_clean_path/f'{self.clean_file_name.replace(".csv","")}')
+                self.ing.to_feather(
+                    self.sph.detail_clean_path/f'{self.clean_file_name.replace("item", "ingredient").replace(".csv","")}')
+
+        # Push Item File to S3. No more processing required for Item file.
+        self.item.fillna('', inplace=True)
+        self.item = self.item.replace('\n', ' ', regex=True)
+        self.item = self.item.replace('~', ' ', regex=True)
+
+        self.item.to_csv(
+            self.out.output_path/f'{self.clean_file_name}', index=None, sep='~')
+        file_manager.push_file_s3(
+            file_path=self.out.output_path/f'{self.clean_file_name}', job_name='item')
+        Path(self.out.output_path/f'{self.clean_file_name}').unlink()
+
+        return self.item, self.ing
 
     def review_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
         """review_cleaner [summary]
@@ -395,8 +591,13 @@ class Cleaner():
         self.review = data
         del data
         gc.collect()
+        self.review[self.review.columns.difference(['product_name'])] \
+            = self.review[self.review.columns.difference(['product_name'])]\
+            .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
 
         self.review = self.review[~self.review.review_text.isna()]
+        self.review = self.review[self.review.review_text != '']
+        self.review = self.review[self.review.review_rating != 'n']
         self.review.dropna(
             subset=['prod_id', 'review_text'], axis=0, inplace=True)
         self.review.reset_index(drop=True, inplace=True)
@@ -413,9 +614,9 @@ class Cleaner():
 
             hlp_regex = re.compile('[a-zA-Z()]')
             self.review.helpful_y = self.review.helpful_y.apply(
-                lambda x: hlp_regex.sub('', str(x)))
+                lambda x: hlp_regex.sub('', str(x)))  # .astype(float)
             self.review.helpful_n = self.review.helpful_n.apply(
-                lambda x: hlp_regex.sub('', str(x)))
+                lambda x: hlp_regex.sub('', str(x)))  # .astype(float)
 
             self.review.drop('helpful', inplace=True, axis=1)
 
@@ -460,10 +661,17 @@ class Cleaner():
                 self.review['skin_tone'], self.review['skin_type'] = \
                 zip(*self.review.user_attribute.apply(get_attributes))
 
-            self.review.drop('user_attribute', inplace=True, axis=1)
+        self.review.drop('user_attribute', inplace=True, axis=1)
 
+        if self.source == 'bts':
+            self.review.helpful_n = self.review.helpful_n.replace(
+                '', 0).astype(float)
+            self.review.helpful_y = self.review.helpful_y.replace(
+                '', 0).astype(float)
+            self.review['age'], self.review['eye_color'], self.review['hair_color'],\
+                self.review['skin_tone'], self.review['skin_type'] = '', '', '', '', ''
         # convert ratings to numbers
-        rating_regex = re.compile('stars|star|No')
+        rating_regex = re.compile('stars|star|no|nan')
         self.review.review_rating = self.review.review_rating.astype(str).apply(
             lambda x: rating_regex.sub('', x)).astype(int)
         # self.review.review_rating = self.review.review_rating.astype(int)
@@ -474,11 +682,11 @@ class Cleaner():
         # if rating is 5 then it is assumed that the person recommends
         # id rating is 1 or 2 then it is assumed that the person does not recommend
         # for all the other cases data is not available
-        self.review.recommend[(self.review.recommend.isin(['Recommends this product'])) | (
-            self.review.review_rating == 5)] = 'Yes'
-        self.review.recommend[(self.review.recommend != 'Yes') & (
-            self.review.review_rating.isin([1, 2]))] = 'No'
-        self.review.recommend[(self.review.recommend != 'Yes') & (
+        self.review.recommend[(self.review.recommend.isin(['recommends this product'])) | (
+            self.review.review_rating == 5)] = 'yes'
+        self.review.recommend[(self.review.recommend != 'yes') & (
+            self.review.review_rating.isin([1, 2]))] = 'no'
+        self.review.recommend[(self.review.recommend != 'yes') & (
             self.review.review_rating.isin([3, 4]))] = 'not_avlbl'
 
         self.review.review_text = self.review.review_text.str.replace(

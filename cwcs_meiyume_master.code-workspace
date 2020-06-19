@@ -5,6 +5,8 @@
 		}
 	],
 	"settings": {
-		"python.pythonPath": "D:\\amit\\conda_env\\meiyume-master-env\\python.exe"
+		"cSpell.words": [
+			"fname"
+		]
 	}
 }

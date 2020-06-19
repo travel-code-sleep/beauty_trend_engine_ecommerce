@@ -400,7 +400,7 @@ class Cleaner(Sephora):
             lambda x: True if x.split('-')[0] == 'clean' else False)].unique()
         clean_product_list = meta.prod_id[meta.product_type.isin(
             clean_prod_type)].unique()
-        new_product_list = meta.prod_id[meta.new_flag == 'NEW'].unique()
+        new_product_list = meta.prod_id[meta.new_flag == 'new'].unique()
 
         self.item = self.data
 
@@ -452,8 +452,6 @@ class Cleaner(Sephora):
 
         self.item.meta_date = pd.to_datetime(
             self.item.meta_date, infer_datetime_format=True)
-
-        #self.item.item_size = self.item.item_size.astype(str).str.decode('utf8', errors='ignore')
 
         self.item['clean_flag'] = self.item.prod_id.swifter.apply(
             lambda x: 'Clean' if x in clean_product_list else 'No')
