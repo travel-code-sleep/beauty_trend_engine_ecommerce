@@ -1,11 +1,11 @@
-""" [summary]
 
-[extended_summary]
-
-Returns:
-    [type]: [description]
+"""[summary]
 """
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+from typing import *
 from datetime import datetime, timedelta, date
+import sys
 import logging
 import time
 import numpy as np
@@ -17,6 +17,16 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.alert import Alert
+from selenium.common.exceptions import (ElementClickInterceptedException,
+                                        NoSuchElementException,
+                                        StaleElementReferenceException,
+                                        TimeoutException)
 import gc
 from pathlib import Path
 import boto3
@@ -577,6 +587,71 @@ class S3FileManager(object):
             print('file deleted.')
         except Exception:
             print('delete operation failed')
+
+
+def log_exception(logger: Logger, additional_information: Optional[str] = None)->None:
+    """log_exception [summary]
+
+    [extended_summary]
+
+    Args:
+        logger (Logger): [description]
+        additional_information (Optional[str], optional): [description]. Defaults to None.
+    """
+    exc_type, exc_obj, exc_tb = \
+        sys.exc_info(
+        )  # type:  Tuple[Optional[Type[BaseException]], Optional[BaseException], Optional[types.TracebackType]]
+    file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    if additional_information:
+        logger.info(str.encode(
+            f'Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
+                (Filename: {file_name}). {additional_information}', 'utf-8', 'ignore'))
+    else:
+        logger.info(str.encode(
+            f'Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
+            (Filename: {file_name}).', 'utf-8', 'ignore'))
+
+
+def close_popups(drv: webdriver.Chrome):
+    """close_popups [summary]
+
+    [extended_summary]
+
+    Args:
+        drv (webdriver.Chrome): [description]
+    """
+    # close popup windows
+    try:
+        alert = drv.switch_to.alert
+        alert.accept()
+    except Exception:
+        pass
+    try:
+        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+        time.sleep(1)
+        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+    except Exception:
+        pass
+
+
+def accept_alert(drv: webdriver.Chrome, wait_time: int):
+    """accept_alert [summary]
+
+    [extended_summary]
+
+    Args:
+        drv (webdriver.Chrome): [description]
+        wait_time (int): [description]
+    """
+    try:
+        WebDriverWait(drv, wait_time).until(EC.alert_is_present(),
+                                            'Timed out waiting for PA creation ' +
+                                            'confirmation popup to appear.')
+        alert = drv.switch_to.alert
+        alert.accept()
+        print("alert accepted")
+    except TimeoutException:
+        pass
 
 
 class DataAggregator(object):

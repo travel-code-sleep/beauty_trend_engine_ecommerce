@@ -31,77 +31,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.alert import Alert
-from selenium.webdriver.support.ui import WebDriverWait
 
 from meiyume.cleaner_plus import Cleaner
-from meiyume.utils import Browser, Logger, MeiyumeException, Sephora, chunks, convert_ago_to_date
+from meiyume.utils import (Browser, Logger, MeiyumeException, Sephora,
+                           accept_alert, close_popups, log_exception,
+                           chunks, convert_ago_to_date)
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
-
-
-def log_exception(logger, additional_information: Optional[str] = None):
-    """log_exceptions [summary]
-
-    [extended_summary]
-
-    Args:
-        logger ([type]): [description]
-        additional_information (Optional[str], optional): [description]. Defaults to None.
-    """
-    exc_type, exc_obj, exc_tb = \
-        sys.exc_info(
-        )  # type:  Tuple[Optional[Type[BaseException]], Optional[BaseException], Optional[types.TracebackType]]
-    file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    if additional_information:
-        logger.info(str.encode(
-            f'Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
-                (Filename: {file_name}). {additional_information}', 'utf-8', 'ignore'))
-    else:
-        logger.info(str.encode(
-            f'Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
-            (Filename: {file_name}).', 'utf-8', 'ignore'))
-
-
-def close_popups(drv: webdriver.Chrome):
-    """close_popups [summary]
-
-    [extended_summary]
-
-    Args:
-        drv (webdriver.Chrome): [description]
-    """
-    # close popup windows
-    try:
-        alert = drv.switch_to.alert
-        alert.accept()
-    except Exception:
-        pass
-    try:
-        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
-        time.sleep(1)
-        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
-    except Exception:
-        pass
-
-
-def accept_alert(drv: webdriver.Chrome, wait_time: int):
-    """accept_alert [summary]
-
-    [extended_summary]
-
-    Args:
-        drv (webdriver.Chrome): [description]
-        wait_time (int): [description]
-    """
-    try:
-        WebDriverWait(drv, wait_time).until(EC.alert_is_present(),
-                                            'Timed out waiting for PA creation ' +
-                                            'confirmation popup to appear.')
-        alert = drv.switch_to.alert
-        alert.accept()
-        print("alert accepted")
-    except TimeoutException:
-        pass
 
 
 class Metadata(Sephora):
@@ -276,7 +212,9 @@ class Metadata(Sephora):
                 ActionChains(drv).move_to_element(
                     button).click(button).perform()
                 time.sleep(30)
-            except Exception:
+            except Exception as ex:
+                log_exception(self.logger,
+                              additional_information=f'Prod Type: {product_type}')
                 self.logger.info(str.encode(
                     f'Category: {cat_name} - ProductType {product_type} cannot sort by NEW.(page link: {product_type_link})',
                     'utf-8', 'ignore'))
@@ -292,12 +230,16 @@ class Metadata(Sephora):
                 close_popups(drv)
                 current_page = drv.find_element_by_class_name(
                     'css-nnom91').text
-            except NoSuchElementException:
+            except Exception as ex:
+                log_exception(self.logger,
+                              additional_information=f'Prod Type: {product_type}')
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type} has\
                 only one page of products.(page link: {product_type_link})', 'utf-8', 'ignore'))
                 one_page = True
                 current_page = 1
-            except Exception:
+            except Exception as ex:
+                log_exception(self.logger,
+                              additional_information=f'Prod Type: {product_type}')
                 product_type_urls.loc[pt, 'scraped'] = 'NA'
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type}\
                      page not found.(page link: {product_type_link})',
@@ -328,16 +270,21 @@ class Metadata(Sephora):
                     try:
                         product_name = p.find_element_by_class_name(
                             'css-ix8km1').get_attribute('aria-label')
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} metadata extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})',
                                                     'utf-8', 'ignore'))
                         continue
+
                     try:
                         new_f = p.find_element_by_class_name("css-8o71lk").text
                         product_new_flag = 'NEW'
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         product_new_flag = ''
                         # self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                         #                              product {products.index(p)} product_new_flag extraction failed.\
@@ -345,14 +292,18 @@ class Metadata(Sephora):
                     try:
                         product_page = p.find_element_by_class_name(
                             'css-ix8km1').get_attribute('href')
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         product_page = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} product_page extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         brand = p.find_element_by_class_name('css-ktoumz').text
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         brand = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} brand extraction failed.\
@@ -360,14 +311,18 @@ class Metadata(Sephora):
                     try:
                         rating = p.find_element_by_class_name(
                             'css-ychh9y').get_attribute('aria-label')
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         rating = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} rating extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
                         price = p.find_element_by_class_name('css-68u28a').text
-                    except NoSuchElementException or StaleElementReferenceException:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         price = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                       product {products.index(p)} price extraction failed.\
@@ -398,7 +353,9 @@ class Metadata(Sephora):
                         self.scroll_down_page(drv)
                         current_page = drv.find_element_by_class_name(
                             'css-nnom91').text
-                    except Exception:
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f'Prod Type: {product_type}')
                         self.logger.info(str.encode(f'Page navigation issue occurred for Category: {cat_name} - \
                                                         ProductType: {product_type} (page_link: {product_type_link} \
                                                         - page_no: {current_page})', 'utf-8', 'ignore'))
@@ -828,6 +785,7 @@ class Detail(Sephora):
             #  ignore already extracted products
             if self.meta.loc[prod, 'detail_scraped'] in ['Y', 'NA']:
                 continue
+            # print(prod, self.meta.loc[prod, 'detail_scraped'])
             # create webdriver
             if randomize_proxy_usage:
                 use_proxy = np.random.choice([True, False])
@@ -929,7 +887,7 @@ class Detail(Sephora):
                     self.logger.info(str.encode(
                         f'product: {product_name} (prod_id: {prod_id}) product detail extraction failed', 'utf-8', 'ignore'))
             else:
-                detail = ""
+                details = ""
                 self.logger.info(str.encode(
                     f'product: {product_name} (prod_id: {prod_id}) product detail does not exist.', 'utf-8', 'ignore'))
 
