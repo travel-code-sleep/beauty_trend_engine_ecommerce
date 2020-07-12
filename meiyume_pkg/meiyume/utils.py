@@ -107,7 +107,7 @@ class Browser(object):
         driver = webdriver.Chrome(ChromeDriverManager(path=path,
                                                       log_level=0).install(),
                                   options=chrome_options)
-        driver.set_page_load_timeout(200)
+        driver.set_page_load_timeout(600)
         return driver
 
     '''
@@ -518,7 +518,9 @@ class S3FileManager(object):
         Returns:
             [type]: [description]
         """
-        if job_name == 'meta_detail':
+        if job_name == 'source_meta':
+            prefix = 'Feeds/BeautyTrendEngine/Source_Meta/Staging/'
+        elif job_name == 'meta_detail':
             prefix = 'Feeds/BeautyTrendEngine/Meta_Detail/Staging/'
         elif job_name == 'item':
             prefix = 'Feeds/BeautyTrendEngine/Item/Staging/'

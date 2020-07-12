@@ -28,9 +28,9 @@ from meiyume.utils import (Logger, Sephora, Boots, nan_equal,
                            show_missing_value, ModelsAlgorithms,
                            MeiyumeException, S3FileManager)
 # text lib imports
+from unidecode import unidecode
 import re
 import string
-import unidecode
 import spacy
 
 file_manager = S3FileManager()
@@ -53,10 +53,10 @@ class Cleaner():
         Args:
             path (str, optional): [description]. Defaults to '.'.
         """
-        self.sph = Sephora()
-        self.bts = Boots()
-        self.out = ModelsAlgorithms()
         self.path = Path(path)
+        self.sph = Sephora(path=self.path)
+        self.bts = Boots(path=self.path)
+        self.out = ModelsAlgorithms(path=self.path)
 
     def clean(self, data: Union[str, Path, pd.DataFrame], save: bool = True,
               logs: bool = False, source: Optional[str] = None, definition: Optional[str] = None) -> pd.DataFrame:
@@ -95,6 +95,9 @@ class Cleaner():
             self.source, self.definition = words[0], words[2]
 
             self.clean_file_name = 'cleaned_' + str(filename).split('\\')[-1]
+            self.clean_file_name = '_'.join(
+                self.clean_file_name.split('_')[:-1]) + f'_{pd.to_datetime(data.meta_date.max()).date()}'
+            print(self.clean_file_name)
 
         if self.source not in ['bts', 'sph'] or self.definition not in ['metadata', 'detail',
                                                                         'item', 'review']:
@@ -201,6 +204,52 @@ class Cleaner():
             = self.meta[self.meta.columns.difference(['product_name', 'product_page', 'brand'])]\
             .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
         # self.meta.source = self.meta.source.str.lower()
+        if self.source == 'bts':
+            cat_dict = {"men": ["aftershave", "male grooming tools", "men's toiletries"],
+                        "skincare":	["skincare", "suncare", "premium beauty & skincare"],
+                        "makeup-tools":	["beauty tools"],
+                        "makeup-cosmetics": ["make-up"],
+                        "fragrance": ["fragrance gift sets", "perfume", "fragrance offers"],
+                        "gifts": ["gifts for her", "gifts for him"],
+                        "hair-products":	["hair", "hair styling tools"],
+                        "bath-body":	["bathroom essentials", "luxury bath & body"]
+                        }
+            df = pd.DataFrame.from_dict(cat_dict, orient='index').reset_index()
+            df = df.melt(id_vars=["index"]).drop(columns='variable')
+            df.columns = ['to_cat', 'from_cat']
+
+            self.meta = self.meta[self.meta.category.isin(['aftershave',
+                                                           'bathroom essentials',
+                                                           'beauty tools',
+                                                           'fragrance gift sets',
+                                                           'fragrance offers',
+                                                           'gifts for her',
+                                                           'gifts for him',
+                                                           'hair',
+                                                           'hair styling tools',
+                                                           'luxury bath & body',
+                                                           'make-up',
+                                                           'male grooming tools',
+                                                           "men's toiletries",
+                                                           #    'new in beauty & skincare',
+                                                           #    'new in fragrance',
+                                                           'perfume',
+                                                           'premium beauty & skincare',
+                                                           'skincare',
+                                                           'suncare'])]
+
+            self.meta.reset_index(inplace=True, drop=True)
+
+            self.meta.category = self.meta.category.apply(
+                lambda x: df.to_cat[df.from_cat == x].values[0])
+
+            brand_names = pd.read_csv(
+                self.out.external_path/'brand_db.csv').brand_name.tolist()
+
+            self.meta.brand = self.meta.product_name.apply(
+                lambda x: [i for i in brand_names if unidecode(i.lower()) in unidecode(x.lower())])
+            self.meta.brand = self.meta.brand.apply(
+                lambda x: x[0] if len(x) > 0 else '')
 
         def fix_multi_low_price(x):
             """[summary]
@@ -297,23 +346,23 @@ class Cleaner():
         gc.collect()
 
         self.detail.replace('nan', '', regex=True, inplace=True)
-        self.detail.product_name = self.detail.product_name.apply(
-            unidecode.unidecode)
         self.detail = self.detail.apply(lambda x: x.str.lower()
                                         if(x.dtype == 'object') else x)
 
         if self.source == 'sph':
             # convert votes to numbers
+            self.detail.votes.fillna('0.0', inplace=True)
             self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
-                                                        if x is not np.nan and 'k' in x else float(x))
+                                                        if 'k' in x else float(x.replace('m', ''))*1000000)
 
             # split sephora rating distribution
             def split_rating_dist(x):
                 if x is not np.nan:
                     ratings = literal_eval(x)
-                    return ratings[1], ratings[3], ratings[5], ratings[7], ratings[9]
+                    return int(ratings[1]), int(ratings[3]), int(ratings[5]),\
+                        int(ratings[7]), int(ratings[9])
                 else:
-                    return (0.0 for i in range(5))
+                    return (0 for i in range(5))
 
             self.detail['five_star'], self.detail['four_star'], self.detail['three_star'],\
                 self.detail['two_star'],  self.detail['one_star'] = \
@@ -334,11 +383,13 @@ class Cleaner():
         else:
             for i in ['five_star', 'four_star', 'three_star', 'two_star', 'one_star']:
                 self.detail[i].fillna(0, inplace=True)
-                self.detail[i][self.detail[i] == ''] = 0
+                self.detail[i][self.detail[i] == ''] = 0.0
+                self.detail[i] = self.detail[i].astype(float)
             # create would recommend percentage for boots
             self.detail['would_recommend_percentage'] = 0.0
             # delete it after adding first review data to boots detail
             # self.detail['first_review_date'] = ''
+            self.detail['first_review_date'] = ''
         self.detail.reviews.fillna(0.0, inplace=True)
         self.detail.reviews[self.detail.reviews == ''] = 0.0
         self.detail.reviews = self.detail.reviews.astype(float)
@@ -350,16 +401,16 @@ class Cleaner():
         '''
         self.detail.meta_date = pd.to_datetime(
             self.detail.meta_date, infer_datetime_format=True)
-
+        self.detail.drop_duplicates(subset='prod_id', inplace=True)
         self.detail.reset_index(drop=True, inplace=True)
 
         if save:
             if self.source == 'sph':
-                self.detail.to_csv(
-                    self.sph.detail_clean_path/f'{self.clean_file_name}', index=None)
+                self.detail.to_feather(
+                    self.sph.detail_clean_path/f'{self.clean_file_name}')  # , index=None)
             elif self.source == 'bts':
-                self.detail.to_csv(
-                    self.bts.detail_clean_path/f'{self.clean_file_name}.csv', index=None)
+                self.detail.to_feather(
+                    self.bts.detail_clean_path/f'{self.clean_file_name}')  # , index=None)
 
         return self.detail
 
@@ -377,8 +428,13 @@ class Cleaner():
         """
         nlp = spacy.load('en_core_web_lg')
 
-        meta_files = self.sph.metadata_clean_path.glob(
-            'cat_cleaned_sph_product_metadata_all*')
+        if self.source == 'sph':
+            meta_files = self.sph.metadata_clean_path.glob(
+                'cat_cleaned_sph_product_metadata_all*')
+        elif self.source == 'bts':
+            meta_files = self.bts.metadata_clean_path.glob(
+                'cat_cleaned_bts_product_metadata_all*')
+
         meta = pd.read_feather(max(meta_files, key=os.path.getctime))
 
         new_product_list = meta.prod_id[meta.new_flag == 'new'].unique()
@@ -389,8 +445,9 @@ class Cleaner():
         self.item = data
         del data
         gc.collect()
-        self.item[self.item.columns.difference(['product_name', 'item_name'])] \
-            = self.item[self.item.columns.difference(['product_name', 'item_name'])]\
+
+        self.item[self.item.columns.difference(['product_name'])] \
+            = self.item[self.item.columns.difference(['product_name'])]\
             .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
 
         def get_item_price(x: list)->float:
@@ -404,60 +461,80 @@ class Cleaner():
             x = [float(i) for i in x]
             if len(x) == 1:
                 return x[0]
-            return min(x)
+            elif len(x) == 0:
+                return np.nan
+            else:
+                return min(x)
 
-        self.item.item_price = self.item.item_price.apply(
+        self.item = self.item[~self.item.item_price.isna()]
+        self.item.reset_index(inplace=True, drop=True)
+
+        self.item.item_price = self.item.item_price.astype(str).apply(
             lambda x: Cleaner.clean_price(x)).str.replace('/', ' ').str.split().apply(
             get_item_price)
         # self.item.item_price = self.item.item_price.apply(
         #     get_item_price)
-        self.item.item_size = self.item.item_size.fillna('not_available')
-        self.item.item_name = self.item.item_name.str.replace(
-            'selected', '').str.replace('-', ' ').str.strip()
+        if self.source == 'sph':
+            def get_item_size_from_item_name(x: str)->str:
+                """get_item_size_from_item_name [summary]
 
-        def get_item_size_from_item_name(x: str)->str:
-            """get_item_size_from_item_name [summary]
+                Args:
+                    x (str): [description]
 
-            Args:
-                x (str): [description]
-
-            Returns:
-                str: [description]
-            """
-            if x.item_size == 'not_available' and x.item_name is not np.nan:
-                if ' oz' in x.item_name or x.item_name.count(' ml') >= 1:
-                    return x.item_name
+                Returns:
+                    str: [description]
+                """
+                if x.item_size == '' and x.item_name != '':
+                    if ' oz' in x.item_name or x.item_name.count(' ml') >= 1 or x.item_name.count(' g') >= 1:
+                        return x.item_name
+                    else:
+                        return np.nan
                 else:
-                    return np.nan
-            else:
-                return x.item_size
-        self.item.item_size = self.item.apply(
-            get_item_size_from_item_name, axis=1)
+                    return x.item_size
 
-        def get_item_size(x: str)->Tuple[str, str]:
-            """get_item_size [summary]
+            def get_item_size(x: str)->Tuple[str, str]:
+                """get_item_size [summary]
 
-            Args:
-                x (str): [description]
+                Args:
+                    x (str): [description]
 
-            Returns:
-                Tuple[str, str]: [description]
-            """
-            if x != 'not_available' and x is not np.nan:
-                lst = str(x).split('/')
-                if len(lst) == 1:
-                    size_oz, size_ml_gm = lst[0], 'not_available'
+                Returns:
+                    Tuple[str, str]: [description]
+                """
+                if x != '':
+                    lst = str(x).split('/')
+                    if len(lst) == 1:
+                        size_oz, size_ml_gm = lst[0], ''
+                    else:
+                        size_oz, size_ml_gm = lst[0], lst[1]
+                    return size_oz, size_ml_gm
                 else:
-                    size_oz, size_ml_gm = lst[0], lst[1]
-                return size_oz, size_ml_gm
-            else:
-                return 'not_available', 'not_available'
+                    return '', ''
 
-        self.item.item_size = self.item.item_size.str.replace(
-            'size', '').str.replace('•', '')
-        self.item['size_oz'], self.item['size_ml_gm'] = zip(
-            *self.item.item_size.apply(get_item_size))
-        self.item.drop('item_size', inplace=True, axis=1)
+            self.item.item_size = self.item.item_size.fillna('')
+            self.item.item_size = self.item.item_size.apply(
+                lambda x: x.split('item')[0] if 'item' in x else x)
+
+            self.item.item_name = self.item.item_name.fillna('')
+            self.item.item_name = self.item.item_name.str.replace(
+                'selected', '').str.replace('-', ' ').str.strip()
+            self.item.item_size = self.item.apply(
+                get_item_size_from_item_name, axis=1)
+
+            self.item.item_size = self.item.item_size.str.replace(
+                'size', '').str.replace('•', '').str.strip()
+            self.item['size_oz'], self.item['size_ml_gm'] = zip(
+                *self.item.item_size.apply(get_item_size))
+
+            self.item.drop('item_size', inplace=True, axis=1)
+
+        elif self.source == 'bts':
+            self.item['size_ml_gm'] = self.item.product_name.apply(
+                lambda x: x.split()[-1] if 'ml' in x.lower() or 'gm' in x else '')
+            self.item['size_ml_gm'] = self.item['size_ml_gm'].apply(
+                lambda x: x if any(char.isdigit() for char in x) else '')
+            self.item['size_oz'] = self.item.size_ml_gm.apply(
+                lambda x: str(round(float(re.sub("[^0-9]", "", x))*0.033814, 2)) + ' oz' if x != '' else '')
 
         self.item.meta_date = pd.to_datetime(
             self.item.meta_date, infer_datetime_format=True)
@@ -499,8 +576,13 @@ class Cleaner():
         self.ing = self.ing.explode('ingredient').drop_duplicates()
         self.ing.dropna(inplace=True)
 
-        self.ing['vegan_flag'] = self.ing.prod_id.apply(
-            lambda x: 'vegan' if x in vegan_product_list else '')
+        if self.source == 'sph':
+            self.ing['vegan_flag'] = self.ing.prod_id.apply(
+                lambda x: 'vegan' if x in vegan_product_list else '')
+        elif self.source == 'bts':
+            self.ing['vegan_flag'] = self.ing.ingredient.apply(
+                lambda x: 'vegan' if 'vegan' in x else '')
+
         self.ing['clean_flag'] = self.ing.prod_id.apply(
             lambda x: 'clean' if x in clean_product_list else '')
         self.ing['new_flag'] = self.ing.prod_id.apply(
@@ -541,11 +623,13 @@ class Cleaner():
         del banned_phrases, bannedwords
         gc.collect()
 
+        self.ing.drop_duplicates(inplace=True)
         self.ing.reset_index(inplace=True, drop=True)
         self.ing['meta_date'] = self.item.meta_date.max()
 
         self.item.drop(columns=['item_ingredients', 'ingredient', 'clean_flag'],
                        inplace=True, axis=1)
+        self.item.drop_duplicates(inplace=True)
         self.item.reset_index(inplace=True, drop=True)
         columns = ['prod_id',
                    'product_name',
@@ -559,15 +643,21 @@ class Cleaner():
         if save:
             if self.source == 'sph':
                 self.item.to_feather(
-                    self.sph.detail_clean_path/f'{self.clean_file_name.replace(".csv","")}')
+                    self.sph.detail_clean_path/f'{self.clean_file_name}')
                 self.ing.to_feather(
-                    self.sph.detail_clean_path/f'{self.clean_file_name.replace("item", "ingredient").replace(".csv","")}')
+                    self.sph.detail_clean_path/f'{self.clean_file_name.replace("item", "ingredient")}')
+            if self.source == 'bts':
+                self.item.to_feather(
+                    self.bts.detail_clean_path/f'{self.clean_file_name}')
+                self.ing.to_feather(
+                    self.bts.detail_clean_path/f'{self.clean_file_name.replace("item", "ingredient")}')
 
         # Push Item File to S3. No more processing required for Item file.
         self.item.fillna('', inplace=True)
         self.item = self.item.replace('\n', ' ', regex=True)
         self.item = self.item.replace('~', ' ', regex=True)
 
+        self.clean_file_name = self.clean_file_name + '.csv'
         self.item.to_csv(
             self.out.output_path/f'{self.clean_file_name}', index=None, sep='~')
         file_manager.push_file_s3(
@@ -694,6 +784,7 @@ class Cleaner():
         self.review.review_text = self.review.review_text.str.replace(
             '…read more', '')
         self.review = self.review.replace('\n', ' ', regex=True)
+        self.review.drop_duplicates(inplace=True)
         self.review.reset_index(drop=True, inplace=True)
 
         if save:

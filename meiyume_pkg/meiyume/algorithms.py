@@ -1,5 +1,14 @@
+"""
+summary
+
+[extended_summary]
+
+Returns:
+    [type]: [description]
+"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
+from typing import *
 import warnings
 import os
 import gc
@@ -17,7 +26,9 @@ import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 from tqdm.notebook import tqdm
-from meiyume.utils import Logger, Sephora, nan_equal, show_missing_value, MeiyumeException, ModelsAlgorithms, S3FileManager, chunks
+from meiyume.utils import (Logger, Sephora, Boots,
+                           MeiyumeException, ModelsAlgorithms,
+                           S3FileManager, chunks, show_missing_value)
 
 # fast ai imports
 from fastai import *
@@ -58,8 +69,8 @@ np.random.seed(1337)
 tqdm.pandas()
 
 
-class Ranker(ModelsAlgorithms):
-    """Ranker [summary]
+class SexyMetaDetail(ModelsAlgorithms):
+    """SexyMetaDetail [summary]
 
     [extended_summary]
 
@@ -70,88 +81,167 @@ class Ranker(ModelsAlgorithms):
         [type]: [description]
     """
 
-    def __init__(self, path='.'):
+    def __init__(self, path: Union[str, Path] = Path.cwd())->None:
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            path (Union[str, Path], optional): [description]. Defaults to Path.cwd().
+        """
         super().__init__(path=path)
 
-    def rank(self, meta_file=None, detail_file=None):
-        """[summary]
+    def make(self, source: str, metadata: Optional[Union[Path, str, pd.DataFrame]] = None,
+             detail_data: Optional[Union[Path, str, pd.DataFrame]] = None)->pd.DataFrame:
+        """make [summary]
 
-        Keyword Arguments:
-            meta_file {[file_path:str]} -- [description] (default: {None})
-            detail_file {[file_path:str]} -- [description] (default: {None})
+        [extended_summary]
+
+        Args:
+            source (str): source code of the metadata and detail files. Must be passed. (Accepted values: [sph, bts])
+            metadata (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
+            detail_data (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
+
+        Raises:
+            MeiyumeException: [description]
 
         Returns:
-            [type] -- [description]
+            pd.DataFrame: [description]
         """
-        if meta_file:
-            meta = pd.read_feather(meta_file)
-        else:
-            meta_files = self.sph.metadata_clean_path.glob(
-                'cat_cleaned_sph_product_metadata_all*')
-            meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+        if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
+            raise MeiyumeException(
+                "Unable to determine data source. Please provide correct source code.")
 
-        dft = meta.groupby('prod_id').product_type.apply(
-            ' '.join).reset_index()
-
-        exclude_pdt = ["bath-set-gifts",
-                       "beauty-tool-gifts",
-                       "clean-fragrance",
-                       "clean-hair-care",
-                       "clean-makeup",
-                       "clean-skin-care",
-                       "bath-set-gifts",
-                       "cologne-gift-sets",
-                       "fragrance-gift-sets",
-                       "fragrance-gifts-gift-value-sets-men",
-                       "gifts-for-her",
-                       "gifts-for-men",
-                       "gifts-for-teenage-girls",
-                       "gifts-for-them",
-                       "gifts-under-10",
-                       "gifts-under-100",
-                       "gifts-under-15",
-                       "gifts-under-25",
-                       "gifts-under-50",
-                       "gifts-under-75",
-                       "hair-gift-sets",
-                       "home-fragrance-candle-gift-sets",
-                       "makeup-bags-accessories-by-category-gifts",
-                       "makeup-gift-sets",
-                       "mens-gifts",
-                       "perfume-gift-sets",
-                       "skin-care-gift-sets"]
-
-        def choose_type(x):
-            x = x.split()
-            t = list(set(x) - set(exclude_pdt))
-            if len(t) > 0:
-                return t[0]
+        if metadata:
+            if not isinstance(metadata, pd.core.frame.DataFrame):
+                try:
+                    meta = pd.read_feather(metadata)
+                except Exception as ex:
+                    meta = pd.read_csv(metadata)
             else:
-                return x[0]
-        dft.product_type = dft.product_type.swifter.apply(choose_type)
-
-        meta.drop_duplicates(subset='prod_id', inplace=True)
-
-        dft.set_index('prod_id', inplace=True)
-        meta.set_index('prod_id', inplace=True)
-        meta.drop('product_type', inplace=True, axis=1)
-
-        meta = meta.join(dft, how='left')
-        meta.reset_index(inplace=True)
-
-        if detail_file:
-            detail = pd.read_feather(detail_file)
+                meta = metadata
         else:
-            detail_files = self.sph.detail_clean_path.glob(
-                'cleaned_sph_product_detail*')
-            detail = pd.read_feather(max(detail_files, key=os.path.getctime))
+            if source == 'sph':
+                meta_files = self.sph.metadata_clean_path.glob(
+                    'cat_cleaned_sph_product_metadata_all*')
+                meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+            elif source == 'bts':
+                meta_files = self.bts.metadata_clean_path.glob(
+                    'cat_cleaned_bts_product_metadata_all*')
+                meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+
+        if source == 'sph':
+            dft = meta.groupby('prod_id').product_type.apply(
+                ' '.join).reset_index()
+
+            exclude_pdt = ["bath-set-gifts",
+                           "beauty-tool-gifts",
+                           "clean-fragrance",
+                           "clean-hair-care",
+                           "clean-makeup",
+                           "clean-skin-care",
+                           "bath-set-gifts",
+                           "cologne-gift-sets",
+                           "fragrance-gift-sets",
+                           "fragrance-gifts-gift-value-sets-men",
+                           "gifts-for-her",
+                           "gifts-for-men",
+                           "gifts-for-teenage-girls",
+                           "gifts-for-them",
+                           "gifts-under-10",
+                           "gifts-under-100",
+                           "gifts-under-15",
+                           "gifts-under-25",
+                           "gifts-under-50",
+                           "gifts-under-75",
+                           "hair-gift-sets",
+                           "home-fragrance-candle-gift-sets",
+                           "makeup-bags-accessories-by-category-gifts",
+                           "makeup-gift-sets",
+                           "mens-gifts",
+                           "perfume-gift-sets",
+                           "skin-care-gift-sets",
+                           "hair-brushes-combs-hair-tools-accessories-tools-accessories",
+                           "eyelash-curlers-eyes-makeup",
+                           "fragrance-gifts-gift-value-sets-men",
+                           "cleansing-brushes-men",
+                           "makeup-gift-sets",
+                           "sunblock",
+                           "professional-spa-tools-men",
+                           "mens-body-spray-deodorant-products",
+                           "blotting-paper-oil-control-skincare",
+                           "teeth-whitening-tools"
+                           "hair-straightener-curling-iron-flat-iron",
+                           "makeup-brush-cleaner",
+                           "hair-removal-shaving-bath-body",
+                           "curling-wands-curling-irons",
+                           "thinning-hair-loss",
+                           "hair-brushes-combs-hair-tools-accessories-tools-accessories",
+                           "lip-plumper",
+                           "face-tanner-self-tanner-face",
+                           "at-home-laser-hair-removal",
+                           "anti-aging-tools-bath-body",
+                           "bb-cc-cream-face-makeup",
+                           "preciscion-tweezers",
+                           ]
+
+            def choose_type(x: str)->str:
+                """choose_type [summary]
+
+                [extended_summary]
+
+                Args:
+                    x (str): [description]
+
+                Returns:
+                    str: [description]
+                """
+                x = x.split()
+                t = list(set(x) - set(exclude_pdt))
+                if len(t) > 0:
+                    return t[0]
+                else:
+                    return x[0]
+            dft.product_type = dft.product_type.apply(choose_type)
+
+            meta.drop_duplicates(subset='prod_id', inplace=True)
+
+            dft.set_index('prod_id', inplace=True)
+            meta.set_index('prod_id', inplace=True)
+            meta.drop('product_type', inplace=True, axis=1)
+
+            meta = meta.join(dft, how='left')
+            meta.reset_index(inplace=True)
+
+        if source == 'bts':
+            meta.drop_duplicates(subset='prod_id', inplace=True)
+
+        if detail_data:
+            if not isinstance(detail_data, pd.core.frame.DataFrame):
+                try:
+                    detail = pd.read_feather(detail_data)
+                except Exception as ex:
+                    detail = pd.read_csv(detail_data)
+            else:
+                detail = detail_data
+        else:
+            if source == 'sph':
+                detail_files = self.sph.detail_clean_path.glob(
+                    'cleaned_sph_product_detail*')
+                detail = pd.read_feather(
+                    max(detail_files, key=os.path.getctime))
+            elif source == 'bts':
+                detail_files = self.bts.detail_clean_path.glob(
+                    'cleaned_bts_product_detail*')
+                detail = pd.read_feather(
+                    max(detail_files, key=os.path.getctime))
         detail.drop_duplicates(subset='prod_id', inplace=True)
 
         meta.set_index('prod_id', inplace=True)
         detail.set_index('prod_id', inplace=True)
         meta_detail = meta.join(detail, how='inner', rsuffix='detail')
-        meta_detail[['rating', 'reviews', 'votes', 'would_recommend_percentage', 'five_star', 'four_star', 'three_star',
-                                          'two_star', 'one_star']] = meta_detail[['rating', 'reviews', 'votes',
+        meta_detail[['rating', 'reviews', 'would_recommend_percentage', 'five_star', 'four_star', 'three_star',
+                                          'two_star', 'one_star']] = meta_detail[['rating', 'reviews',
                                                                                   'would_recommend_percentage',
                                                                                   'five_star', 'four_star', 'three_star',
                                                                                   'two_star', 'one_star']].apply(pd.to_numeric)
@@ -166,31 +256,56 @@ class Ranker(ModelsAlgorithms):
 
         def total_stars(x): return x.reviews * x.rating
 
-        def bayesian_estimate(x):
+        def bayesian_estimate(x)->float:
+            """bayesian_estimate [summary]
+
+            [extended_summary]
+
+            Args:
+                x ([type]): [description]
+
+            Returns:
+                float: [description]
+            """
             c = round(review_conf['reviews'][(review_conf.category == x.category) & (
                 review_conf.product_type == x.product_type)].values[0])
             prior = round(prior_rating['rating'][(prior_rating.category == x.category) & (
                 prior_rating.product_type == x.product_type)].values[0])
-            return (c * prior + x.rating * x.reviews	) / (c + x.reviews)
+            return (c * prior + x.rating * x.reviews) / (c + x.reviews)
 
-        meta_detail['total_stars'] = meta_detail.swifter.apply(
+        meta_detail['total_stars'] = meta_detail.apply(
             lambda x: total_stars(x), axis=1).reset_index(drop=True)
-        meta_detail['bayesian_estimate'] = meta_detail.swifter.apply(
+        meta_detail['bayesian_estimate'] = meta_detail.apply(
             bayesian_estimate, axis=1)
         meta_detail.reset_index(drop=True, inplace=True)
 
-        def ratio(x):
-            """pass"""
+        def ratio(x)->Tuple[float, float]:
+            """ratio [summary]
+
+            [extended_summary]
+
+            Args:
+                x ([type]): [description]
+
+            Returns:
+                Tuple[float, float]: [description]
+            """
             pstv_to_ngtv_stars = ((x.five_star + x.four_star)+1) / \
                 ((x.two_star+1 + x.one_star+1)+1)
-            pstv_to_total_stars = (x.five_star + x.four_star) / (x.reviews)
+            pstv_to_total_stars = (
+                x.five_star + x.four_star + 1) / (x.reviews + 1)
             return pstv_to_ngtv_stars, pstv_to_total_stars
 
-        meta_detail['pstv_to_ngtv_stars'], meta_detail['pstv_to_total_stars'] = zip(*meta_detail.swifter.apply(
+        meta_detail['pstv_to_ngtv_stars'], meta_detail['pstv_to_total_stars'] = zip(*meta_detail.apply(
             lambda x: ratio(x), axis=1))
 
-        meta_detail.meta_date = pd.to_datetime(
-            meta_detail.meta_date, format='%Y-%m-%d')
+        meta_detail.first_review_date.fillna('', inplace=True)
+
+        meta_detail.meta_date = meta_detail.meta_date.apply(
+            lambda x: str(pd.to_datetime(x).date()) if x is not np.nan else '')
+        meta_detail.first_review_date = meta_detail.first_review_date.apply(
+            lambda x: str(pd.to_datetime(x).date()) if x != '' else '')
+        meta_detail.complete_scrape_flag = 'y'
 
         meta_detail.drop(columns=['meta_datedetail',
                                   'product_namedetail'], axis=1, inplace=True)
@@ -228,12 +343,11 @@ class Ranker(ModelsAlgorithms):
                    "first_review_date"
                    ]
         meta_detail = meta_detail[columns]
-        meta_detail.product_name = meta_detail.product_name.apply(
-            unidecode.unidecode)
-        meta_detail.brand = meta_detail.brand.apply(
-            unidecode.unidecode)
-
-        filename = f'ranked_cleaned_sph_product_meta_detail_all_{meta.meta_date.max()}'
+        # meta_detail.product_name = meta_detail.product_name.apply(
+        #     unidecode.unidecode)
+        # meta_detail.brand = meta_detail.brand.apply(
+        #     unidecode.unidecode)
+        filename = f'ranked_cleaned_{source}_product_meta_detail_all_{pd.to_datetime(meta.meta_date.max()).date()}'
         meta_detail.to_feather(self.output_path/filename)
 
         meta_detail.fillna('', inplace=True)
@@ -249,53 +363,162 @@ class Ranker(ModelsAlgorithms):
         return meta_detail
 
 
-class SexyIngredient(ModelsAlgorithms):
-    def __init__(self, path='.'):
-        """[summary]
+'''class Ranker(ModelsAlgorithms):
+    """Ranker [summary]
 
-        Arguments:
-            StatAlgorithm {[class]} -- [description]
+    [extended_summary]
 
-        Keyword Arguments:
-            path {str} -- [description] (default: {'.'})
+    Args:
+        ModelsAlgorithms ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+
+    def __init__(self, path: Path = '.')->None:
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            path (Path, optional): [description]. Defaults to '.'.
         """
         super().__init__(path=path)
 
-    def make(self, meta_detail_file=None, ingredient_file=None):
-        """[summary]
+    def rank(self, data: Union[Path, str, pd.DataFrame],
+             group_by_columns: lst = ['category', 'product_type'],
+             confidence_column: str = 'reviews',
+             prior_column: str = 'rating'):
 
-        Arguments:
-            detail_file {[type]} -- [description]
+        if not isinstance(data, pd.DataFrame):
+            try:
+                data = pd.read_feather(data)
+            except Exception as ex:
+                data = pd.read_csv(data)
 
-        Keyword Arguments:
-            meta_file {[type]} -- [description] (default: {None})
+        conf = data.groupby(by=group_by_columns)[
+            confidence_column].mean().reset_index()
+        prior = data.groupby(by=group_by_columns)[
+            prior_column].mean().reset_index()
+
+        data.sort_index(inplace=True)
+
+        def total_stars(x): return x[confidence_column] * x[prior_column]
+
+        def bayesian_estimate(x):
+            c = round(conf[confidence_column][(conf[group_by_columns[0]] == x[group_by_columns[0]]) & (
+                conf[group_by_columns[1]] == x[group_by_columns[1]])].values[0])
+            p = round(prior[prior_column][(prior.category == x.category) & (
+                prior[group_by_columns[1]] == x[group_by_columns[1])].values[0])
+            return (c * p + x.rating * x.reviews	) / (c + x.reviews)
+
+        meta_detail['total_stars'] = meta_detail.apply(
+            lambda x: total_stars(x), axis=1).reset_index(drop=True)
+        meta_detail['bayesian_estimate'] = meta_detail.apply(
+            bayesian_estimate, axis=1)
+        meta_detail.reset_index(drop=True, inplace=True)
+
+        def ratio(x):
+            """pass"""
+            pstv_to_ngtv_stars = ((x.five_star + x.four_star)+1) / \
+                ((x.two_star+1 + x.one_star+1)+1)
+            pstv_to_total_stars = (x.five_star + x.four_star) / (x.reviews)
+            return pstv_to_ngtv_stars, pstv_to_total_stars
+
+        meta_detail['pstv_to_ngtv_stars'], meta_detail['pstv_to_total_stars'] = zip(*meta_detail.apply(
+            lambda x: ratio(x), axis=1))'''
+
+
+class SexyIngredient(ModelsAlgorithms):
+    """SexyIngredient [summary]
+
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+    """
+
+    def __init__(self, path: Union[str, Path] = Path.cwd()):
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            path (Union[str, Path], optional): [description]. Defaults to Path.cwd().
         """
-        if meta_detail_file is None:
-            meta_detail_files = self.output_path.glob(
-                'ranked_cleaned_sph_product_meta_detail_all*')
-            filename = max(meta_detail_files, key=os.path.getctime)
-        else:
-            filename = meta_detail_file
-        meta_rank = pd.read_feather(filename)
+        super().__init__(path=path)
 
-        if ingredient_file is None:
-            ingredient_files = self.sph.detail_clean_path.glob(
-                'cleaned_sph_product_ingredient_all*')
-            filename = max(ingredient_files, key=os.path.getctime)
-        else:
-            filename = ingredient_file
-        self.ingredient = pd.read_feather(filename)
+    def make(self, source: str, meta_detail_data: Optional[Union[Path, str, pd.DataFrame]] = None,
+             ingredient_data: Optional[Union[Path, str, pd.DataFrame]] = None) ->pd.DataFrame:
+        """make [summary]
 
-        old_ing_list = self.ingredient.ingredient[self.ingredient.new_flag.str.lower() == 'old'].str.strip(
+        [extended_summary]
+
+        Args:
+            source (str): source code of the metadata and detail files. Must be passed. (Accepted values: [sph, bts])
+            meta_detail_data (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
+            ingredient_data (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
+
+        Raises:
+            MeiyumeException: [description]
+
+        Returns:
+            pd.DataFrame: [description]
+        """
+        if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
+            raise MeiyumeException(
+                "Unable to determine data source. Please provide correct source code.")
+
+        if meta_detail_data:
+            if not isinstance(meta_detail_data, pd.core.frame.DataFrame):
+                try:
+                    meta_rank = pd.read_feather(meta_detail_data)
+                except Exception as ex:
+                    meta_rank = pd.read_csv(meta_detail_data)
+            else:
+                meta_rank = meta_detail_data
+        else:
+            if source == 'sph':
+                meta_detail_files = self.output_path.glob(
+                    'ranked_cleaned_sph_product_meta_detail_all*')
+                meta_rank = pd.read_feather(
+                    max(meta_detail_files, key=os.path.getctime))
+            elif source == 'bts':
+                meta_detail_files = self.output_path.glob(
+                    'ranked_cleaned_bts_product_meta_detail_all*')
+                meta_rank = pd.read_feather(
+                    max(meta_detail_files, key=os.path.getctime))
+
+        if ingredient_data:
+            if not isinstance(ingredient_data, pd.core.frame.DataFrame):
+                try:
+                    self.ingredient = pd.read_feather(ingredient_data)
+                except Exception as ex:
+                    self.ingredient = pd.read_csv(ingredient_data)
+            else:
+                self.ingredient = ingredient_data
+        else:
+            if source == 'sph':
+                ingredient_files = self.sph.detail_clean_path.glob(
+                    'cleaned_sph_product_ingredient_all*')
+                self.ingredient = pd.read_feather(
+                    max(ingredient_files, key=os.path.getctime))
+            elif source == 'bts':
+                ingredient_files = self.bts.detail_clean_path.glob(
+                    'cleaned_bts_product_ingredient_all*')
+                self.ingredient = pd.read_feather(
+                    max(ingredient_files, key=os.path.getctime))
+
+        old_ing_list = self.ingredient.ingredient[self.ingredient.new_flag == ''].str.strip(
         ).tolist()
 
         # find new ingredients based on new products
         def find_new_ingredient(x):
-            if x.new_flag.lower() == 'new':
+            if x.new_flag == 'new':
                 if x.ingredient in old_ing_list:
-                    return 'New_Product'
+                    return 'new_product'
                 else:
-                    return 'New_Ingredient'
+                    return 'new_ingredient'
             else:
                 return x.new_flag
         self.ingredient.new_flag = self.ingredient.apply(
@@ -304,18 +527,18 @@ class SexyIngredient(ModelsAlgorithms):
         # rule based category assignment of ingredients
         # replace withe ingredient classification model prediction/inference
 
-        food = pd.read_excel(self.sph.detail_path /
+        food = pd.read_excel(self.external_path /
                              'ingredient_type_db.xlsx', sheet_name='food').name.dropna().str.strip().tolist()
-        chemical = pd.read_excel(self.sph.detail_path /
+        chemical = pd.read_excel(self.external_path /
                                  'ingredient_type_db.xlsx', sheet_name='chemical').name.dropna().str.strip().tolist()
         organic = pd.read_excel(
-            self.sph.detail_path/'ingredient_type_db.xlsx', sheet_name='organic').name.dropna().str.strip().tolist()
+            self.external_path/'ingredient_type_db.xlsx', sheet_name='organic').name.dropna().str.strip().tolist()
 
         def assign_food_type(x):
             if any(w in food for w in x.split()):
                 return 'food'
             else:
-                return np.nan
+                return ''
 
         self.ingredient['ingredient_type'] = self.ingredient.ingredient.apply(
             assign_food_type)
@@ -327,7 +550,7 @@ class SexyIngredient(ModelsAlgorithms):
                 elif any(wc in x.ingredient for wc in chemical):
                     return 'chemical_compound'
                 else:
-                    return np.nan
+                    return ''
             else:
                 return x.ingredient_type
 
@@ -335,8 +558,8 @@ class SexyIngredient(ModelsAlgorithms):
             assign_organic_chemical_type, axis=1)
 
         # assign vegan type
-        self.ingredient.ingredient_type[self.ingredient.ingredient.str.contains(
-            'vegan')] = 'vegan'
+        self.ingredient.ingredient_type[self.ingredient.vegan_flag ==
+                                        'vegan'] = 'vegan'
 
         # add columns for ranking
         meta_rank = meta_rank[['prod_id', 'brand', 'category', 'product_name',
@@ -361,9 +584,9 @@ class SexyIngredient(ModelsAlgorithms):
         #     s1).reset_index(drop=True)
 
         self.ingredient['ban_flag'] = self.ingredient.ingredient.apply(
-            lambda x: 'Yes' if x in banned_ingredients.substances.tolist() else 'No')
+            lambda x: 'yes' if x in banned_ingredients.substances.tolist() else 'no')
         self.ingredient.clean_flag[self.ingredient.ban_flag ==
-                                   'Yes'] = 'Unclean'
+                                   'yes'] = 'unclean'
         columns = ["prod_id",
                    "clean_flag",
                    "ingredient",
@@ -378,21 +601,23 @@ class SexyIngredient(ModelsAlgorithms):
                    "bayesian_estimate",
                    "low_p",
                    "source",
-                   "ban_flag"
+                   "ban_flag",
+                   "vegan_flag"
                    ]
         self.ingredient = self.ingredient[columns]
 
-        filename = str(filename).split("\\")[-1]
-        self.ingredient.to_feather(
-            self.output_path/f'ranked_{filename}')
+        filename = f'ranked_cleaned_{source}_product_ingredient_all_{pd.to_datetime(self.ingredient.meta_date.max()).date()}'
+        self.ingredient.to_feather(self.output_path/filename)
 
         self.ingredient.fillna('', inplace=True)
+        self.ingredient = self.ingredient[self.ingredient.ingredient != '']
         self.ingredient = self.ingredient[self.ingredient.ingredient.str.len(
         ) < 200]
+        self.ingredient.reset_index(inplace=True, drop=True)
         self.ingredient = self.ingredient.replace('\n', ' ', regex=True)
         self.ingredient = self.ingredient.replace('~', ' ', regex=True)
 
-        filename = 'ranked_' + filename + '.csv'
+        filename = filename + '.csv'
         self.ingredient.to_csv(self.output_path/filename, index=None, sep='~')
 
         file_manager.push_file_s3(file_path=self.output_path /
@@ -402,6 +627,14 @@ class SexyIngredient(ModelsAlgorithms):
 
 
 class KeyWords(ModelsAlgorithms):
+    """KeyWords [summary]
+
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+    """
+
     def __init__(self, path: Union[str, Path] = '.'):
         """KeyWords [summary]
 
@@ -417,21 +650,31 @@ class KeyWords(ModelsAlgorithms):
         self.analyser = SentimentIntensityAnalyzer()
         self.nlp = spacy.load("en_core_web_lg")
 
-    def get_no_of_words(self, l):
+    def get_no_of_words(self, length):
+        """get_no_of_words [summary]
+
+        [extended_summary]
+
+        Args:
+            length ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         p = 0.2
-        if l < 50:
+        if length < 50:
             k = 2
-        elif l >= 50 and l <= 100:
+        elif length >= 50 and length <= 100:
             k = 6
-        elif l > 100 and l <= 300:
+        elif length > 100 and length <= 300:
             k = 15
-        elif l > 300 and l <= 1000:
+        elif length > 300 and length <= 1000:
             p = 0.18
             k = 35
-        elif l > 1000 and l <= 5000:
+        elif length > 1000 and length <= 5000:
             p = 0.16
             k = 60
-        elif l > 5000:
+        elif length > 5000:
             p = 0.14
             k = 100
         return int(round(k)), p
@@ -452,12 +695,12 @@ class KeyWords(ModelsAlgorithms):
         try:
             if is_doc:
                 doc = text
-                l = len(doc.text.split())
+                length = len(doc.text.split())
             else:
-                l = len(text.split())
+                length = len(text.split())
                 doc = None
-            if l > 7:
-                k, p = self.get_no_of_words(l)
+            if length > 7:
+                k, p = self.get_no_of_words(length)
 
                 if doc is None:
                     doc = textacy.make_spacy_doc(text, lang=self.en)
@@ -577,8 +820,9 @@ class KeyWords(ModelsAlgorithms):
         Returns:
             [type]: [description]
         """
-        self.exclude_ngram_list = ['good product', 'great product', 'works best', 'love love', 'great job', 'great tool', 'useful tool', 'works good', 'tool is great',
-                                   'recommend this product', 'tool works great', 'like this tool', 'best way to use', 'ready to come', 'better to use', 'works pretty',
+        self.exclude_ngram_list = ['good product', 'great product', 'works best', 'love love', 'great job', 'great tool',
+                                   'works good', 'tool is great', 'recommend this product', 'tool works great', 'like this tool',
+                                   'best way to use', 'ready to come', 'better to use', 'works pretty', 'useful tool',
                                    'skin care', 'love this product', 'like this product', 'stuff is amazing',
                                    'love this stuff', 'love love love', 'far so good', ]
         self.exclude_ngram_list.extend(exclude_ngrams)
@@ -655,8 +899,9 @@ class PredictSentiment(ModelsAlgorithms):
         [type]: [description]
     """
 
-    def __init__(self, model_file='sentiment_model_two_class', data_vocab_file='sentiment_class_databunch_two_class.pkl',
-                 model_path=None, path='.'):
+    def __init__(self, model_file: str = 'sentiment_model_two_class',
+                 data_vocab_file: str = 'sentiment_class_databunch_two_class.pkl',
+                 model_path: Path = None, path: Union[Path, str] = Path.cwd())->None:
         """__init__ [summary]
 
         [extended_summary]
@@ -664,8 +909,8 @@ class PredictSentiment(ModelsAlgorithms):
         Args:
             model_file (str, optional): [description]. Defaults to 'sentiment_model_two_class'.
             data_vocab_file (str, optional): [description]. Defaults to 'sentiment_class_databunch_two_class.pkl'.
-            model_path ([type], optional): [description]. Defaults to None.
-            path (str, optional): [description]. Defaults to '.'.
+            model_path (Path, optional): [description]. Defaults to None.
+            path (Union[Path,str], optional): [description]. Defaults to Path.cwd().
         """
         super().__init__(path=path)
         if model_path:
@@ -679,7 +924,7 @@ class PredictSentiment(ModelsAlgorithms):
             data_class, AWD_LSTM, drop_mult=0.5)
         self.learner.load(model_file)
 
-    def predict_instance(self, text):
+    def predict_instance(self, text: str):
         """predict_instance [summary]
 
         [extended_summary]
@@ -693,25 +938,24 @@ class PredictSentiment(ModelsAlgorithms):
         pred = self.learner.predict(text)
         return pred[0], pred[1].numpy(), pred[2].numpy()
 
-    def predict_batch(self, text_column_name, data, save=False):
+    def predict_batch(self, text_column_name: str, data, save: bool = False)->pd.DataFrame:
         """predict_batch [summary]
 
         [extended_summary]
 
         Args:
-            text_column_name ([type]): Name of the text field for which sentiment will be predicted.
-            data (str:dataframe): Filename of the data file with or without complete path variable.
-            save (bool, optional): True if you want to save the resulting dataframe with sentiment and probabilities. Defaults to True.
+            text_column_name (str): [description]
+            data ([type]): [description]
+            save (bool, optional): [description]. Defaults to False.
 
         Returns:
-            [type]: [description]
+            pd.DataFrame: [description]
         """
-
         if type(data) != pd.core.frame.DataFrame:
             filename = data
             try:
                 data = pd.read_feather(Path(data))
-            except:
+            except Exception as ex:
                 data = pd.read_csv(Path(data))
         else:
             filename = None
@@ -725,23 +969,36 @@ class PredictSentiment(ModelsAlgorithms):
         data = pd.concat([data, pd.DataFrame(
             prob_preds[0].numpy(), columns=['neg_prob', 'pos_prob'])], axis=1)
 
-        data.neg_prob = data.neg_prob.swifter.apply(lambda x: round(x, 3))
-        data.pos_prob = data.pos_prob.swifter.apply(lambda x: round(x, 3))
+        data.neg_prob = data.neg_prob.apply(lambda x: round(x, 3))
+        data.pos_prob = data.pos_prob.apply(lambda x: round(x, 3))
 
-        data['sentiment'] = data.swifter.apply(
+        data['sentiment'] = data.apply(
             lambda x: 'positive' if x.pos_prob > x.neg_prob else 'negative', axis=1)
         data.reset_index(inplace=True, drop=True)
+
         if filename:
             filename = str(filename).split('\\')[-1]
             if save:
                 data.to_feather(
                     self.output_path/f'with_sentiment_{filename}')
+
         return data
 
 
 class PredictInfluence(ModelsAlgorithms):
+    """PredictInfluence [summary]
 
-    def __init__(self):
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+    """
+
+    def __init__(self)->None:
+        """__init__ [summary]
+
+        [extended_summary]
+        """
         super().__init__()
         self.lookup_ = ['free sample', 'free test', 'complimentary test', 'complimentary review', 'complimentary review',
                         'complimentary test', 'receive product free', 'receive product complimentary', 'product complimentary',
@@ -750,13 +1007,13 @@ class PredictInfluence(ModelsAlgorithms):
         self.stopwords = list(STOP_WORDS)
         self.parser = English()
 
-    def spacy_tokenizer(self, text):
+    def spacy_tokenizer(self, text: str):
         """spacy_tokenizer [summary]
 
         [extended_summary]
 
         Args:
-            text ([type]): [description]
+            text (str): [description]
 
         Returns:
             [type]: [description]
@@ -769,14 +1026,24 @@ class PredictInfluence(ModelsAlgorithms):
         tokens = " ".join([i for i in tokens])
         return tokens
 
-    def predict_instance(self, text):
-        tokenized_text = self.spacy_tokenizer(text)
-        if any(i in tokenized_text for i in self.lookup_):
-            return 'Influenced'
-        else:
-            return 'Not Influenced'
+    def predict_instance(self, text: str) -> str:
+        """predict_instance [summary]
 
-    def predict_batch(self, text_column_name, data, save=False):
+        [extended_summary]
+
+        Args:
+            text (str): [description]
+
+        Returns:
+            str: [description]
+        """
+        tokenized_text = self.spacy_tokenizer(text)
+        if any(i in tokenized_text.lower() for i in self.lookup_):
+            return 'influenced'
+        else:
+            return 'not_influenced'
+
+    def predict_batch(self, text_column_name: str, data: pd.DataFrame, save: bool = False):
         """predict_batch [summary]
 
         [extended_summary]
@@ -786,19 +1053,19 @@ class PredictInfluence(ModelsAlgorithms):
             data ([type]): [description]
             save (bool, optional): [description]. Defaults to False.
         """
-        if type(data) != pd.core.frame.DataFrame:
+        if not isinstance(data, pd.core.frame.DataFrame):
             filename = data
             try:
                 data = pd.read_feather(Path(data))
-            except:
+            except Exception as ex:
                 data = pd.read_csv(Path(data))
         else:
             filename = None
 
         data['tokenized_text'] = data[text_column_name].progress_apply(
-            self.spacy_tokenizer)
-        data['is_influenced'] = data.tokenized_text.progress_apply(lambda x: "Yes" if
-                                                                   any(y in x for y in self.lookup_) else "No")
+            self.spacy_tokenizer).str.lower()
+        data['is_influenced'] = data.tokenized_text.progress_apply(lambda x: "yes" if
+                                                                   any(y in x for y in self.lookup_) else "no")
 
         data.reset_index(inplace=True, drop=True)
         if filename:
@@ -821,11 +1088,17 @@ class SelectCandidate(ModelsAlgorithms):
         [type]: [description]
     """
 
-    def __init__(self):
+    def __init__(self)->None:
+        """__init__ [summary]
+
+        [extended_summary]
+        """
         super().__init__()
 
-    def select(self, data: Union[str, Path, DataFrame], weight_column: str, groupby_columns: Union[str, list], fraction: float = 0.3,
-               select_column=None, sep: str = ' ', drop_weights: bool = True, inverse_weights: bool = True, keep_all: bool = True, **kwargs):
+    def select(self, data: Union[str, Path, DataFrame], weight_column: str,
+               groupby_columns: Union[str, list], fraction: float = 0.3,
+               select_column=None, sep: str = ' ', drop_weights: bool = True,
+               inverse_weights: bool = True, keep_all: bool = True, **kwargs):
         """select [summary]
 
         [extended_summary]
@@ -851,7 +1124,7 @@ class SelectCandidate(ModelsAlgorithms):
             filename = data
             try:
                 data = pd.read_feather(Path(filename))
-            except:
+            except Exception as ex:
                 data = pd.read_csv(Path(filename))
         else:
             filename = None
@@ -923,13 +1196,13 @@ class Summarizer(ModelsAlgorithms):
         assert self.bart_summarizer is not None, "Set initialize model parameter to True when using summarize_instance or \
                                                   summarize_batch methods. "
 
-        l = len(text.split())
-        if l > 1024:
+        length = len(text.split())
+        if length > 1024:
             max_length = 1024
         else:
-            max_length = l
+            max_length = length
 
-        if l < min_length+30:
+        if length < min_length+30:
             return text
         else:
             summary = self.bart_summarizer(text, min_length=min_length,
@@ -986,7 +1259,7 @@ class Summarizer(ModelsAlgorithms):
             filename = data
             try:
                 data = pd.read_feather(Path(data))
-            except:
+            except Exception as ex:
                 data = pd.read_csv(Path(data))
         else:
             filename = None
@@ -1028,7 +1301,7 @@ class Summarizer(ModelsAlgorithms):
             filename = data
             try:
                 data = pd.read_feather(Path(data))
-            except:
+            except Exception as ex:
                 data = pd.read_csv(Path(data))
         else:
             filename = None
@@ -1062,7 +1335,25 @@ class Summarizer(ModelsAlgorithms):
 
 
 class SexyReview(ModelsAlgorithms):
-    def __init__(self, path='.', initialize_sentiment_model: bool = True, initialize_summarizer_model: bool = False):
+    """SexyReview [summary]
+
+    [extended_summary]
+
+    Args:
+        ModelsAlgorithms ([type]): [description]
+    """
+
+    def __init__(self, path: Union[Path, str] = Path.cwd(), initialize_sentiment_model: bool = True,
+                 initialize_summarizer_model: bool = False)->None:
+        """__init__ [summary]
+
+        [extended_summary]
+
+        Args:
+            path (Union[Path, str], optional): [description]. Defaults to Path.cwd().
+            initialize_sentiment_model (bool, optional): [description]. Defaults to True.
+            initialize_summarizer_model (bool, optional): [description]. Defaults to False.
+        """
         super().__init__(path=path)
         if initialize_sentiment_model:
             self.sentiment_model = PredictSentiment(model_file='sentiment_model_two_class',
@@ -1073,35 +1364,55 @@ class SexyReview(ModelsAlgorithms):
         if initialize_summarizer_model:
             self.summarizer = Summarizer()
 
-    def make(self, review_file: Union[str, Path, DataFrame], text_column_name: str = 'review_text', predict_sentiment: bool = True,
-             predict_influence: bool = True, extract_keywords: bool = True):
+    def make(self, source: str, review_data: Optional[Union[str, Path, pd.DataFrame]] = None,
+             text_column_name: str = 'review_text',
+             predict_sentiment: bool = True,
+             predict_influence: bool = True,
+             extract_keywords: bool = True) -> pd.DataFrame:
         """make [summary]
 
         [extended_summary]
 
         Args:
-            review_file (Union[str, Path, DataFrame]): [description]
+            source (str): source code of the metadata and detail files. Must be passed. (Accepted values: [sph, bts])
+            review_data (Optional[Union[str, Path, pd.DataFrame]], optional): [description]. Defaults to None.
             text_column_name (str, optional): [description]. Defaults to 'review_text'.
             predict_sentiment (bool, optional): [description]. Defaults to True.
             predict_influence (bool, optional): [description]. Defaults to True.
             extract_keywords (bool, optional): [description]. Defaults to True.
 
-        Returns:
-            review(DataFrame): [description]
-        """
-        if type(review_file) != pd.core.frame.DataFrame:
-            filename = review_file
-            try:
-                self.review = pd.read_feather(Path(review_file))
-            except:
-                self.review = pd.read_csv(Path(review_file))
-        else:
-            filename = None
-            self.review = review_file
+        Raises:
+            MeiyumeException: [description]
 
-        self.review.review_text = self.review.review_text.str.lower().str.replace(
-            '…read more', '')
-        self.review = self.review.replace('\n', ' ', regex=True)
+        Returns:
+            pd.DataFrame: Review dataframe with keywords, sentiments and influence flag.
+        """
+        if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
+            raise MeiyumeException(
+                "Unable to determine data source. Please provide correct source code.")
+
+        if review_data:
+            if not isinstance(review_data, pd.core.frame.DataFrame):
+                try:
+                    self.review = pd.read_feather(review_data)
+                except Exception as ex:
+                    self.review = pd.read_csv(review_data)
+            else:
+                self.review = review_data
+        else:
+            if source == 'sph':
+                review_files = self.sph.review_clean_path.glob(
+                    'cleaned_sph_product_review_all*')
+                self.review = pd.read_feather(
+                    max(review_files, key=os.path.getctime))
+            elif source == 'bts':
+                meta_files = self.bts.review_clean_path.glob(
+                    'cleaned_bts_product_review_all*')
+                self.review = pd.read_feather(
+                    max(review_files, key=os.path.getctime))
+
+        self.review.review_text.fillna('', inplace=True)
+        self.review = self.review[self.review.review_text != '']
         self.review.reset_index(inplace=True, drop=True)
 
         if predict_sentiment:
@@ -1116,69 +1427,107 @@ class SexyReview(ModelsAlgorithms):
             self.review['text'] = self.review.progress_apply(
                 lambda x: x.review_title + ". " + x.review_text if x.review_title is not None else x.review_text, axis=1)
             self.review.text = self.review.text.str.lower().str.strip()
-            self.review['keywords'] = process_manager.map(
-                self.keys.extract_keywords, self.review.text)
+            self.review['keywords'] = self.review.text.progress_apply(
+                self.keys.extract_keywords)
+            # self.review['keywords'] = process_manager.map(
+            #     self.keys.extract_keywords, self.review.text)
 
-        if filename:
-            filename = str(review_file).split('\\')[-1]
+        filename = f'with_keywords_sentiment_cleaned_{source}_product_review_all_{pd.to_datetime(self.review.meta_date.max()).date()}'
 
-            columns = ["prod_id",
-                       "product_name",
-                       "recommend",
-                       "review_date",
-                       "review_rating",
-                       "review_text",
-                       "review_title",
-                       "meta_date",
-                       "helpful_n",
-                       "helpful_y",
-                       "age",
-                       "eye_color",
-                       "hair_color",
-                       "skin_tone",
-                       "skin_type",
-                       'neg_prob',
-                       'pos_prob',
-                       'sentiment',
-                       'is_influenced',
-                       'keywords'
-                       ]
-            self.review = self.review[columns]
+        columns = ["prod_id",
+                   "product_name",
+                   "recommend",
+                   "review_date",
+                   "review_rating",
+                   "review_text",
+                   "review_title",
+                   "meta_date",
+                   "helpful_n",
+                   "helpful_y",
+                   "age",
+                   "eye_color",
+                   "hair_color",
+                   "skin_tone",
+                   "skin_type",
+                   "neg_prob",
+                   "pos_prob",
+                   "sentiment",
+                   "is_influenced",
+                   "keywords",
+                   "product_variant"
+                   ]
+        self.review = self.review[columns]
 
-            self.review.to_feather(
-                self.output_path/f'with_keywords_sentiment_{filename}')
+        self.review.to_feather(
+            self.output_path/filename)
 
-            self.review.fillna('', inplace=True)
-            self.review = self.review.replace('\n', ' ', regex=True)
-            self.review = self.review.replace('~', ' ', regex=True)
+        self.review.fillna('', inplace=True)
+        self.review = self.review.replace('\n', ' ', regex=True)
+        self.review = self.review.replace('~', ' ', regex=True)
 
-            filename = 'with_keywords_sentiment_' + filename + '.csv'
-            self.review.to_csv(
-                self.output_path/filename, index=None, sep='~')
-            file_manager.push_file_s3(file_path=self.output_path /
-                                      filename, job_name='review')
-            Path(self.output_path/filename).unlink()
+        filename = filename + '.csv'
+        self.review.to_csv(
+            self.output_path/filename, index=None, sep='~')
+        file_manager.push_file_s3(file_path=self.output_path /
+                                  filename, job_name='review')
+        Path(self.output_path/filename).unlink()
 
         return self.review
 
-    def make_summary(self, review_file: Union[str, Path, DataFrame], summarize_review=True,  # candidate_criterion=[],
-                     summarize_keywords=True, extract_ngrams=True, extract_topic=True):
+    def make_summary(self, source: str, review_data: Optional[Union[str, Path, DataFrame]] = None,
+                     # candidate_criterion=[],
+                     summarize_review: bool = True, summarize_keywords: bool = True,
+                     extract_ngrams: bool = True, extract_topic: bool = True)->pd.DataFrame:
+        """make_summary [summary]
 
-        if type(review_file) != pd.core.frame.DataFrame:
-            filename = str(review_file)
-            try:
-                self.review = pd.read_feather(Path(review_file))
-            except:
-                self.review = pd.read_csv(Path(review_file))
+        [extended_summary]
+
+        Args:
+            source (str): [description]
+            review_data (Optional[Union[str, Path, DataFrame]], optional): [description]. Defaults to None.
+            summarize_review (bool, optional): [description]. Defaults to True.
+            summarize_keywords (bool, optional): [description]. Defaults to True.
+            extract_ngrams (bool, optional): [description]. Defaults to True.
+            extract_topic (bool, optional): [description]. Defaults to True.
+
+        Raises:
+            MeiyumeException: [description]
+
+        Returns:
+            pd.DataFrame: [description]
+        """
+
+        # replace the list with sql source metadata table read
+        if source not in ['bts', 'sph']:
+            raise MeiyumeException(
+                "Unable to determine data source. Please provide correct source code.")
+
+        if review_data:
+            if not isinstance(review_data, pd.core.frame.DataFrame):
+                try:
+                    self.review = pd.read_feather(review_data)
+                except Exception as ex:
+                    self.review = pd.read_csv(review_data)
+            else:
+                self.review = review_data
         else:
-            filename = None
-            self.review = review_file
-
+            if source == 'sph':
+                review_files = self.sph.review_clean_path.glob(
+                    'cleaned_sph_product_review_all*')
+                self.review = pd.read_feather(
+                    max(review_files, key=os.path.getctime))
+            elif source == 'bts':
+                meta_files = self.bts.review_clean_path.glob(
+                    'cleaned_bts_product_review_all*')
+                self.review = pd.read_feather(
+                    max(review_files, key=os.path.getctime))
+        meta_date = pd.to_datetime(self.review.meta_date.max()).date()
         self.review = self.review[['prod_id', 'product_name', 'review_text', 'review_title', 'helpful_n',
                                    'helpful_y', 'sentiment', 'is_influenced', 'keywords']]
         self.review = self.review.replace('\n', ' ', regex=True)
-        self.review.reset_index(inplace=True, drop=True)
         self.review.fillna('', inplace=True)
+        self.review = self.review[self.review.review_text != '']
+        self.review.reset_index(inplace=True, drop=True)
 
         self.review['text'] = self.review.progress_apply(
             lambda x: x.review_title + ". " + x.review_text if x.review_title is not None and x.review_title != '' else x.review_text, axis=1)
@@ -1196,7 +1545,7 @@ class SexyReview(ModelsAlgorithms):
             pos_kw_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=['prod_id'],
                                                   fraction=0.7, select_column='keywords', sep=', ')
             neg_kw_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.7, select_column='keywords', sep=', ')
+                'prod_id'], fraction=0.8, select_column='keywords', sep=', ')
 
             pos_kw_selected['pos_keyword_summary'] = pos_kw_selected.keywords.progress_apply(lambda x:
                                                                                              self.keys.summarize_keywords(x, max_keys=15))
@@ -1220,17 +1569,21 @@ class SexyReview(ModelsAlgorithms):
 
         if summarize_review or extract_topic:
             pos_review_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.35, select_column='text', sep=' ')
+                'prod_id'], fraction=0.7, select_column='text', sep=' ')
 
             neg_review_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.55, select_column='text', sep=' ')
+                'prod_id'], fraction=0.8, select_column='text', sep=' ')
 
         if summarize_review:
-            pos_review_summary = self.summarizer.summarize_batch_plus(data=pos_review_selected, id_column_name='prod_id', text_column_name='text',
-                                                                      min_length=150, max_length=1024, batch_size=10, summary_column_name='pos_review_summary')
+            pos_review_summary = self.summarizer.summarize_batch_plus(data=pos_review_selected, id_column_name='prod_id',
+                                                                      text_column_name='text',
+                                                                      min_length=150, max_length=1024, batch_size=10,
+                                                                      summary_column_name='pos_review_summary')
 
-            neg_review_summary = self.summarizer.summarize_batch_plus(data=neg_review_selected, id_column_name='prod_id', text_column_name='text',
-                                                                      min_length=80, max_length=1024, batch_size=10, summary_column_name='neg_review_summary')
+            neg_review_summary = self.summarizer.summarize_batch_plus(data=neg_review_selected, id_column_name='prod_id',
+                                                                      text_column_name='text',
+                                                                      min_length=80, max_length=1024, batch_size=10,
+                                                                      summary_column_name='neg_review_summary')
             pos_review_summary.set_index('prod_id', inplace=True)
             neg_review_summary.set_index('prod_id', inplace=True)
 
@@ -1251,18 +1604,24 @@ class SexyReview(ModelsAlgorithms):
 
         if extract_ngrams:
             pos_ngram_selected = self.select_.select(data=pos_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.5, select_column='text')
+                'prod_id'], fraction=0.7, select_column='text')
 
             neg_ngram_selected = self.select_.select(data=neg_review, weight_column='helpful_y', groupby_columns=[
-                'prod_id'], fraction=0.7, select_column='text', sep=' ')
+                'prod_id'], fraction=0.8, select_column='text', sep=' ')
 
-            pos_ngram_selected['pos_talking_points'] = pos_ngram_selected.text.progress_apply(lambda x:
-                                                                                              self.keys.generate_sentiment_ngrams(x, min_freq=2, max_terms=15, sentiment='positive',
-                                                                                                                                  sentiment_threshold=0.3, increase_threshold_by=0.2))
+            pos_ngram_selected['pos_talking_points'] =\
+                pos_ngram_selected.text.progress_apply(lambda x:
+                                                       self.keys.generate_sentiment_ngrams(x, min_freq=2, max_terms=15,
+                                                                                           sentiment='positive',
+                                                                                           sentiment_threshold=0.3,
+                                                                                           increase_threshold_by=0.2))
 
-            neg_ngram_selected['neg_talking_points'] = neg_ngram_selected.text.progress_apply(lambda x:
-                                                                                              self.keys.generate_sentiment_ngrams(x, min_freq=2, max_terms=15, sentiment='negative',
-                                                                                                                                  sentiment_threshold=0.0, increase_threshold_by=0.2))
+            neg_ngram_selected['neg_talking_points'] =\
+                neg_ngram_selected.text.progress_apply(lambda x:
+                                                       self.keys.generate_sentiment_ngrams(x, min_freq=2, max_terms=15,
+                                                                                           sentiment='negative',
+                                                                                           sentiment_threshold=0.0,
+                                                                                           increase_threshold_by=0.2))
             pos_ngram_selected.drop(columns='text', inplace=True)
             neg_ngram_selected.drop(columns='text', inplace=True)
 
@@ -1284,39 +1643,33 @@ class SexyReview(ModelsAlgorithms):
         del generated_dataframes
         gc.collect()
 
-        if filename:
-            if 'sph' in filename:
-                filename = 'sph' + \
-                    f'_product_review_summary_all_{time.strftime("%Y-%m-%d")}'
-            elif 'bts' in filename:
-                filename = 'bts' + \
-                    f'_product_review_summary_all_{time.strftime("%Y-%m-%d")}'
+        filename = f'{source}_product_review_summary_all_{meta_date}'
 
-            columns = ['prod_id',
-                       'pos_review_summary',
-                       'neg_review_summary',
-                       'pos_talking_points',
-                       'neg_talking_points',
-                       'pos_keyword_summary',
-                       'neg_keyword_summary'
-                       ]
+        columns = ['prod_id',
+                   'pos_review_summary',
+                   'neg_review_summary',
+                   'pos_talking_points',
+                   'neg_talking_points',
+                   'pos_keyword_summary',
+                   'neg_keyword_summary'
+                   ]
 
-            self.review_summary_all = self.review_summary_all[columns]
+        self.review_summary_all = self.review_summary_all[columns]
 
-            # self.review_summary_all.to_feather(
-            #     self.output_path/f'{filename}')
+        # self.review_summary_all.to_feather(
+        #     self.output_path/f'{filename}')
+        self.review_summary_all.to_feather(self.output_path/filename)
 
-            self.review_summary_all.fillna('', inplace=True)
-            self.review_summary_all = self.review_summary_all.replace(
-                '\n', ' ', regex=True)
-            self.review_summary_all = self.review_summary_all.replace(
-                '~', ' ', regex=True)
+        self.review_summary_all.fillna('', inplace=True)
+        self.review_summary_all = self.review_summary_all.replace(
+            '\n', ' ', regex=True)
+        self.review_summary_all = self.review_summary_all.replace(
+            '~', ' ', regex=True)
 
-            filename = filename + '.csv'
-
-            self.review_summary_all.to_csv(
-                self.output_path/filename, index=None, sep='~')
-            file_manager.push_file_s3(file_path=self.output_path /
-                                      filename, job_name='review_summary')
-            # Path(self.output_path/filename).unlink()
+        filename = filename + '.csv'
+        self.review_summary_all.to_csv(
+            self.output_path/filename, index=None, sep='~')
+        file_manager.push_file_s3(file_path=self.output_path /
+                                  filename, job_name='review_summary')
+        Path(self.output_path/filename).unlink()
         return self.review_summary_all
