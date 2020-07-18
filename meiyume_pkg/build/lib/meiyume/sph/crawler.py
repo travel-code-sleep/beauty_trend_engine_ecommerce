@@ -35,7 +35,7 @@ from selenium.webdriver.common.alert import Alert
 from meiyume.cleaner_plus import Cleaner
 from meiyume.utils import (Browser, Logger, MeiyumeException, Sephora,
                            accept_alert, close_popups, log_exception,
-                           chunks, convert_ago_to_date)
+                           chunks, ranges, convert_ago_to_date)
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -1132,7 +1132,7 @@ class Detail(Sephora):
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None,
                 list_of_index=None, fresh_start: bool = False, delete_progress: bool = False,
                 clean: bool = True, n_workers: int = 5, randomize_proxy_usage: bool = False,
-                complie_progress_files: bool = False):
+                complie_progress_files: bool = False, auto_fresh_start: bool = False):
         """extract [summary]
 
         [extended_summary]
@@ -1150,7 +1150,8 @@ class Detail(Sephora):
             clean (bool, optional): [description]. Defaults to True.
             n_workers (int, optional): [description]. Defaults to 5.
             randomize_proxy_usage (bool, optional): [description]. Defaults to False.
-            complie_progress_files ([type], optional): [description]. Defaults to :bool=True.
+            complie_progress_files (bool, optional): [description]. Defaults to False.
+            auto_fresh_start (bool, optional): [description]. Defaults to False.
         """
         '''
         change metadata read logic.add logic to look for metadata in a folder path. if metadata is found in the folder path
@@ -1176,9 +1177,10 @@ class Detail(Sephora):
                     self.meta = pd.read_feather(
                         self.detail_path/'sph_detail_progress_tracker')
                     if sum(self.meta.detail_scraped == 'N') == 0:
-                        fresh()
-                        self.logger.info(
-                            'Last Run was Completed. Starting Fresh Extraction.')
+                        if auto_fresh_start:
+                            fresh()
+                            self.logger.info(
+                                'Last Run was Completed. Starting Fresh Extraction.')
                     else:
                         self.logger.info(
                             'Continuing Detail Extraction From Last Run.')
@@ -1206,8 +1208,11 @@ class Detail(Sephora):
                                 open_with_proxy_server=open_with_proxy_server,
                                 randomize_proxy_usage=randomize_proxy_usage)
             else:  # By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
-                lst_of_lst = list(chunks(indices, len(indices)//n_workers))
-                print(lst_of_lst)
+                if start_idx:
+                    lst_of_lst = ranges(
+                        indices[-1]+2, n_workers, start_idx=start_idx)
+                else:
+                    lst_of_lst = ranges(len(indices), n_workers)
                 # detail_Data and item_data are lists of empty lists so that each namepace of function call will have its separate detail_data
                 # list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
                 headless = [open_headless for i in lst_of_lst]
@@ -1372,7 +1377,7 @@ class Review(Sephora):
             return []
 
         for prod in self.meta.index[self.meta.index.isin(indices)]:
-            if self.meta.loc[prod, 'review_scraped'] in ['Y', 'NA']:
+            if self.meta.loc[prod, 'review_scraped'] in ['Y', 'NA'] or self.meta.loc[prod, 'review_scraped'] is np.nan:
                 continue
             prod_id = self.meta.loc[prod, 'prod_id']
             product_name = self.meta.loc[prod, 'product_name']
@@ -1389,23 +1394,27 @@ class Review(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                        path=self.detail_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                                path=self.detail_path)
+                # drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                #                                 path=self.detail_path)
             else:
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
-                                        path=self.detail_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
+                                                path=self.detail_path)
+                # drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
+                #                                 path=self.detail_path)
 
             drv.get(product_page)
-            time.sleep(15)  # 30
+            time.sleep(10)  # 30
             accept_alert(drv, 10)
             close_popups(drv)
 
-            self.scroll_down_page(drv, speed=3, h2=0.6)
-            time.sleep(10)
+            self.scroll_down_page(drv, speed=6, h2=0.6)
+            time.sleep(5)
 
             try:
                 close_popups(drv)
-                accept_alert(drv, 2)
+                accept_alert(drv, 1)
                 no_of_reviews = int(drv.find_element_by_class_name(
                     'css-tc6qfq').text.split()[0])
             except Exception as ex:
@@ -1465,6 +1474,8 @@ class Review(Sephora):
                                       additional_information=f'Prod ID: {prod_id}. Failed to get show more review button.')
                     else:
                         try:
+                            self.scroll_to_element(
+                                drv, show_more_review_button)
                             ActionChains(drv).move_to_element(
                                 show_more_review_button).click(show_more_review_button).perform()
                         except Exception as ex:
@@ -1473,6 +1484,8 @@ class Review(Sephora):
                             accept_alert(drv, 1)
                             close_popups(drv)
                             try:
+                                self.scroll_to_element(
+                                    drv, show_more_review_button)
                                 ActionChains(drv).move_to_element(
                                     show_more_review_button).click(show_more_review_button).perform()
                             except Exception as ex:
@@ -1502,6 +1515,8 @@ class Review(Sephora):
                                       additional_information=f'Prod ID: {prod_id}. Failed to get show more review button.')
                     else:
                         try:
+                            self.scroll_to_element(
+                                drv, show_more_review_button)
                             ActionChains(drv).move_to_element(
                                 show_more_review_button).click(show_more_review_button).perform()
                         except Exception as ex:
@@ -1510,6 +1525,8 @@ class Review(Sephora):
                             accept_alert(drv, 1)
                             close_popups(drv)
                             try:
+                                self.scroll_to_element(
+                                    drv, show_more_review_button)
                                 ActionChains(drv).move_to_element(
                                     show_more_review_button).click(show_more_review_button).perform()
                             except Exception as ex:
@@ -1517,6 +1534,8 @@ class Review(Sephora):
                                               additional_information=f'Prod ID: {prod_id}.\
                                                    Failed to click on show more review button.')
                                 try:
+                                    self.scroll_to_element(
+                                        drv, show_more_review_button)
                                     ActionChains(drv).move_to_element(
                                         show_more_review_button).click(show_more_review_button).perform()
                                 except Exception as ex:
@@ -1526,6 +1545,8 @@ class Review(Sephora):
                                     accept_alert(drv, 2)
                                     close_popups(drv)
                                     try:
+                                        self.scroll_to_element(
+                                            drv, show_more_review_button)
                                         ActionChains(drv).move_to_element(
                                             show_more_review_button).click(show_more_review_button).perform()
                                     except Exception as ex:
@@ -1552,7 +1573,7 @@ class Review(Sephora):
             for rev in product_reviews:
                 accept_alert(drv, 0.5)
                 close_popups(drv)
-
+                self.scroll_to_element(drv, rev)
                 ActionChains(drv).move_to_element(rev).perform()
 
                 try:
@@ -1736,8 +1757,17 @@ class Review(Sephora):
                 # have its separate detail_data
                 # list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
                 '''
-                lst_of_lst = list(
-                    chunks(indices, len(indices)//n_workers))  # type: list
+                if start_idx:
+                    lst_of_lst = ranges(
+                        indices[-1]+1, n_workers, start_idx=start_idx)
+                else:
+                    lst_of_lst = ranges(len(indices), n_workers)
+                print(lst_of_lst, '\n', indices)
+                # lst_of_lst2 = list(
+                #     chunks(indices, len(indices)//n_workers))  # type: list
+
+                # print(lst_of_lst, '\n', lst_of_lst2)
+
                 headless = [open_headless for i in lst_of_lst]
                 proxy = [open_with_proxy_server for i in lst_of_lst]
                 rand_proxy = [randomize_proxy_usage for i in lst_of_lst]
@@ -1769,7 +1799,7 @@ class Review(Sephora):
                 rev_df.drop_duplicates(inplace=True)
                 rev_df.reset_index(inplace=True, drop=True)
                 rev_df['meta_date'] = self.meta.meta_date.max()
-                review_filename = f'sph_product_review_all_{time.strftime("%Y-%m-%d")}'
+                review_filename = f'sph_product_review_all_{pd.to_datetime(self.meta.meta_date.max()).date()}'
                 # , index=None)
                 rev_df.to_feather(self.review_path/review_filename)
 
@@ -2084,7 +2114,7 @@ class Image(Sephora):
                 self.get_images(
                     indices=list_of_index)
             else:  # By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
-                lst_of_lst = list(chunks(indices, len(indices)//n_workers))
+                lst_of_lst = ranges(len(indices), n_workers)
                 headless = [open_headless for i in lst_of_lst]
                 proxy = [open_with_proxy_server for i in lst_of_lst]
                 rand_proxy = [randomize_proxy_usage for i in lst_of_lst]
@@ -2099,6 +2129,10 @@ class Image(Sephora):
             f'Image files are downloaded to product specific folders. \
             Please look for file sph_product_review_all in path {self.image_path}')
 
-    def terminate_logging(self):
+    def terminate_logging(self)->None:
+        """terminate_logging [summary]
+
+        [extended_summary]
+        """
         self.logger.handlers.clear()
         self.prod_image_log.stop_log()

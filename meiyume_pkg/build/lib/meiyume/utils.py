@@ -16,7 +16,6 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
@@ -27,6 +26,10 @@ from selenium.common.exceptions import (ElementClickInterceptedException,
                                         NoSuchElementException,
                                         StaleElementReferenceException,
                                         TimeoutException)
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+from retrying import retry
 import gc
 from pathlib import Path
 import boto3
@@ -95,7 +98,8 @@ class Browser(object):
                 "class": "org.openqa.selenium.Proxy",
                 "autodetect": False,
                 "acceptSslCerts": True,
-                "unexpectedAlertBehaviour": "accept"
+                "unexpectedAlertBehaviour": "accept",
+                "browser.tabs.warnOnClose": False
             })
             capabilities = dict(DesiredCapabilities.CHROME)
             proxy.add_to_capabilities(capabilities)
@@ -110,22 +114,65 @@ class Browser(object):
         driver.set_page_load_timeout(600)
         return driver
 
-    '''
-    def open_browser_to_take_screenshot(self):
-        """open_browser_to_take_screenshot [summary]
+    def open_browser_firefox(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                             open_with_proxy_server: bool = False, path: Path = Path.cwd())-> webdriver.Firefox:
+        """open_browser_firefox [summary]
 
         [extended_summary]
 
-        Returns:
-            [type]: [description]
-        """
-        WINDOW_SIZE = "1920,1080"
+        Args:
+            open_headless (bool, optional): [description]. Defaults to False.
+            open_for_screenshot (bool, optional): True enables image high resolution. If used to take screenshot open_headless must be set to True.
+                                                  Defaults to False.
+            open_with_proxy_server (bool, optional): [description]. Defaults to False.
 
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')
-        chrome_options.add_argument("--window-size=%s" % WINDOW_SIZE)
-        return webdriver.Chrome(executable_path=self.driver_path, options=chrome_options)
-    '''
+        Returns:
+            webdriver: [description]
+        """
+        binary = FirefoxBinary(
+            r'C:\Program Files\Mozilla Firefox\firefox.exe')
+        firefox_options = webdriver.FirefoxOptions()
+        firefox_options.set_capability('unhandledPromptBehavior', 'accept')
+        firefox_options.set_capability('unexpectedAlertBehaviour', 'accept')
+        capabilities = dict(DesiredCapabilities.FIREFOX)
+        capabilities["marionette"] = True
+        # chrome_options.add_argument('--no-sandbox')
+
+        if open_headless:
+            firefox_options.add_argument('--headless')
+
+        if open_for_screenshot:
+            WINDOW_SIZE = "1920,1080"
+            firefox_options.add_argument("--window-size=%s" % WINDOW_SIZE)
+
+        if open_with_proxy_server:
+            firefox_options.add_argument('--ignore-ssl-errors=yes')
+            firefox_options.add_argument('--ignore-certificate-errors')
+            headless_proxy = "127.0.0.1:3128"
+            proxy = Proxy({
+                'proxyType': ProxyType.MANUAL,
+                'httpProxy': headless_proxy,
+                'ftpProxy': headless_proxy,
+                'sslProxy': headless_proxy,
+                "noProxy": None,
+                "proxyType": "MANUAL",
+                "class": "org.openqa.selenium.Proxy",
+                "autodetect": False,
+                "acceptSslCerts": True,
+                "unexpectedAlertBehaviour": "accept",
+                "browser.tabs.warnOnClose": False
+            })
+            proxy.add_to_capabilities(capabilities)
+            driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                       desired_capabilities=capabilities, options=firefox_options, firefox_binary=binary)
+            driver.set_page_load_timeout(600)
+            return driver
+
+        driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                   desired_capabilities=capabilities, options=firefox_options, firefox_binary=binary)
+        driver.set_page_load_timeout(600)
+        return driver
+
     @staticmethod
     def scroll_down_page(driver, speed=8, h1=0, h2=1):
         """[summary]
@@ -145,6 +192,19 @@ class Browser(object):
                 "window.scrollTo(0, {});".format(current_scroll_position))
             new_height = driver.execute_script(
                 "return document.body.scrollHeight")
+
+    @staticmethod
+    def scroll_to_element(driver: webdriver.Firefox, element: WebElement)-> None:
+        """scroll_to_element [summary]
+
+        [extended_summary]
+
+        Args:
+            driver (webdriver.Firefox): [description]
+            element (WebElement): [description]
+        """
+        driver.execute_script(
+            "arguments[0].scrollIntoView();", element)
 
 
 class Sephora(Browser):
@@ -575,7 +635,7 @@ class S3FileManager(object):
         s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
             key, f'{file_path}/{file_name}')
 
-    def delete_file_s3(self, key):
+    def delete_file_s3(self, key: str):
         """delete_file_s3 [summary]
 
         [extended_summary]
@@ -654,6 +714,23 @@ def accept_alert(drv: webdriver.Chrome, wait_time: int):
         print("alert accepted")
     except TimeoutException:
         pass
+
+
+def ranges(N: int, nb: int, start_idx: int = 0)->list:
+    """ranges [summary]
+
+    [extended_summary]
+
+    Args:
+        N (int): end index of the range or length
+        nb (int): no. of equally spaced ranges to return
+        start_idx (int, optional): start index of the range list. Defaults to 0.
+
+    Returns:
+        list: list of equispaced ranges between [(start_idx, N)]
+    """
+    step = (N-start_idx) / nb
+    return [range(start_idx+round(step*i), start_idx+round(step*(i+1))) for i in range(nb)]
 
 
 class DataAggregator(object):
