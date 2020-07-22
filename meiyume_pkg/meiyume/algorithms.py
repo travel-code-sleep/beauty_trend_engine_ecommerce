@@ -28,7 +28,7 @@ from tqdm import tqdm
 from tqdm.notebook import tqdm
 from meiyume.utils import (Logger, Sephora, Boots,
                            MeiyumeException, ModelsAlgorithms,
-                           S3FileManager, chunks, show_missing_value)
+                           S3FileManager, chunks)
 
 # fast ai imports
 from fastai import *
@@ -57,13 +57,13 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.lang.en import English
 from spacy.matcher import Matcher
 
-# multiprocessing
-import multiprocessing as mp
-from multiprocessing import Pool
-from concurrent.futures import process
+# # multiprocessing
+# import multiprocessing as mp
+# from multiprocessing import Pool
+# from concurrent.futures import process
 
 file_manager = S3FileManager()
-process_manager = mp.Pool(mp.cpu_count())
+# process_manager = mp.Pool(mp.cpu_count())
 warnings.simplefilter(action='ignore')
 np.random.seed(1337)
 tqdm.pandas()

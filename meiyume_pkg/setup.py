@@ -19,7 +19,7 @@ setup(
     version='0.6.1',
     # The license can be anything you like
     license='Private',
-    description='Contains all codes for data scraping and cleaning.',
+    description='Contains all codes for data scraping, cleaning and machine/deep learning algorithms.',
     # We will also need a readme eventually (there will be a warning)
     long_description=open('README.md').read(),
 )

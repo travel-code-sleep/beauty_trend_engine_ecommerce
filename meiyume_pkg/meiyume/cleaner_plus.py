@@ -25,8 +25,7 @@ import os
 import gc
 from typing import *
 from meiyume.utils import (Logger, Sephora, Boots, nan_equal,
-                           show_missing_value, ModelsAlgorithms,
-                           MeiyumeException, S3FileManager)
+                           ModelsAlgorithms, MeiyumeException, S3FileManager)
 # text lib imports
 from unidecode import unidecode
 import re
@@ -683,7 +682,7 @@ class Cleaner():
         gc.collect()
         self.review[self.review.columns.difference(['product_name'])] \
             = self.review[self.review.columns.difference(['product_name'])]\
-            .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
+            .apply(lambda x: x.astype(str).str.lower() if(x.dtype == 'object') else x)
 
         self.review = self.review[~self.review.review_text.isna()]
         self.review = self.review[self.review.review_text != '']
@@ -699,8 +698,8 @@ class Cleaner():
             required.
             '''
             # separate helpful and not helpful
-            self.review['helpful_n'], self.review['helpful_y'] = zip(*self.review.helpful.apply(
-                lambda x: literal_eval(x)[0] if not isinstance(x, int) else '0 \n 0').str.split('\n', expand=True).values)
+            self.review['helpful_n'], self.review['helpful_y'] = zip(
+                *self.review.helpful.str.replace(' ', '').str.split('helpful', expand=True).loc[:, 1:2].values)
 
             hlp_regex = re.compile('[a-zA-Z()]')
             self.review.helpful_y = self.review.helpful_y.apply(
