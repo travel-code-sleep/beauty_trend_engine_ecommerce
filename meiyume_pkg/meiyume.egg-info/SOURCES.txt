@@ -12,6 +12,4 @@ meiyume.egg-info/top_level.txt
 meiyume/bts/__init__.py
 meiyume/bts/crawler.py
 meiyume/sph/__init__.py
-meiyume/sph/cleaner.py
 meiyume/sph/crawler.py
-meiyume/sph/master.py

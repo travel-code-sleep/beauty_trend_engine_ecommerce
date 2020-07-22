@@ -16,7 +16,7 @@ setup(
     #                   'sklearn', 'swifter', 'keras', 'tensorflow', 'scipy', 'pyarrow',
     #                   ],
     # *strongly* suggested for in-house use
-    version='0.6.1',
+    version='0.7',
     # The license can be anything you like
     license='Private',
     description='Contains all codes for data scraping, cleaning and machine/deep learning algorithms.',
