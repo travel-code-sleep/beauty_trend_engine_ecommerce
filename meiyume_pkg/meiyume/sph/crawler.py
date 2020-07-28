@@ -1762,7 +1762,7 @@ class Review(Sephora):
                         indices[-1]+1, n_workers, start_idx=start_idx)
                 else:
                     lst_of_lst = ranges(len(indices), n_workers)
-                print(lst_of_lst, '\n', indices)
+                print(lst_of_lst)
                 # lst_of_lst2 = list(
                 #     chunks(indices, len(indices)//n_workers))  # type: list
 

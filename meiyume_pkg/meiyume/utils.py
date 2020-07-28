@@ -134,9 +134,6 @@ class Browser(object):
         firefox_options = webdriver.FirefoxOptions()
         firefox_options.set_capability('unhandledPromptBehavior', 'accept')
         firefox_options.set_capability('unexpectedAlertBehaviour', 'accept')
-        capabilities = dict(DesiredCapabilities.FIREFOX)
-        capabilities["marionette"] = True
-        # chrome_options.add_argument('--no-sandbox')
 
         if open_headless:
             firefox_options.add_argument('--headless')
@@ -162,6 +159,8 @@ class Browser(object):
                 "unexpectedAlertBehaviour": "accept",
                 "browser.tabs.warnOnClose": False
             })
+            capabilities = dict(DesiredCapabilities.FIREFOX)
+            capabilities["marionette"] = True
             proxy.add_to_capabilities(capabilities)
             driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
                                        desired_capabilities=capabilities, options=firefox_options, firefox_binary=binary)
@@ -169,7 +168,7 @@ class Browser(object):
             return driver
 
         driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
-                                   desired_capabilities=capabilities, options=firefox_options, firefox_binary=binary)
+                                   options=firefox_options, firefox_binary=binary)
         driver.set_page_load_timeout(600)
         return driver
 
