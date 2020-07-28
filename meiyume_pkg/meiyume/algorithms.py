@@ -28,7 +28,7 @@ from tqdm import tqdm
 from tqdm.notebook import tqdm
 from meiyume.utils import (Logger, Sephora, Boots,
                            MeiyumeException, ModelsAlgorithms,
-                           S3FileManager, chunks, show_missing_value)
+                           S3FileManager, chunks)
 
 # fast ai imports
 from fastai import *
@@ -57,13 +57,13 @@ from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.lang.en import English
 from spacy.matcher import Matcher
 
-# multiprocessing
-import multiprocessing as mp
-from multiprocessing import Pool
-from concurrent.futures import process
+# # multiprocessing
+# import multiprocessing as mp
+# from multiprocessing import Pool
+# from concurrent.futures import process
 
 file_manager = S3FileManager()
-process_manager = mp.Pool(mp.cpu_count())
+# process_manager = mp.Pool(mp.cpu_count())
 warnings.simplefilter(action='ignore')
 np.random.seed(1337)
 tqdm.pandas()
@@ -1512,15 +1512,24 @@ class SexyReview(ModelsAlgorithms):
                 self.review = review_data
         else:
             if source == 'sph':
-                review_files = self.sph.review_clean_path.glob(
-                    'cleaned_sph_product_review_all*')
-                self.review = pd.read_feather(
-                    max(review_files, key=os.path.getctime))
+                review_files = self.output_path.glob(
+                    'with_keywords_sentiment_cleaned_sph_product_review_all_*')
+                rev_li = [pd.read_feather(file) for file in review_files]
+                self.review = pd.concat(rev_li, axis=0, ignore_index=True)
+                self.review.drop_duplicates(inplace=True)
+                self.review = self.review.drop_duplicates(
+                    subset=['prod_id', 'review_text', 'review_date'])
+                self.review.reset_index(inplace=True, drop=True)
             elif source == 'bts':
-                meta_files = self.bts.review_clean_path.glob(
-                    'cleaned_bts_product_review_all*')
-                self.review = pd.read_feather(
-                    max(review_files, key=os.path.getctime))
+                review_files = self.output_path.glob(
+                    'with_keywords_sentiment_cleaned_bts_product_review_all_*')
+                rev_li = [pd.read_feather(file) for file in review_files]
+                self.review = pd.concat(rev_li, axis=0, ignore_index=True)
+                self.review.drop_duplicates(inplace=True)
+                self.review = self.review.drop_duplicates(
+                    subset=['prod_id', 'review_text', 'review_date'])
+                self.review.reset_index(inplace=True, drop=True)
+
         meta_date = pd.to_datetime(self.review.meta_date.max()).date()
         self.review = self.review[['prod_id', 'product_name', 'review_text', 'review_title', 'helpful_n',
                                    'helpful_y', 'sentiment', 'is_influenced', 'keywords']]
@@ -1532,8 +1541,10 @@ class SexyReview(ModelsAlgorithms):
         self.review['text'] = self.review.progress_apply(
             lambda x: x.review_title + ". " + x.review_text if x.review_title is not None and x.review_title != '' else x.review_text, axis=1)
 
-        self.review.text = process_manager.map(
-            preprocessing.normalize_whitespace, self.review.text.str.lower())
+        self.review.text = self.review.text.str.lower().apply(
+            preprocessing.normalize_whitespace)
+        # process_manager.map(
+        #     preprocessing.normalize_whitespace, self.review.text.str.lower())
         self.review.keywords = self.review.keywords.str.lower()
 
         pos_review = self.review[self.review.sentiment == 'positive']

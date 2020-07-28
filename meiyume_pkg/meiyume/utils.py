@@ -10,7 +10,7 @@ import logging
 import time
 import numpy as np
 import os
-import missingno as msno
+# import missingno as msno
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.action_chains import ActionChains
@@ -427,6 +427,7 @@ def nan_equal(a, b):
     return True
 
 
+'''
 def show_missing_value(dataframe, viz_type=None):
     """[summary]
 
@@ -444,6 +445,7 @@ def show_missing_value(dataframe, viz_type=None):
         return msno.dendrogram(dataframe, figsize=(12, 8))
     else:
         return dataframe.isna().sum()
+'''
 
 
 def chunks(l, n):

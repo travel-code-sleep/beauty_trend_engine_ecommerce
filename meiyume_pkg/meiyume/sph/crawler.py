@@ -73,6 +73,7 @@ class Metadata(Sephora):
             show {bool} -- [description] (default: {True})
         """
         super().__init__(path=path, data_def='meta')
+        self.path = path
         self.current_progress_path = self.metadata_path/'current_progress'
         self.current_progress_path.mkdir(parents=True, exist_ok=True)
 
@@ -505,7 +506,7 @@ class Metadata(Sephora):
             self.logger.info('Progress files deleted')
 
         if clean:
-            cleaner = Cleaner()
+            cleaner = Cleaner(path=self.path)
             _ = cleaner.clean(
                 data=self.metadata_path/filename)
             self.logger.info(
@@ -541,6 +542,7 @@ class Detail(Sephora):
             log (bool, optional): [description]. Defaults to True.
         """
         super().__init__(path=path, data_def='detail')
+        self.path = path
         self.current_progress_path = self.detail_path/'current_progress'
         self.current_progress_path.mkdir(parents=True, exist_ok=True)
 
@@ -1283,7 +1285,7 @@ class Detail(Sephora):
                         sph_product_item_all in path {self.detail_path}')
 
                 if clean:
-                    cleaner = Cleaner()
+                    cleaner = Cleaner(path=self.path)
                     self.detail_clean_df = cleaner.clean(
                         self.detail_path/detail_filename)
                     self.item_clean_df, self.ing_clean_df = cleaner.clean(
@@ -1327,6 +1329,7 @@ class Review(Sephora):
             log (bool, optional): [description]. Defaults to True.
         """
         super().__init__(path=path, data_def='review')
+        self.path = path
         self.current_progress_path = self.review_path/'current_progress'
         self.current_progress_path.mkdir(parents=True, exist_ok=True)
 
@@ -1784,6 +1787,10 @@ class Review(Sephora):
         try:
             if complie_progress_files:
                 self.logger.info('Creating Combined Review File')
+                if datetime.now().day < 15:
+                    meta_date = f'{time.strftime("%Y-%m")}-01'
+                else:
+                    meta_date = f'{time.strftime("%Y-%m")}-15'
                 rev_li = []
                 self.bad_rev_li = []
                 review_files = [f for f in self.current_progress_path.glob(
@@ -1798,8 +1805,8 @@ class Review(Sephora):
                 rev_df = pd.concat(rev_li, axis=0, ignore_index=True)
                 rev_df.drop_duplicates(inplace=True)
                 rev_df.reset_index(inplace=True, drop=True)
-                rev_df['meta_date'] = self.meta.meta_date.max()
-                review_filename = f'sph_product_review_all_{pd.to_datetime(self.meta.meta_date.max()).date()}'
+                rev_df['meta_date'] = pd.to_datetime(meta_date).date()
+                review_filename = f'sph_product_review_all_{pd.to_datetime(meta_date).date()}'
                 # , index=None)
                 rev_df.to_feather(self.review_path/review_filename)
 
@@ -1809,7 +1816,7 @@ class Review(Sephora):
                     f'Review file created. Please look for file sph_product_review_all in path {self.review_path}')
 
                 if clean:
-                    cleaner = Cleaner()
+                    cleaner = Cleaner(path=self.path)
                     self.review_clean_df = cleaner.clean(
                         self.review_path/review_filename)
                 file_creation_status = True
@@ -1832,63 +1839,6 @@ class Review(Sephora):
         """
         self.logger.handlers.clear()
         self.prod_review_log.stop_log()
-
-        '''
-        sort by NEW reviews
-        try:
-            drv.find_element_by_class_name('css-2rg6q7').click()
-            drv.find_element_by_id('review_filter_sort_trigger').click()
-            for btn in drv.find_elements_by_class_name('css-a2osvj'):
-                if btn.text == 'Newest':
-                    drv.find_element_by_id(
-                        'review_filter_sort_trigger').click()
-                    btn.click()
-                    break
-        except:
-            try:
-                drv.find_element_by_id(
-                    'review_filter_sort_trigger').click()
-                drv.find_element_by_xpath(
-                    '/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
-                time.sleep(1)
-            except:
-                try:
-                    drv.find_element_by_id(
-                        'review_filter_sort_trigger').click()
-                    drv.find_element_by_xpath(
-                        '/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[4]/div[2]/div/div/div/div[2]/div/span/span').click()
-                    time.sleep(1)
-                except:
-                    try:
-                        drv.find_element_by_class_name(
-                            'css-2rg6q7').click()
-                        drv.find_element_by_id(
-                            'review_filter_sort_trigger').click()
-                        drv.find_element_by_xpath(
-                            '/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[2]/div[2]/div/div/div/div[2]/div/span/span').click()
-                        time.sleep(1)
-                    except:
-                        try:
-                            drv.find_element_by_class_name(
-                                'css-2rg6q7').click()
-                            drv.find_element_by_id(
-                                'review_filter_sort_trigger').click()
-                            drv.find_element_by_xpath(
-                                '/html/body/div[2]/div[5]/main/div[2]/div[2]/div/div[1]/div/div[3]/div[2]/div/div[1]/div/div[4]/div[2]/div/div/div/div[2]/div/span/span').click()
-                            time.sleep(1)
-                        except:
-                            self.logger.info(str.encode(
-                                f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link: {product_page})',
-        'utf-8', 'ignore'))
-                        try:
-                            drv.find_element_by_id('review_filter_sort_trigger').click()
-                            drv.find_element_by_css_selector(
-                                '#review_filter_sort > div > div > div:nth-child(2) > div > span > span').click()
-                            time.sleep(1)
-                        except:
-                            self.logger.info(str.encode(f'Product: {product_name} - prod_id {prod_id} reviews can not sort by NEW.(page link:
-        {product_page})', 'utf-8', 'ignore'))
-        '''
 
 
 class Image(Sephora):
