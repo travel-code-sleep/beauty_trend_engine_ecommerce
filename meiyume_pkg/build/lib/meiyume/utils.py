@@ -591,8 +591,6 @@ class S3FileManager(object):
             prefix = 'Feeds/BeautyTrendEngine/Review/Staging/'
         elif job_name == 'review_summary':
             prefix = 'Feeds/BeautyTrendEngine/Review_Summary/Staging/'
-        elif job_name == 'image':
-            prefix = 'Feeds/BeautyTrendEngine/Image/Staging/'
         else:
             raise MeiyumeException(
                 'Unrecognizable job. Please input correct job_name.')
