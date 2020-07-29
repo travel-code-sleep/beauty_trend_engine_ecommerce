@@ -57,7 +57,7 @@ class Browser(object):
     #     pass
 
     def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
-                     open_with_proxy_server: bool = False, path: Path = Path.cwd())-> webdriver.Chrome:
+                     open_with_proxy_server: bool = False, path: Path = Path.cwd()) -> webdriver.Chrome:
         """open_browser [summary]
 
         [extended_summary]
@@ -115,7 +115,7 @@ class Browser(object):
         return driver
 
     def open_browser_firefox(self, open_headless: bool = False, open_for_screenshot: bool = False,
-                             open_with_proxy_server: bool = False, path: Path = Path.cwd())-> webdriver.Firefox:
+                             open_with_proxy_server: bool = False, path: Path = Path.cwd()) -> webdriver.Firefox:
         """open_browser_firefox [summary]
 
         [extended_summary]
@@ -193,7 +193,7 @@ class Browser(object):
                 "return document.body.scrollHeight")
 
     @staticmethod
-    def scroll_to_element(driver: webdriver.Firefox, element: WebElement)-> None:
+    def scroll_to_element(driver: webdriver.Firefox, element: WebElement) -> None:
         """scroll_to_element [summary]
 
         [extended_summary]
@@ -654,7 +654,7 @@ class S3FileManager(object):
             print('delete operation failed')
 
 
-def log_exception(logger: Logger, additional_information: Optional[str] = None)->None:
+def log_exception(logger: Logger, additional_information: Optional[str] = None) -> None:
     """log_exception [summary]
 
     [extended_summary]
@@ -719,7 +719,7 @@ def accept_alert(drv: webdriver.Chrome, wait_time: int):
         pass
 
 
-def ranges(N: int, nb: int, start_idx: int = 0)->list:
+def ranges(N: int, nb: int, start_idx: int = 0) -> list:
     """ranges [summary]
 
     [extended_summary]
