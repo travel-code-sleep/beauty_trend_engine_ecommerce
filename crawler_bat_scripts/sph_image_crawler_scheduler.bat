@@ -1,1 +1,1 @@
-"C:\Anaconda3\python.EXE" "D:\Amit\Meiyume\meiyume_data\spider_runner\crawler_runner\sph_image_crawler_runner.py" pause
+"C:\Anaconda3\python.EXE" "D:\Amit\Meiyume\meiyume_master_source_codes\crawler_runner\sph_image_crawler_runner.py" pause
