@@ -332,6 +332,10 @@ class Cleaner():
                     self.bts.metadata_clean_path/f'cat_{self.clean_file_name}')
                 self.meta_no_cat.to_feather(
                     self.bts.metadata_clean_path/f'no_cat_{self.clean_file_name}')
+                self.meta_no_cat.to_feather(
+                    self.bts.detail_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
+                self.meta_no_cat.to_feather(
+                    self.bts.review_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
         return self.meta
 
     def detail_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
