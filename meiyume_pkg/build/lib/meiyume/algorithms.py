@@ -81,7 +81,7 @@ class SexyMetaDetail(ModelsAlgorithms):
         [type]: [description]
     """
 
-    def __init__(self, path: Union[str, Path] = Path.cwd())->None:
+    def __init__(self, path: Union[str, Path] = Path.cwd()) -> None:
         """__init__ [summary]
 
         [extended_summary]
@@ -92,7 +92,7 @@ class SexyMetaDetail(ModelsAlgorithms):
         super().__init__(path=path)
 
     def make(self, source: str, metadata: Optional[Union[Path, str, pd.DataFrame]] = None,
-             detail_data: Optional[Union[Path, str, pd.DataFrame]] = None)->pd.DataFrame:
+             detail_data: Optional[Union[Path, str, pd.DataFrame]] = None) -> pd.DataFrame:
         """make [summary]
 
         [extended_summary]
@@ -185,7 +185,7 @@ class SexyMetaDetail(ModelsAlgorithms):
                            "preciscion-tweezers",
                            ]
 
-            def choose_type(x: str)->str:
+            def choose_type(x: str) -> str:
                 """choose_type [summary]
 
                 [extended_summary]
@@ -256,7 +256,7 @@ class SexyMetaDetail(ModelsAlgorithms):
 
         def total_stars(x): return x.reviews * x.rating
 
-        def bayesian_estimate(x)->float:
+        def bayesian_estimate(x) -> float:
             """bayesian_estimate [summary]
 
             [extended_summary]
@@ -279,7 +279,7 @@ class SexyMetaDetail(ModelsAlgorithms):
             bayesian_estimate, axis=1)
         meta_detail.reset_index(drop=True, inplace=True)
 
-        def ratio(x)->Tuple[float, float]:
+        def ratio(x) -> Tuple[float, float]:
             """ratio [summary]
 
             [extended_summary]
@@ -449,7 +449,7 @@ class SexyIngredient(ModelsAlgorithms):
         super().__init__(path=path)
 
     def make(self, source: str, meta_detail_data: Optional[Union[Path, str, pd.DataFrame]] = None,
-             ingredient_data: Optional[Union[Path, str, pd.DataFrame]] = None) ->pd.DataFrame:
+             ingredient_data: Optional[Union[Path, str, pd.DataFrame]] = None) -> pd.DataFrame:
         """make [summary]
 
         [extended_summary]
@@ -901,7 +901,7 @@ class PredictSentiment(ModelsAlgorithms):
 
     def __init__(self, model_file: str = 'sentiment_model_two_class',
                  data_vocab_file: str = 'sentiment_class_databunch_two_class.pkl',
-                 model_path: Path = None, path: Union[Path, str] = Path.cwd())->None:
+                 model_path: Path = None, path: Union[Path, str] = Path.cwd()) -> None:
         """__init__ [summary]
 
         [extended_summary]
@@ -938,7 +938,7 @@ class PredictSentiment(ModelsAlgorithms):
         pred = self.learner.predict(text)
         return pred[0], pred[1].numpy(), pred[2].numpy()
 
-    def predict_batch(self, text_column_name: str, data, save: bool = False)->pd.DataFrame:
+    def predict_batch(self, text_column_name: str, data, save: bool = False) -> pd.DataFrame:
         """predict_batch [summary]
 
         [extended_summary]
@@ -994,7 +994,7 @@ class PredictInfluence(ModelsAlgorithms):
         ModelsAlgorithms ([type]): [description]
     """
 
-    def __init__(self)->None:
+    def __init__(self) -> None:
         """__init__ [summary]
 
         [extended_summary]
@@ -1088,7 +1088,7 @@ class SelectCandidate(ModelsAlgorithms):
         [type]: [description]
     """
 
-    def __init__(self)->None:
+    def __init__(self) -> None:
         """__init__ [summary]
 
         [extended_summary]
@@ -1344,7 +1344,7 @@ class SexyReview(ModelsAlgorithms):
     """
 
     def __init__(self, path: Union[Path, str] = Path.cwd(), initialize_sentiment_model: bool = True,
-                 initialize_summarizer_model: bool = False)->None:
+                 initialize_summarizer_model: bool = False) -> None:
         """__init__ [summary]
 
         [extended_summary]
@@ -1477,7 +1477,7 @@ class SexyReview(ModelsAlgorithms):
     def make_summary(self, source: str, review_data: Optional[Union[str, Path, DataFrame]] = None,
                      # candidate_criterion=[],
                      summarize_review: bool = True, summarize_keywords: bool = True,
-                     extract_ngrams: bool = True, extract_topic: bool = True)->pd.DataFrame:
+                     extract_ngrams: bool = True, extract_topic: bool = True) -> pd.DataFrame:
         """make_summary [summary]
 
         [extended_summary]

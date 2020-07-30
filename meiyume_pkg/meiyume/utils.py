@@ -236,11 +236,18 @@ class Sephora(Browser):
         self.old_metadata_files_path = self.metadata_path/'old_metadata_files'
         self.metadata_clean_path = self.metadata_path/'clean'
         self.old_metadata_clean_files_path = self.metadata_path/'cleaned_old_metadata_files'
+        # set crawler trigger folders
+        self.detail_crawler_trigger_path = self.path/'detail_crawler_trigger_folder'
+        self.review_crawler_trigger_path = self.path/'review_crawler_trigger_folder'
         if data_def == 'meta':
             self.metadata_path.mkdir(parents=True, exist_ok=True)
             self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
             self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
             self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+            self.detail_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+            self.review_crawler_trigger_path.mkdir(
                 parents=True, exist_ok=True)
 
         self.detail_path = self.path/'detail'
@@ -304,11 +311,18 @@ class Boots(Browser):
         self.old_metadata_files_path = self.metadata_path/'old_metadata_files'
         self.metadata_clean_path = self.metadata_path/'clean'
         self.old_metadata_clean_files_path = self.metadata_path/'cleaned_old_metadata_files'
+        # set crawler trigger folders
+        self.detail_crawler_trigger_path = self.path/'detail_crawler_trigger_folder'
+        self.review_crawler_trigger_path = self.path/'review_crawler_trigger_folder'
         if data_def == 'meta':
             self.metadata_path.mkdir(parents=True, exist_ok=True)
             self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
             self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
             self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+            self.detail_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+            self.review_crawler_trigger_path.mkdir(
                 parents=True, exist_ok=True)
 
         self.detail_path = self.path/'detail'

@@ -166,7 +166,7 @@ class Cleaner():
             return '', '', ''
 
     @staticmethod
-    def clean_price(price: str)-> str:
+    def clean_price(price: str) -> str:
         """clean_price [summary]
 
         [extended_summary]
@@ -183,7 +183,7 @@ class Cleaner():
 
         return reduce(lambda a, kv: a.replace(*kv), replace_strings, price)
 
-    def metadata_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
+    def metadata_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
         """metadata_cleaner [summary]
 
         [extended_summary]
@@ -322,6 +322,11 @@ class Cleaner():
                     self.sph.metadata_clean_path/f'cat_{self.clean_file_name}')
                 self.meta_no_cat.to_feather(
                     self.sph.metadata_clean_path/f'no_cat_{self.clean_file_name}')
+                self.meta_no_cat.to_feather(
+                    self.sph.detail_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
+                self.meta_no_cat.to_feather(
+                    self.sph.review_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
+
             elif self.source == 'bts':
                 self.meta.to_feather(
                     self.bts.metadata_clean_path/f'cat_{self.clean_file_name}')
@@ -329,7 +334,7 @@ class Cleaner():
                     self.bts.metadata_clean_path/f'no_cat_{self.clean_file_name}')
         return self.meta
 
-    def detail_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
+    def detail_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
         """detail_cleaner [summary]
         [extended_summary]
 
@@ -413,7 +418,7 @@ class Cleaner():
 
         return self.detail
 
-    def item_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
+    def item_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
         """item_cleaner [summary]
 
         [extended_summary]
@@ -449,7 +454,7 @@ class Cleaner():
             = self.item[self.item.columns.difference(['product_name'])]\
             .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
 
-        def get_item_price(x: list)->float:
+        def get_item_price(x: list) -> float:
             """get_item_price [summary]
             Args:
                 x (list): [description]
@@ -474,7 +479,7 @@ class Cleaner():
         # self.item.item_price = self.item.item_price.apply(
         #     get_item_price)
         if self.source == 'sph':
-            def get_item_size_from_item_name(x: str)->str:
+            def get_item_size_from_item_name(x: str) -> str:
                 """get_item_size_from_item_name [summary]
 
                 Args:
@@ -491,7 +496,7 @@ class Cleaner():
                 else:
                     return x.item_size
 
-            def get_item_size(x: str)->Tuple[str, str]:
+            def get_item_size(x: str) -> Tuple[str, str]:
                 """get_item_size [summary]
 
                 Args:
@@ -543,7 +548,7 @@ class Cleaner():
         # self.item['new_flag'] = self.item.prod_id.apply(
         #     lambda x: 'New' if x in new_product_list else '')
 
-        def clean_ing_sep(x: str)->str:
+        def clean_ing_sep(x: str) -> str:
             """clean_ing_sep [summary]
 
             Args:
@@ -665,7 +670,7 @@ class Cleaner():
 
         return self.item, self.ing
 
-    def review_cleaner(self, data: pd.DataFrame, save: bool)->pd.DataFrame:
+    def review_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
         """review_cleaner [summary]
 
         [extended_summary]

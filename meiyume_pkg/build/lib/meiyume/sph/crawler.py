@@ -51,7 +51,7 @@ class Metadata(Sephora):
     source = info.registered_domain
 
     @classmethod
-    def update_base_url(cls, url: str)->None:
+    def update_base_url(cls, url: str) -> None:
         """[summary]
 
         Arguments:
@@ -93,7 +93,7 @@ class Metadata(Sephora):
                 "sph_prod_metadata_extraction", path=self.crawl_log_path)
             self.logger, _ = self.prod_meta_log.start_log()
 
-    def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool)-> pd.DataFrame:
+    def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -> pd.DataFrame:
         """get_product_type_urls [summary]
 
         [extended_summary]
@@ -106,7 +106,7 @@ class Metadata(Sephora):
             pd.DataFrame: [description]
         """
         # create webdriver instance
-        drv = self.open_browser(
+        drv = self.open_browser_firefox(
             open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
 
         drv.get(self.base_url)
@@ -193,26 +193,24 @@ class Metadata(Sephora):
         df.to_feather(self.metadata_path/f'sph_product_type_urls_to_extract')
         return df
 
-    def get_metadata(self, product_type_urls: pd.DataFrame, progress_tracker: pd.DataFrame,
-                     open_headless: bool, open_with_proxy_server: bool, randomize_proxy_usage: bool)->None:
+    def get_metadata(self, indices: Union[list, range],
+                     open_headless: bool, open_with_proxy_server: bool,
+                     randomize_proxy_usage: bool,
+                     product_meta_data: list = []) -> None:
         """[summary]
 
         Arguments:
             fresh_start {[type]} -- [description]
         """
+        for pt in self.product_type_urls.index[self.product_type_urls.index.isin(indices)]:
+            cat_name = self.product_type_urls.loc[pt, 'category_raw']
+            product_type = self.product_type_urls.loc[pt, 'product_type']
+            product_type_link = self.product_type_urls.loc[pt, 'url']
 
-        product_meta_data = []
-
-        for pt in product_type_urls.index:
-            cat_name = product_type_urls.loc[pt, 'category_raw']
-            # sub_cat_name = product_type_urls.loc[pt,'sub_category_raw']
-            product_type = product_type_urls.loc[pt, 'product_type']
-            product_type_link = product_type_urls.loc[pt, 'url']
-
-            progress_tracker.loc[pt, 'product_type'] = product_type
+            self.progress_tracker.loc[pt, 'product_type'] = product_type
             # print(product_type_link)
             if 'best-selling' in product_type.lower() or 'new' in product_type.lower():
-                progress_tracker.loc[pt, 'scraped'] = 'NA'
+                self.progress_tracker.loc[pt, 'scraped'] = 'NA'
                 continue
 
             if randomize_proxy_usage:
@@ -221,11 +219,11 @@ class Metadata(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                        path=self.metadata_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                                path=self.metadata_path)
             else:
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
-                                        path=self.metadata_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
+                                                path=self.metadata_path)
 
             drv.get(product_type_link)
             time.sleep(15)  # 30
@@ -237,6 +235,7 @@ class Metadata(Sephora):
                     EC.presence_of_element_located((By.XPATH, '//*[@id="divToky"]/img[3]')))
                 chat_popup_button = drv.find_element_by_xpath(
                     '//*[@id="divToky"]/img[3]')
+                self.scroll_to_element(drv, chat_popup_button)
                 ActionChains(drv).move_to_element(
                     chat_popup_button).click(chat_popup_button).perform()
             except TimeoutException:
@@ -245,14 +244,16 @@ class Metadata(Sephora):
             # sort by new products (required to get all new products properly)
             try:
                 sort_dropdown = drv.find_element_by_class_name('css-qv1cc8')
+                self.scroll_to_element(drv, sort_dropdown)
                 ActionChains(drv).move_to_element(
                     sort_dropdown).click(sort_dropdown).perform()
                 button = drv.find_element_by_xpath(
                     '//*[@id="cat_sort_menu"]/button[3]')
-                drv.implicitly_wait(5)
+                drv.implicitly_wait(4)
+                self.scroll_to_element(drv, button)
                 ActionChains(drv).move_to_element(
                     button).click(button).perform()
-                time.sleep(25)
+                time.sleep(15)
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f'Prod Type: {product_type}')
@@ -263,7 +264,7 @@ class Metadata(Sephora):
 
             # load all the products
             self.scroll_down_page(drv, h2=0.8, speed=3)
-            time.sleep(15)
+            time.sleep(8)
 
             # check whether on the first page of product type
             try:
@@ -281,7 +282,7 @@ class Metadata(Sephora):
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f'Prod Type: {product_type}')
-                product_type_urls.loc[pt, 'scraped'] = 'NA'
+                self.progress_tracker.loc[pt, 'scraped'] = 'NA'
                 self.logger.info(str.encode(f'Category: {cat_name} - ProductType {product_type}\
                      page not found.(page link: {product_type_link})',
                                             'utf-8', 'ignore'))
@@ -396,6 +397,7 @@ class Metadata(Sephora):
                 else:
                     # go to next page
                     try:
+                        self.scroll_to_element(drv, next_page_button)
                         ActionChains(drv).move_to_element(
                             next_page_button).click(next_page_button).perform()
                         time.sleep(15)
@@ -420,98 +422,160 @@ class Metadata(Sephora):
                     self.current_progress_path/f'sph_prod_meta_extract_progress_{product_type}_{time.strftime("%Y-%m-%d-%H%M%S")}')
                 self.logger.info(
                     f'Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})')
-                progress_tracker.loc[pt, 'scraped'] = 'Y'
-                progress_tracker.to_feather(
+                self.progress_tracker.loc[pt, 'scraped'] = 'Y'
+                self.progress_tracker.to_feather(
                     self.metadata_path/'sph_metadata_progress_tracker')
                 product_meta_data = []
         self.logger.info('Metadata Extraction Complete')
         print('Metadata Extraction Complete')
 
-    def extract(self,  open_headless: bool = False, open_with_proxy_server: bool = True,
-                randomize_proxy_usage: bool = True,
-                download: bool = True, fresh_start: bool = False,
-                clean: bool = True, delete_progress: bool = True)->None:
-        """[summary]
+    def extract(self, download: bool = True, fresh_start: bool = False, auto_fresh_start: bool = False, n_workers: int = 5,
+                open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
+                start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
+                clean: bool = True, compile_progress_files: bool = False, delete_progress: bool = False) -> None:
+        """extract [summary]
 
-        Keyword Arguments:
-            fresh_start {bool} -- [description] (default: {False})
-            delete_progress {bool} -- [description] (default: {True})
-        Returns:
+        [extended_summary]
+
+        Args:
+            download (bool, optional): [description]. Defaults to True.
+            fresh_start (bool, optional): [description]. Defaults to False.
+            auto_fresh_start (bool, optional): [description]. Defaults to False.
+            n_workers (int, optional): [description]. Defaults to 5.
+            open_headless (bool, optional): [description]. Defaults to False.
+            open_with_proxy_server (bool, optional): [description]. Defaults to True.
+            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
+            start_idx (Optional[int], optional): [description]. Defaults to None.
+            end_idx (Optional[int], optional): [description]. Defaults to None.
+            list_of_index ([type], optional): [description]. Defaults to None.
+            clean (bool, optional): [description]. Defaults to True.
+            compile_progress_files (bool, optional): [description]. Defaults to False.
+            delete_progress (bool, optional): [description]. Defaults to False.
         """
         def fresh():
             """[summary]
             """
-            product_type_urls = self.get_product_type_urls(open_headless=open_headless,
-                                                           open_with_proxy_server=open_with_proxy_server)
+            self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
+                                                                open_with_proxy_server=open_with_proxy_server)
             # progress tracker: captures scraped and error desc
-            progress_tracker = pd.DataFrame(index=product_type_urls.index, columns=[
-                                            'product_type', 'scraped', 'error_desc'])
-            progress_tracker.scraped = 'N'
-            return product_type_urls, progress_tracker
+            self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
+                'product_type', 'scraped', 'error_desc'])
+            self.progress_tracker.scraped = 'N'
 
         if fresh_start:
             self.logger.info('Starting Fresh Extraction.')
-            product_type_urls, progress_tracker = fresh()
+            fresh()
         else:
             if Path(self.metadata_path/'sph_product_type_urls_to_extract').exists():
-                product_type_urls = pd.read_feather(
+                self.product_type_urls = pd.read_feather(
                     self.metadata_path/'sph_product_type_urls_to_extract')
-                try:
-                    progress_tracker = pd.read_feather(
+                if Path(self.metadata_path/'sph_metadata_progress_tracker').exists():
+                    self.progress_tracker = pd.read_feather(
                         self.metadata_path/'sph_metadata_progress_tracker')
-                except Exception:
-                    progress_tracker = pd.DataFrame(index=product_type_urls.index, columns=[
+                else:
+                    self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
                         'product_type', 'scraped', 'error_desc'])
-                    progress_tracker.scraped = 'N'
+                    self.progress_tracker.scraped = 'N'
 
-                if sum(progress_tracker.scraped == 'N') > 0:
+                if sum(self.progress_tracker.scraped == 'N') > 0:
                     self.logger.info(
                         'Continuing Metadata Extraction From Last Run.')
-                    product_type_urls = product_type_urls[product_type_urls.index.isin(
-                        progress_tracker.index[progress_tracker.scraped == 'N'].values.tolist())]
+                    self.product_type_urls = self.product_type_urls[self.product_type_urls.index.isin(
+                        self.progress_tracker.index[self.progress_tracker.scraped == 'N'].values.tolist())]
                 else:
-                    self.logger.info(
-                        'Previous Run Was Complete. Starting Fresh Extraction.')
-                    product_type_urls, progress_tracker = fresh()
+                    if auto_fresh_start:
+                        self.logger.info(
+                            'Previous Run Was Complete. Starting Fresh Extraction.')
+                        fresh()
+                    else:
+                        self.logger.info(
+                            'Previous Run is Complete.')
             else:
                 self.logger.info(
-                    'URL File Not Found. Starting Fresh Extraction.')
-                product_type_urls, progress_tracker = fresh()
-        # print(progress_tracker)
+                    'URL File Not Found. Start Fresh Extraction.')
+        # print(self.progress_tracker)
         if download:
-            self.get_metadata(product_type_urls=product_type_urls,
-                              progress_tracker=progress_tracker,
-                              open_headless=open_headless,
-                              open_with_proxy_server=open_with_proxy_server,
-                              randomize_proxy_usage=randomize_proxy_usage)
+            # set list or range of product indices to crawl
+            if list_of_index:
+                indices = list_of_index
+            elif start_idx and end_idx is None:
+                indices = range(start_idx, len(self.product_type_urls))
+            elif start_idx is None and end_idx:
+                indices = range(0, end_idx)
+            elif start_idx is not None and end_idx is not None:
+                indices = range(start_idx, end_idx)
+            else:
+                indices = range(len(self.product_type_urls))
+            # print(indices)
+            if list_of_index:
+                self.get_metadata(indices=list_of_index,
+                                  open_headless=open_headless,
+                                  open_with_proxy_server=open_with_proxy_server,
+                                  randomize_proxy_usage=randomize_proxy_usage,
+                                  product_meta_data=[])
+            else:
+                '''
+                # review_Data and item_data are lists of empty lists so that each namepace of function call will
+                # have its separate detail_data
+                # list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
+                '''
+                if start_idx:
+                    lst_of_lst = ranges(
+                        indices[-1]+1, n_workers, start_idx=start_idx)
+                else:
+                    lst_of_lst = ranges(len(indices), n_workers)
+                print(lst_of_lst)
+                headless = [open_headless for i in lst_of_lst]
+                proxy = [open_with_proxy_server for i in lst_of_lst]
+                rand_proxy = [randomize_proxy_usage for i in lst_of_lst]
+                product_meta_data = [[] for i in lst_of_lst]
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    '''
+                    # but each of the function namespace will be modifying only one metadata tracing file so that progress saving
+                    # is tracked correctly. else multiple progress tracker file will be created with difficulty to combine correct
+                    # progress information
+                    '''
+                    executor.map(self.get_metadata, lst_of_lst,
+                                 headless, proxy, rand_proxy, product_meta_data)
 
-        self.logger.info('Creating Combined Metadata File')
-        files = [f for f in self.current_progress_path.glob(
-            "sph_prod_meta_extract_progress_*")]
-        li = [pd.read_feather(file) for file in files]
-        metadata_df = pd.concat(li, axis=0, ignore_index=True)
-        metadata_df.reset_index(inplace=True, drop=True)
-        metadata_df['source'] = self.source
-        filename = f'sph_product_metadata_all_{time.strftime("%Y-%m-%d")}'
-        metadata_df.to_feather(self.metadata_path/filename)
+        if compile_progress_files:
+            self.logger.info('Creating Combined Metadata File')
+            files = [f for f in self.current_progress_path.glob(
+                "sph_prod_meta_extract_progress_*")]
+            li = [pd.read_feather(file) for file in files]
+            metadata_df = pd.concat(li, axis=0, ignore_index=True)
+            metadata_df.reset_index(inplace=True, drop=True)
+            metadata_df['source'] = self.source
 
-        self.logger.info(
-            f'Metadata file created. Please look for file {filename} in path {self.metadata_path}')
-        print(
-            f'Metadata file created. Please look for file {filename} in path {self.metadata_path}')
+            if datetime.now().day < 15:
+                meta_date = f'{time.strftime("%Y-%m")}-01'
+            else:
+                meta_date = f'{time.strftime("%Y-%m")}-15'
+            filename = f'sph_product_metadata_all_{meta_date}'
+            metadata_df.to_feather(self.metadata_path/filename)
 
-        if delete_progress:
-            shutil.rmtree(
-                f'{self.metadata_path}\\current_progress', ignore_errors=True)
-            self.logger.info('Progress files deleted')
-
-        if clean:
-            cleaner = Cleaner(path=self.path)
-            _ = cleaner.clean(
-                data=self.metadata_path/filename)
             self.logger.info(
-                'Metadata Cleaned and Removed Duplicates for Details Extraction.')
+                f'Metadata file created. Please look for file {filename} in path {self.metadata_path}')
+            print(
+                f'Metadata file created. Please look for file {filename} in path {self.metadata_path}')
 
+            if clean:
+                cleaner = Cleaner(path=self.path)
+                _ = cleaner.clean(
+                    data=self.metadata_path/filename)
+                self.logger.info(
+                    'Metadata Cleaned and Removed Duplicates for Details/Review/Image Extraction.')
+
+            if delete_progress:
+                shutil.rmtree(
+                    f'{self.metadata_path}\\current_progress', ignore_errors=True)
+                self.logger.info('Progress files deleted')
+
+    def terminate_logging(self):
+        """terminate_logging [summary]
+
+        [extended_summary]
+        """
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
 
@@ -566,7 +630,7 @@ class Detail(Sephora):
                    randomize_proxy_usage: bool, detail_data: list = [],
                    item_df=pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
                                                  'item_size', 'item_price',
-                                                 'item_ingredients']))->None:
+                                                 'item_ingredients'])) -> None:
         """get_detail [summary]
 
         [extended_summary]
@@ -580,7 +644,7 @@ class Detail(Sephora):
             item_df ([type], optional): [description]. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
                                                                                          'item_size', 'item_price', 'item_ingredients']).
         """
-        def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame)->Tuple[list, pd.DataFrame]:
+        def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame) -> Tuple[list, pd.DataFrame]:
             """[summary]
 
             Arguments:
@@ -604,7 +668,7 @@ class Detail(Sephora):
             return [], item_df
 
         def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str, use_button: bool = False,
-                                multi_variety: bool = False, typ=None, )->Tuple[str, str, str, str]:
+                                multi_variety: bool = False, typ=None, ) -> Tuple[str, str, str, str]:
             """get_item_attributes [summary]
 
             [extended_summary]
@@ -662,6 +726,7 @@ class Detail(Sephora):
 
             # get all tabs
             first_tab = drv.find_element_by_id(f'tab{0}')
+            self.scroll_to_element(drv, first_tab)
             ActionChains(drv).move_to_element(
                 first_tab).click(first_tab).perform()
             prod_tabs = []
@@ -680,6 +745,7 @@ class Detail(Sephora):
                     try:
                         tab_num = 2
                         ing_button = drv.find_element_by_id(f'tab{tab_num}')
+                        self.scroll_to_element(drv, ing_button)
                         ActionChains(drv).move_to_element(
                             ing_button).click(ing_button).perform()
                         item_ing = drv.find_element_by_xpath(
@@ -696,6 +762,7 @@ class Detail(Sephora):
                     try:
                         tab_num = 1
                         ing_button = drv.find_element_by_id(f'tab{tab_num}')
+                        self.scroll_to_element(drv, ing_button)
                         ActionChains(drv).move_to_element(
                             ing_button).click(ing_button).perform()
                         item_ing = drv.find_element_by_xpath(
@@ -712,6 +779,7 @@ class Detail(Sephora):
                     try:
                         tab_num = 0
                         ing_button = drv.find_element_by_id(f'tab{tab_num}')
+                        self.scroll_to_element(drv, ing_button)
                         ActionChains(drv).move_to_element(
                             ing_button).click(ing_button).perform()
                         item_ing = drv.find_element_by_xpath(
@@ -731,7 +799,7 @@ class Detail(Sephora):
             # print(item_ing)
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str)->list:
+        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -> list:
             """get_product_attributes [summary]
 
             [extended_summary]
@@ -775,6 +843,7 @@ class Detail(Sephora):
                     close_popups(drv)
                     accept_alert(drv, 2)
                     try:
+                        self.scroll_to_element(drv, typ)
                         ActionChains(drv).move_to_element(
                             typ).click(typ).perform()
                     except Exception as ex:
@@ -795,7 +864,7 @@ class Detail(Sephora):
 
             return product_attributes
 
-        def get_first_review_date(drv: webdriver.Chrome)->str:
+        def get_first_review_date(drv: webdriver.Chrome) -> str:
             """get_first_review_date [summary]
 
             [extended_summary]
@@ -813,6 +882,7 @@ class Detail(Sephora):
             try:
                 review_sort_trigger = drv.find_element_by_id(
                     'review_filter_sort_trigger')
+                self.scroll_to_element(drv, review_sort_trigger)
                 ActionChains(drv).move_to_element(
                     review_sort_trigger).click(review_sort_trigger).perform()
                 for btn in drv.find_elements_by_class_name('css-1khw9z2'):
@@ -860,11 +930,11 @@ class Detail(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                        path=self.detail_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                                path=self.detail_path)
             else:
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
-                                        path=self.detail_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
+                                                path=self.detail_path)
             # open product page
             drv.get(product_page)
             time.sleep(15)  # 30
@@ -876,6 +946,7 @@ class Detail(Sephora):
                     EC.presence_of_element_located((By.XPATH, '//*[@id="divToky"]/img[3]')))
                 chat_popup_button = drv.find_element_by_xpath(
                     '//*[@id="divToky"]/img[3]')
+                self.scroll_to_element(drv, chat_popup_button)
                 ActionChains(drv).move_to_element(
                     chat_popup_button).click(chat_popup_button).perform()
             except TimeoutException:
@@ -927,6 +998,7 @@ class Detail(Sephora):
                     detail_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
                         time.sleep(1)
+                        self.scroll_to_element(drv, detail_button)
                         ActionChains(drv).move_to_element(
                             detail_button).click(detail_button).perform()
                     except Exception as ex:
@@ -966,6 +1038,7 @@ class Detail(Sephora):
                     how_to_use_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
                         time.sleep(1)
+                        self.scroll_to_element(drv, how_to_use_button)
                         ActionChains(drv).move_to_element(
                             how_to_use_button).click(how_to_use_button).perform()
                     except Exception as ex:
@@ -1006,6 +1079,7 @@ class Detail(Sephora):
                         f'tab{tab_num}')
                     try:
                         time.sleep(1)
+                        self.scroll_to_element(drv, about_the_brand_button)
                         ActionChains(drv).move_to_element(
                             about_the_brand_button).click(about_the_brand_button).perform()
                     except Exception as ex:
@@ -1042,6 +1116,7 @@ class Detail(Sephora):
                     EC.presence_of_element_located((By.XPATH, '//*[@id="divToky"]/img[3]')))
                 chat_popup_button = drv.find_element_by_xpath(
                     '//*[@id="divToky"]/img[3]')
+                self.scroll_to_element(drv, chat_popup_button)
                 ActionChains(drv).move_to_element(
                     chat_popup_button).click(chat_popup_button).perform()
             except TimeoutException:
@@ -1049,6 +1124,7 @@ class Detail(Sephora):
             # click no. of reviews
             try:
                 review_button = drv.find_element_by_class_name('css-1pjru6n')
+                self.scroll_to_element(drv, review_button)
                 ActionChains(drv).move_to_element(
                     review_button).click(review_button).perform()
             except Exception as ex:
@@ -1129,12 +1205,11 @@ class Detail(Sephora):
         self.logger.info(
             f'Detail Extraction Complete for start_idx: (indices[0]) to end_idx: {indices[-1]}. Or for list of values.')
 
-    def extract(self, metadata: pd.DataFrame, download: bool = True, open_headless: bool = False,
-                open_with_proxy_server: bool = True,
-                start_idx: Optional[int] = None, end_idx: Optional[int] = None,
-                list_of_index=None, fresh_start: bool = False, delete_progress: bool = False,
-                clean: bool = True, n_workers: int = 5, randomize_proxy_usage: bool = False,
-                complie_progress_files: bool = False, auto_fresh_start: bool = False):
+    def extract(self, metadata: pd.DataFrame, download: bool = True, n_workers: int = 5,
+                fresh_start: bool = False, auto_fresh_start: bool = False,
+                open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = False,
+                start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
+                compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
         """extract [summary]
 
         [extended_summary]
@@ -1142,33 +1217,38 @@ class Detail(Sephora):
         Args:
             metadata (pd.DataFrame): [description]
             download (bool, optional): [description]. Defaults to True.
+            n_workers (int, optional): [description]. Defaults to 5.
+            fresh_start (bool, optional): [description]. Defaults to False.
+            auto_fresh_start (bool, optional): [description]. Defaults to False.
             open_headless (bool, optional): [description]. Defaults to False.
             open_with_proxy_server (bool, optional): [description]. Defaults to True.
+            randomize_proxy_usage (bool, optional): [description]. Defaults to False.
             start_idx (Optional[int], optional): [description]. Defaults to None.
             end_idx (Optional[int], optional): [description]. Defaults to None.
             list_of_index ([type], optional): [description]. Defaults to None.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            compile_progress_files (bool, optional): [description]. Defaults to False.
             clean (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to False.
-            complie_progress_files (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
+            delete_progress (bool, optional): [description]. Defaults to False.
         """
         '''
         change metadata read logic.add logic to look for metadata in a folder path. if metadata is found in the folder path
         detail data crawler is triggered
         '''
-        list_of_files = self.metadata_clean_path.glob(
-            'no_cat_cleaned_sph_product_metadata_all*')
-        self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[
-            ['prod_id', 'product_name', 'product_page', 'meta_date']]
+        # list_of_files = self.metadata_clean_path.glob(
+        #     'no_cat_cleaned_sph_product_metadata_all*')
+        # self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[
+        #     ['prod_id', 'product_name', 'product_page', 'meta_date']]
 
         def fresh():
-            list_of_files = self.metadata_clean_path.glob(
-                'no_cat_cleaned_sph_product_metadata_all*')
-            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[
-                ['prod_id', 'product_name', 'product_page', 'meta_date']]
+            if not isinstance(metadata, pd.core.frame.DataFrame):
+                list_of_files = self.metadata_clean_path.glob(
+                    'no_cat_cleaned_sph_product_metadata_all*')
+                self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[
+                    ['prod_id', 'product_name', 'product_page', 'meta_date']]
+            else:
+                self.meta = metadata[[
+                    'prod_id', 'product_name', 'product_page', 'meta_date']]
+
             self.meta['detail_scraped'] = 'N'
 
         if download:
@@ -1183,6 +1263,9 @@ class Detail(Sephora):
                             fresh()
                             self.logger.info(
                                 'Last Run was Completed. Starting Fresh Extraction.')
+                        else:
+                            self.logger.info(
+                                'Detail extraction for this cycle is complete.')
                     else:
                         self.logger.info(
                             'Continuing Detail Extraction From Last Run.')
@@ -1212,9 +1295,10 @@ class Detail(Sephora):
             else:  # By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
                 if start_idx:
                     lst_of_lst = ranges(
-                        indices[-1]+2, n_workers, start_idx=start_idx)
+                        indices[-1]+1, n_workers, start_idx=start_idx)
                 else:
                     lst_of_lst = ranges(len(indices), n_workers)
+                print(lst_of_lst)
                 # detail_Data and item_data are lists of empty lists so that each namepace of function call will have its separate detail_data
                 # list to strore scraped dictionaries. will save memory(ram/hard-disk) consumption. will stop data duplication
                 headless = [open_headless for i in lst_of_lst]
@@ -1234,8 +1318,13 @@ class Detail(Sephora):
                                  headless, proxy, rand_proxy,
                                  detail_data, item_df)
         try:
-            if complie_progress_files:
+            if compile_progress_files:
                 self.logger.info('Creating Combined Detail and Item File')
+                if datetime.now().day < 15:
+                    meta_date = f'{time.strftime("%Y-%m")}-01'
+                else:
+                    meta_date = f'{time.strftime("%Y-%m")}-15'
+
                 det_li = []
                 self.bad_det_li = []
                 detail_files = [f for f in self.current_progress_path.glob(
@@ -1251,8 +1340,8 @@ class Detail(Sephora):
                 detail_df = pd.concat(det_li, axis=0, ignore_index=True)
                 detail_df.drop_duplicates(inplace=True)
                 detail_df.reset_index(inplace=True, drop=True)
-                detail_df['meta_date'] = self.meta.meta_date.max()
-                detail_filename = f'sph_product_detail_all_{time.strftime("%Y-%m-%d")}.csv'
+                detail_df['meta_date'] = meta_date
+                detail_filename = f'sph_product_detail_all_{meta_date}.csv'
                 detail_df.to_csv(self.detail_path/detail_filename, index=None)
                 # detail_df.to_feather(self.detail_path/detail_filename)
 
@@ -1271,8 +1360,8 @@ class Detail(Sephora):
                 item_dataframe = pd.concat(item_li, axis=0, ignore_index=True)
                 item_dataframe.drop_duplicates(inplace=True)
                 item_dataframe.reset_index(inplace=True, drop=True)
-                item_dataframe['meta_date'] = self.meta.meta_date.max()
-                item_filename = f'sph_product_item_all_{time.strftime("%Y-%m-%d")}.csv'
+                item_dataframe['meta_date'] = meta_date
+                item_filename = f'sph_product_item_all_{meta_date}.csv'
                 item_dataframe.to_csv(
                     self.detail_path/item_filename, index=None)
                 # item_df.to_feather(self.detail_path/item_filename)
@@ -1291,7 +1380,7 @@ class Detail(Sephora):
                     self.item_clean_df, self.ing_clean_df = cleaner.clean(
                         self.detail_path/item_filename)
 
-                file_creation_status = True
+                    file_creation_status = True
             else:
                 file_creation_status = False
         except Exception as ex:
@@ -1362,7 +1451,7 @@ class Review(Sephora):
             review_data (list, optional): [description]. Defaults to [].
             incremental (bool, optional): [description]. Defaults to True.
         """
-        def store_data_refresh_mem(review_data: list)->list:
+        def store_data_refresh_mem(review_data: list) -> list:
             """[summary]
 
             Arguments:
@@ -1672,33 +1761,31 @@ class Review(Sephora):
         # save the final review file
         review_data = store_data_refresh_mem(review_data)
 
-    def extract(self, metadata: Union[pd.DataFrame, str, Path], open_headless: bool = False,
-                open_with_proxy_server: bool = True,
-                randomize_proxy_usage: bool = True, download: bool = True,
+    def extract(self, metadata: Union[pd.DataFrame, str, Path], download: bool = True, n_workers: int = 5,
+                fresh_start: bool = False, auto_fresh_start: bool = False, incremental: bool = True,
+                open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
-                fresh_start: bool = False, incremental: bool = True, delete_progress: bool = False,
-                clean: bool = True, n_workers: int = 5, complie_progress_files: bool = False,
-                auto_fresh_start: bool = False)->None:
+                compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False) -> None:
         """extract [summary]
 
         [extended_summary]
 
         Args:
             metadata (Union[pd.DataFrame, str, Path]): [description]
+            download (bool, optional): [description]. Defaults to True.
+            n_workers (int, optional): [description]. Defaults to 5.
+            fresh_start (bool, optional): [description]. Defaults to False.
+            auto_fresh_start (bool, optional): [description]. Defaults to False.
+            incremental (bool, optional): [description]. Defaults to True.
             open_headless (bool, optional): [description]. Defaults to False.
             open_with_proxy_server (bool, optional): [description]. Defaults to True.
             randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            download (bool, optional): [description]. Defaults to True.
             start_idx (Optional[int], optional): [description]. Defaults to None.
             end_idx (Optional[int], optional): [description]. Defaults to None.
             list_of_index ([type], optional): [description]. Defaults to None.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            incremental (bool, optional): [description]. Defaults to True.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            compile_progress_files (bool, optional): [description]. Defaults to False.
             clean (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            complie_progress_files (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
+            delete_progress (bool, optional): [description]. Defaults to False.
         """
         def fresh():
             if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -1785,7 +1872,7 @@ class Review(Sephora):
                     executor.map(self.get_reviews, lst_of_lst, headless, proxy,
                                  rand_proxy, review_data, inc_list)
         try:
-            if complie_progress_files:
+            if compile_progress_files:
                 self.logger.info('Creating Combined Review File')
                 if datetime.now().day < 15:
                     meta_date = f'{time.strftime("%Y-%m")}-01'
@@ -1819,7 +1906,7 @@ class Review(Sephora):
                     cleaner = Cleaner(path=self.path)
                     self.review_clean_df = cleaner.clean(
                         self.review_path/review_filename)
-                file_creation_status = True
+                    file_creation_status = True
             else:
                 file_creation_status = False
         except Exception as ex:
@@ -1895,11 +1982,11 @@ class Image(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                        open_for_screenshot=True, path=self.image_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                                open_for_screenshot=True, path=self.image_path)
             else:
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
-                                        open_for_screenshot=True, path=self.image_path)
+                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
+                                                open_for_screenshot=True, path=self.image_path)
             # open product page
             drv.get(product_page)
             time.sleep(15)  # 30
@@ -2079,7 +2166,7 @@ class Image(Sephora):
             f'Image files are downloaded to product specific folders. \
             Please look for file sph_product_review_all in path {self.image_path}')
 
-    def terminate_logging(self)->None:
+    def terminate_logging(self) -> None:
         """terminate_logging [summary]
 
         [extended_summary]
