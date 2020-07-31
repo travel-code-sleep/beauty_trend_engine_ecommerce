@@ -318,6 +318,8 @@ class Cleaner():
 
         if save:
             if self.source == 'sph':
+                metadata_filename = self.sph.metadata_clean_path / \
+                    f'cat_{self.clean_file_name}'
                 self.meta.to_feather(
                     self.sph.metadata_clean_path/f'cat_{self.clean_file_name}')
                 self.meta_no_cat.to_feather(
@@ -328,6 +330,8 @@ class Cleaner():
                     self.sph.review_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
 
             elif self.source == 'bts':
+                metadata_filename = self.bts.metadata_clean_path / \
+                    f'cat_{self.clean_file_name}'
                 self.meta.to_feather(
                     self.bts.metadata_clean_path/f'cat_{self.clean_file_name}')
                 self.meta_no_cat.to_feather(
@@ -336,6 +340,10 @@ class Cleaner():
                     self.bts.detail_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
                 self.meta_no_cat.to_feather(
                     self.bts.review_crawler_trigger_path/f'no_cat_{self.clean_file_name}')
+
+            file_manager.push_file_s3(
+                file_path=metadata_filename, job_name='cleaned_pre_algorithm')
+
         return self.meta
 
     def detail_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
@@ -412,13 +420,17 @@ class Cleaner():
         self.detail.drop_duplicates(subset='prod_id', inplace=True)
         self.detail.reset_index(drop=True, inplace=True)
 
+        if self.source == 'sph':
+            detail_filename = self.sph.detail_clean_path / \
+                f'{self.clean_file_name}'
+        elif self.source == 'bts':
+            detail_filename = self.bts.detail_clean_path / \
+                f'{self.clean_file_name}'
+
         if save:
-            if self.source == 'sph':
-                self.detail.to_feather(
-                    self.sph.detail_clean_path/f'{self.clean_file_name}')  # , index=None)
-            elif self.source == 'bts':
-                self.detail.to_feather(
-                    self.bts.detail_clean_path/f'{self.clean_file_name}')  # , index=None)
+            self.detail.to_feather(detail_filename)  # , index=None)
+            file_manager.push_file_s3(
+                file_path=detail_filename, job_name='cleaned_pre_algorithm')
 
         return self.detail
 
@@ -648,17 +660,22 @@ class Cleaner():
                    'size_ml_gm']
         self.item = self.item[columns]
 
+        if self.source == 'sph':
+            item_filename = self.sph.detail_clean_path / \
+                f'{self.clean_file_name}'
+            ingredient_filename = self.sph.detail_clean_path / \
+                f'{self.clean_file_name.replace("item", "ingredient")}'
+        elif self.source == 'bts':
+            item_filename = self.bts.detail_clean_path / \
+                f'{self.clean_file_name}'
+            ingredient_filename = self.bts.detail_clean_path / \
+                f'{self.clean_file_name.replace("item", "ingredient")}'
+
         if save:
-            if self.source == 'sph':
-                self.item.to_feather(
-                    self.sph.detail_clean_path/f'{self.clean_file_name}')
-                self.ing.to_feather(
-                    self.sph.detail_clean_path/f'{self.clean_file_name.replace("item", "ingredient")}')
-            if self.source == 'bts':
-                self.item.to_feather(
-                    self.bts.detail_clean_path/f'{self.clean_file_name}')
-                self.ing.to_feather(
-                    self.bts.detail_clean_path/f'{self.clean_file_name.replace("item", "ingredient")}')
+            self.item.to_feather(item_filename)
+            self.ing.to_feather(ingredient_filename)
+            file_manager.push_file_s3(
+                file_path=ingredient_filename, job_name='cleaned_pre_algorithm')
 
         # Push Item File to S3. No more processing required for Item file.
         self.item.fillna('', inplace=True)
@@ -795,12 +812,16 @@ class Cleaner():
         self.review.drop_duplicates(inplace=True)
         self.review.reset_index(drop=True, inplace=True)
 
+        if self.source == 'sph':
+            review_filename = self.sph.review_clean_path / \
+                f'{self.clean_file_name}'
+        elif self.source == 'bts':
+            review_filename = self.bts.review_clean_path / \
+                f'{self.clean_file_name}'
+
         if save:
-            if self.source == 'sph':
-                self.review.to_feather(
-                    self.sph.review_clean_path/f'{self.clean_file_name}')
-            elif self.source == 'bts':
-                self.review.to_feather(
-                    self.bts.review_clean_path/f'{self.clean_file_name}')
+            self.review.to_feather(review_filename)
+            file_manager.push_file_s3(
+                file_path=review_filename, job_name='cleaned_pre_algorithm')
 
         return self.review
