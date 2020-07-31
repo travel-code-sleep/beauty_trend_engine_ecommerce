@@ -12,19 +12,24 @@ from meiyume.utils import chunks, ranges
 warnings.simplefilter(action='ignore')
 
 
-def exclude_scraped_products_from_tracker(detail_crawler: Detail) -> pd.DataFrame:
+def exclude_scraped_products_from_tracker(detail_crawler: Detail, reset_na: bool = False) -> pd.DataFrame:
     """exclude_scraped_products_from_tracker [summary]
 
     [extended_summary]
 
     Args:
         detail_crawler (Detail): [description]
+        reset_na (bool, optional): [description]. Defaults to False.
 
     Returns:
         pd.DataFrame: [description]
     """
     progress_tracker = pd.read_feather(
         detail_crawler.detail_path/'sph_detail_progress_tracker')
+
+    if reset_na:
+        progress_tracker.detail_scraped[progress_tracker.detail_scraped == 'NA'] = 'N'
+
     progress_tracker = progress_tracker[~progress_tracker.detail_scraped.isna(
     )]
     progress_tracker = progress_tracker[progress_tracker.detail_scraped != 'Y']
@@ -64,7 +69,8 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
         detail_crawler = Detail(
             path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
-    progress_tracker = exclude_scraped_products_from_tracker(detail_crawler)
+    progress_tracker = exclude_scraped_products_from_tracker(
+        detail_crawler, reset_na=True)
     n_workers = 6
     trials = 10
     while progress_tracker.detail_scraped[progress_tracker.detail_scraped == 'N'].count() != 0:
@@ -74,7 +80,7 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
                                compile_progress_files=False, clean=False, delete_progress=False)
 
         progress_tracker = exclude_scraped_products_from_tracker(
-            detail_crawler)
+            detail_crawler, reset_na=False)
 
         trials -= 1
         if trials == 0:

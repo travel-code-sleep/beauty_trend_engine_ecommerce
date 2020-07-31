@@ -941,6 +941,23 @@ class Detail(Sephora):
             accept_alert(drv, 10)
             close_popups(drv)
 
+            # check product page is valid and exists
+            try:
+                close_popups(drv)
+                accept_alert(drv, 2)
+                price = drv.find_element_by_class_name('css-slwsq8')
+                self.scroll_to_element(drv, price)
+                price = price.text
+            except Exception as ex:
+                log_exception(self.logger,
+                              additional_information=f'Prod ID: {prod_id}')
+                drv.quit()
+                self.logger.info(str.encode(
+                    f'product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
+                        (link:{product_page})', 'utf-8', 'ignore'))
+                self.meta.loc[prod, 'detail_scraped'] = 'NA'
+                continue
+
             try:
                 chat_popup_button = WebDriverWait(drv, 3).until(
                     EC.presence_of_element_located((By.XPATH, '//*[@id="divToky"]/img[3]')))
@@ -951,22 +968,6 @@ class Detail(Sephora):
                     chat_popup_button).click(chat_popup_button).perform()
             except TimeoutException:
                 pass
-
-            # check product page is valid and exists
-            try:
-                close_popups(drv)
-                accept_alert(drv, 2)
-                drv.find_element_by_class_name('css-slwsq8').text
-            except Exception as ex:
-                log_exception(self.logger,
-                              additional_information=f'Prod ID: {prod_id}')
-                drv.quit()
-                self.logger.info(str.encode(
-                    f'product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
-                        (link:{product_page})', 'utf-8', 'ignore'))
-                self.meta.loc[prod, 'detail_scraped'] = 'NA'
-
-                continue
 
             # get all product info tabs such as how-to-use, about-brand, ingredients
             prod_tabs = []
