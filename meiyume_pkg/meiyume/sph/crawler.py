@@ -937,7 +937,7 @@ class Detail(Sephora):
                                                 path=self.detail_path)
             # open product page
             drv.get(product_page)
-            time.sleep(15)  # 30
+            time.sleep(20)  # 30
             accept_alert(drv, 10)
             close_popups(drv)
 
@@ -1375,10 +1375,11 @@ class Detail(Sephora):
                         sph_product_item_all in path {self.detail_path}')
 
                 if clean:
-                    cleaner = Cleaner(path=self.path)
-                    self.detail_clean_df = cleaner.clean(
+                    detail_cleaner = Cleaner(path=self.path)
+                    self.detail_clean_df = detail_cleaner.clean(
                         self.detail_path/detail_filename)
-                    self.item_clean_df, self.ing_clean_df = cleaner.clean(
+                    item_cleaner = Cleaner(path=self.path)
+                    self.item_clean_df, self.ing_clean_df = item_cleaner.clean(
                         self.detail_path/item_filename)
 
                     file_creation_status = True

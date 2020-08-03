@@ -46,19 +46,24 @@ def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame, review_cra
     return meta_df
 
 
-def exclude_scraped_products_from_tracker(review_crawler: Review) -> pd.DataFrame:
+def exclude_scraped_products_from_tracker(review_crawler: Review, reset_na: bool = False) -> pd.DataFrame:
     """exclude_scraped_products_from_tracker [summary]
 
     [extended_summary]
 
     Args:
         review_crawler (Review): [description]
+        reset_na (bool, optional): [description]. Defaults to False.
 
     Returns:
         pd.DataFrame: [description]
     """
     progress_tracker = pd.read_csv(
         review_crawler.review_path/'sph_review_progress_tracker.csv')
+
+    if reset_na:
+        progress_tracker.detail_scraped[progress_tracker.review_scraped == 'NA'] = 'N'
+
     progress_tracker = progress_tracker[~progress_tracker.review_scraped.isna(
     )]
     progress_tracker = progress_tracker[progress_tracker.review_scraped != 'Y']
@@ -98,7 +103,8 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
         review_crawler = Review(
             path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
-    progress_tracker = exclude_scraped_products_from_tracker(review_crawler)
+    progress_tracker = exclude_scraped_products_from_tracker(
+        review_crawler, reset_na=True)
     n_workers = 6
     trials = 10
     while progress_tracker.review_scraped[progress_tracker.review_scraped == 'N'].count() != 0:
@@ -107,8 +113,12 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
                                open_headless=False, open_with_proxy_server=True, randomize_proxy_usage=True,
                                complie_progress_files=False, clean=False, delete_progress=False)
 
+        if trials <= 4:
+            reset_na = True
+        else:
+            reset_na = False
         progress_tracker = exclude_scraped_products_from_tracker(
-            review_crawler)
+            detail_crawler, reset_na=reset_na)
 
         trials -= 1
         if trials == 0:
