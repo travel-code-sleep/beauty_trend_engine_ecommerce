@@ -3,36 +3,41 @@
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from typing import *
-from datetime import datetime, timedelta, date
-import sys
+
+import gc
+import io
 import logging
-import time
-import numpy as np
 import os
+import sys
+import time
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import *
+
+import boto3
+import numpy as np
+import pandas as pd
+from retrying import retry
 # import missingno as msno
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.proxy import Proxy, ProxyType
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.remote.webelement import WebElement
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.alert import Alert
 from selenium.common.exceptions import (ElementClickInterceptedException,
                                         NoSuchElementException,
                                         StaleElementReferenceException,
                                         TimeoutException)
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.alert import Alert
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.proxy import Proxy, ProxyType
 from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
-from retrying import retry
-import gc
-from pathlib import Path
-import boto3
+
 os.environ['WDM_LOG_LEVEL'] = '0'
 
 
@@ -653,6 +658,22 @@ class S3FileManager(object):
         file_name = str(key).split('/')[-1]
         s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
             key, f'{file_path}/{file_name}')
+
+    def read_feather_s3(self, key: str) -> pd.DataFrame:
+        """read_feather_s3 [summary]
+
+        [extended_summary]
+
+        Args:
+            key (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+        """
+        s3 = boto3.client('s3')
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        df = pd.read_feather(io.BytesIO(obj['Body'].read()))
+        return df
 
     def delete_file_s3(self, key: str):
         """delete_file_s3 [summary]
