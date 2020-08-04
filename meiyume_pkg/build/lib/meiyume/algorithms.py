@@ -122,13 +122,21 @@ class SexyMetaDetail(ModelsAlgorithms):
                 meta = metadata
         else:
             if source == 'sph':
-                meta_files = self.sph.metadata_clean_path.glob(
-                    'cat_cleaned_sph_product_metadata_all*')
-                meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+                meta_file_key = [i['Key'] for i in
+                                 file_manager.get_matching_s3_keys(
+                                     prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cat_cleaned_sph_product_metadata_all')][-1]
+                meta = file_manager.read_feather_s3(meta_file_key)
+                # meta_files = self.sph.metadata_clean_path.glob(
+                #     'cat_cleaned_sph_product_metadata_all*')
+                # meta = pd.read_feather(max(meta_files, key=os.path.getctime))
             elif source == 'bts':
-                meta_files = self.bts.metadata_clean_path.glob(
-                    'cat_cleaned_bts_product_metadata_all*')
-                meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+                # meta_files = self.bts.metadata_clean_path.glob(
+                #     'cat_cleaned_bts_product_metadata_all*')
+                # meta = pd.read_feather(max(meta_files, key=os.path.getctime))
+                meta_file_key = [i['Key'] for i in
+                                 file_manager.get_matching_s3_keys(
+                                     prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cat_cleaned_bts_product_metadata_all')][-1]
+                meta = file_manager.read_feather_s3(meta_file_key)
 
         if source == 'sph':
             dft = meta.groupby('prod_id').product_type.apply(
@@ -226,15 +234,23 @@ class SexyMetaDetail(ModelsAlgorithms):
                 detail = detail_data
         else:
             if source == 'sph':
-                detail_files = self.sph.detail_clean_path.glob(
-                    'cleaned_sph_product_detail*')
-                detail = pd.read_feather(
-                    max(detail_files, key=os.path.getctime))
+                detail_file_key = [i['Key'] for i in
+                                   file_manager.get_matching_s3_keys(
+                                       prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_sph_product_detail_all')][-1]
+                detail = file_manager.read_feather_s3(detail_file_key)
+                # detail_files = self.sph.detail_clean_path.glob(
+                #     'cleaned_sph_product_detail*')
+                # detail = pd.read_feather(
+                #     max(detail_files, key=os.path.getctime))
             elif source == 'bts':
-                detail_files = self.bts.detail_clean_path.glob(
-                    'cleaned_bts_product_detail*')
-                detail = pd.read_feather(
-                    max(detail_files, key=os.path.getctime))
+                detail_file_key = [i['Key'] for i in
+                                   file_manager.get_matching_s3_keys(
+                                       prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_bts_product_detail_all')][-1]
+                detail = file_manager.read_feather_s3(detail_file_key)
+                # detail_files = self.bts.detail_clean_path.glob(
+                #     'cleaned_bts_product_detail*')
+                # detail = pd.read_feather(
+                #     max(detail_files, key=os.path.getctime))
         detail.drop_duplicates(subset='prod_id', inplace=True)
 
         meta.set_index('prod_id', inplace=True)
@@ -499,15 +515,21 @@ class SexyIngredient(ModelsAlgorithms):
                 self.ingredient = ingredient_data
         else:
             if source == 'sph':
-                ingredient_files = self.sph.detail_clean_path.glob(
-                    'cleaned_sph_product_ingredient_all*')
-                self.ingredient = pd.read_feather(
-                    max(ingredient_files, key=os.path.getctime))
+                ingredient_file_key = [i['Key'] for i in
+                                       file_manager.get_matching_s3_keys(
+                                           prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_sph_product_ingredient_all')][-1]
+                self.ingredient = file_manager.read_feather_s3(
+                    ingredient_file_key)
             elif source == 'bts':
-                ingredient_files = self.bts.detail_clean_path.glob(
-                    'cleaned_bts_product_ingredient_all*')
-                self.ingredient = pd.read_feather(
-                    max(ingredient_files, key=os.path.getctime))
+                ingredient_file_key = [i['Key'] for i in
+                                       file_manager.get_matching_s3_keys(
+                                           prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_bts_product_ingredient_all')][-1]
+                self.ingredient = file_manager.read_feather_s3(
+                    ingredient_file_key)
+                # ingredient_files = self.bts.detail_clean_path.glob(
+                #     'cleaned_bts_product_ingredient_all*')
+                # self.ingredient = pd.read_feather(
+                #     max(ingredient_files, key=os.path.getctime))
 
         old_ing_list = self.ingredient.ingredient[self.ingredient.new_flag == ''].str.strip(
         ).tolist()
