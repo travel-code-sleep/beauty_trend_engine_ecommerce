@@ -62,7 +62,7 @@ def exclude_scraped_products_from_tracker(review_crawler: Review, reset_na: bool
         review_crawler.review_path/'sph_review_progress_tracker.csv')
 
     if reset_na:
-        progress_tracker.detail_scraped[progress_tracker.review_scraped == 'NA'] = 'N'
+        progress_tracker.review_scraped[progress_tracker.review_scraped == 'NA'] = 'N'
 
     progress_tracker = progress_tracker[~progress_tracker.review_scraped.isna(
     )]
@@ -118,7 +118,7 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
         else:
             reset_na = False
         progress_tracker = exclude_scraped_products_from_tracker(
-            detail_crawler, reset_na=reset_na)
+            review_crawler, reset_na=reset_na)
 
         trials -= 1
         if trials == 0:

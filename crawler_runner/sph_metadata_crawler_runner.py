@@ -16,7 +16,7 @@ open_with_proxy_server = False
 randomize_proxy_usage = False
 
 
-def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata) -> pd.DataFrame:
+def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: bool = False) -> pd.DataFrame:
     """exclude_scraped_pages_from_tracker.
 
     [extended_summary]
@@ -29,6 +29,10 @@ def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata) -> pd.DataFra
     """
     progress_tracker = pd.read_feather(
         metadata_crawler.metadata_path/'sph_metadata_progress_tracker')
+
+    if reset_na:
+        progress_tracker.scraped[progress_tracker.scraped == 'NA'] = 'N'
+
     progress_tracker = progress_tracker[~progress_tracker.scraped.isna(
     )]
     progress_tracker = progress_tracker[progress_tracker.scraped != 'Y']
@@ -50,20 +54,27 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
                              open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=randomize_proxy_usage,
                              compile_progress_files=False, clean=False, delete_progress=False)
 
-    progess_tracker = exclude_scraped_pages_from_tracker(metadata_crawler)
+    progess_tracker = exclude_scraped_pages_from_tracker(
+        metadata_crawler, reset_na=True)
     n_workers = 3
     trials = 5
     while progess_tracker.scraped[progess_tracker.scraped == 'N'].count() != 0:
         metadata_crawler.extract(download=True, fresh_start=False, auto_fresh_start=False, n_workers=n_workers, open_headless=False,
                                  open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=randomize_proxy_usage,
                                  compile_progress_files=False, clean=False, delete_progress=False)
-        progess_tracker = exclude_scraped_pages_from_tracker(metadata_crawler)
+
+        if trials <= 2:
+            reset_na = True
+        else:
+            reset_na = False
+        progress_tracker = exclude_scraped_pages_from_tracker(
+            metadata_crawler, reset_na=reset_na)
 
         trials -= 1
         if trials == 0:
             break
     metadata_crawler.extract(download=False, fresh_start=False, auto_fresh_start=False,
-                             compile_progress_files=True, clean=True, delete_progress=False)
+                             compile_progress_files=True, clean=True, delete_progress=True)
     metadata_crawler.terminate_logging()
     del metadata_crawler
     gc.collect()
