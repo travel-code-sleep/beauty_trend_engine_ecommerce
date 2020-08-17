@@ -675,6 +675,22 @@ class S3FileManager(object):
         df = pd.read_feather(io.BytesIO(obj['Body'].read()))
         return df
 
+    def read_csv_s3(self, key: str) -> pd.DataFrame:
+        """read_csv_s3 [summary]
+
+        [extended_summary]
+
+        Args:
+            key (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+        """
+        s3 = boto3.client('s3')
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        df = pd.read_csv(io.BytesIO(obj['Body'].read()), sep='~')
+        return df
+
     def delete_file_s3(self, key: str):
         """delete_file_s3 [summary]
 
