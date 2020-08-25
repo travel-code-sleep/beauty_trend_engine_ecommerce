@@ -115,17 +115,21 @@ class Metadata(Sephora):
         accept_alert(drv, 10)
         close_popups(drv)
 
-        cats = drv.find_elements_by_class_name("css-1b5x40g")
+        cats = drv.find_elements_by_class_name('css-1ms0vuh')
         cat_urls = []
         for c in cats:
-            cat_urls.append((c.get_attribute("href").split("/")
-                             [-1], c.get_attribute("href")))
-            self.logger.info(str.encode(f'Category:- name:{c.get_attribute("href").split("/")[-1]}, \
-                                          url:{c.get_attribute("href")}', "utf-8", "ignore"))
+            if c.get_attribute('href') is not None:
+                cat_name, url = (c.get_attribute("href").split("/")
+                                 [-1], c.get_attribute("href"))
+                cat_urls.append((cat_name, url))
+                self.logger.info(str.encode(f'Category:- name:{cat_name}, \
+                                          url:{url}', "utf-8", "ignore"))
 
         sub_cat_urls = []
         for cu in cat_urls:
             cat_name = cu[0]
+            if cat_name in ['brands-list', 'new-beauty-products', 'sephora-collection']:
+                continue
             cat_url = cu[1]
             drv.get(cat_url)
 
@@ -133,8 +137,8 @@ class Metadata(Sephora):
             accept_alert(drv, 10)
             close_popups(drv)
 
-            sub_cats = drv.find_elements_by_class_name("css-1leg7f4")
-            sub_cats.extend(drv.find_elements_by_class_name("css-or7ouu"))
+            sub_cats = drv.find_elements_by_class_name('css-10wlsyd')
+            # sub_cats.extend(drv.find_elements_by_class_name("css-or7ouu"))
             if len(sub_cats) > 0:
                 for s in sub_cats:
                     sub_cat_urls.append((cat_name, s.get_attribute(
@@ -149,6 +153,8 @@ class Metadata(Sephora):
         for su in sub_cat_urls:
             cat_name = su[0]
             sub_cat_name = su[1]
+            if 'new' in sub_cat_name:
+                continue
             sub_cat_url = su[2]
             drv.get(sub_cat_url)
 
@@ -156,7 +162,7 @@ class Metadata(Sephora):
             accept_alert(drv, 10)
             close_popups(drv)
 
-            product_types = drv.find_elements_by_class_name('css-1lp76tk')
+            product_types = drv.find_elements_by_class_name('css-3mlsw9')
             if len(product_types) > 0:
                 for item in product_types:
                     product_type_urls.append((cat_name, sub_cat_name, item.get_attribute("href").split("/")[-1],
@@ -188,6 +194,7 @@ class Metadata(Sephora):
         drv.quit()
 
         df.drop_duplicates(subset='url', inplace=True)
+        df.drop(columns='sub_category_raw', inplace=True)
         df.reset_index(inplace=True, drop=True)
         df['scraped'] = 'N'
         df.to_feather(self.metadata_path/f'sph_product_type_urls_to_extract')
@@ -243,7 +250,7 @@ class Metadata(Sephora):
 
             # sort by new products (required to get all new products properly)
             try:
-                sort_dropdown = drv.find_element_by_class_name('css-qv1cc8')
+                sort_dropdown = drv.find_element_by_class_name('css-16tfpwn')
                 self.scroll_to_element(drv, sort_dropdown)
                 ActionChains(drv).move_to_element(
                     sort_dropdown).click(sort_dropdown).perform()
@@ -271,7 +278,7 @@ class Metadata(Sephora):
                 close_popups(drv)
                 accept_alert(drv, 2)
                 current_page = drv.find_element_by_class_name(
-                    'css-nnom91').text
+                    'css-g48inl').text
             except NoSuchElementException as ex:
                 log_exception(self.logger,
                               additional_information=f'Prod Type: {product_type}')
@@ -290,9 +297,10 @@ class Metadata(Sephora):
                 # get a list of all available pages
                 one_page = False
                 # get next page button
-                next_page_button = drv.find_element_by_class_name('css-4ktkov')
+                next_page_button = drv.find_element_by_class_name(
+                    'css-1lkjxdl')
                 pages = []
-                for page in drv.find_elements_by_class_name('css-17n3p1l'):
+                for page in drv.find_elements_by_class_name('css-1lk9n5p'):
                     pages.append(page.text)
 
             # start getting product form each page
@@ -305,11 +313,15 @@ class Metadata(Sephora):
                 close_popups(drv)
                 accept_alert(drv, 2)
                 products = drv.find_elements_by_class_name('css-12egk0t')
+                # print(len(products))
+
                 for p in products:
                     time.sleep(0.5)
+
                     close_popups(drv)
                     accept_alert(drv, 0.5)
 
+                    self.scroll_to_element(drv, p)
                     ActionChains(drv).move_to_element(p).perform()
 
                     try:
@@ -345,7 +357,8 @@ class Metadata(Sephora):
                                                      product {products.index(p)} product_page extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
-                        brand = p.find_element_by_class_name('css-ktoumz').text
+                        brand = p.find_element_by_class_name(
+                            'css-182j26q').text
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -406,7 +419,7 @@ class Metadata(Sephora):
                         self.scroll_down_page(drv, h2=0.8, speed=3)
                         time.sleep(10)
                         current_page = drv.find_element_by_class_name(
-                            'css-nnom91').text
+                            'css-g48inl').text
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -476,7 +489,8 @@ class Metadata(Sephora):
                     self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
                         'product_type', 'scraped', 'error_desc'])
                     self.progress_tracker.scraped = 'N'
-
+                    self.progress_tracker.to_feather(
+                        self.metadata_path/'sph_metadata_progress_tracker')
                 if sum(self.progress_tracker.scraped == 'N') > 0:
                     self.logger.info(
                         'Continuing Metadata Extraction From Last Run.')
@@ -690,7 +704,7 @@ class Detail(Sephora):
             accept_alert(drv, 2)
 
             try:
-                item_price = drv.find_element_by_class_name('css-slwsq8').text
+                item_price = drv.find_element_by_class_name('css-1865ad6').text
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f'Prod ID: {prod_id}')
@@ -715,7 +729,7 @@ class Detail(Sephora):
                 item_name = ""
 
             try:
-                item_size = drv.find_element_by_class_name('css-v7k1z0').text
+                item_size = drv.find_element_by_class_name('css-128n72s').text
                 # print(item_size)
             except Exception as ex:
                 log_exception(self.logger,
@@ -730,8 +744,8 @@ class Detail(Sephora):
             ActionChains(drv).move_to_element(
                 first_tab).click(first_tab).perform()
             prod_tabs = []
-            prod_tabs = drv.find_elements_by_class_name('css-1h2tppq ')
-            prod_tabs.extend(drv.find_elements_by_class_name('css-18ih2xz'))
+            prod_tabs = drv.find_elements_by_class_name('css-1wugx5m')
+            prod_tabs.extend(drv.find_elements_by_class_name('css-12vae0p'))
 
             tab_names = []
             for t in prod_tabs:
@@ -885,7 +899,7 @@ class Detail(Sephora):
                 self.scroll_to_element(drv, review_sort_trigger)
                 ActionChains(drv).move_to_element(
                     review_sort_trigger).click(review_sort_trigger).perform()
-                for btn in drv.find_elements_by_class_name('css-1khw9z2'):
+                for btn in drv.find_elements_by_class_name('css-rfz1gg'):
                     if btn.text.lower() == 'oldest':
                         ActionChains(drv).move_to_element(
                             btn).click(btn).perform()
@@ -893,16 +907,16 @@ class Detail(Sephora):
                 time.sleep(8)
                 close_popups(drv)
                 accept_alert(drv, 3)
-                rev = drv.find_elements_by_class_name('css-1ecc607')[2:]
+                rev = drv.find_elements_by_class_name('css-1kk8dps')[2:]
                 try:
                     first_review_date = convert_ago_to_date(
-                        rev[0].find_element_by_class_name('css-1t84k9w').text)
+                        rev[0].find_element_by_class_name('css-h2vfi1').text)
                 except Exception as ex:
                     log_exception(self.logger,
                                   additional_information=f'Prod ID: {prod_id}')
                     try:
                         first_review_date = convert_ago_to_date(
-                            rev[1].find_element_by_class_name('css-1t84k9w').text)
+                            rev[1].find_element_by_class_name('css-h2vfi1').text)
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod ID: {prod_id}')
@@ -945,7 +959,7 @@ class Detail(Sephora):
             try:
                 close_popups(drv)
                 accept_alert(drv, 2)
-                price = drv.find_element_by_class_name('css-slwsq8')
+                price = drv.find_element_by_class_name('css-1865ad6')
                 self.scroll_to_element(drv, price)
                 price = price.text
             except Exception as ex:
@@ -971,8 +985,8 @@ class Detail(Sephora):
 
             # get all product info tabs such as how-to-use, about-brand, ingredients
             prod_tabs = []
-            prod_tabs = drv.find_elements_by_class_name('css-1h2tppq ')
-            prod_tabs.extend(drv.find_elements_by_class_name('css-18ih2xz'))
+            prod_tabs = drv.find_elements_by_class_name('css-1wugx5m')
+            prod_tabs.extend(drv.find_elements_by_class_name('css-12vae0p'))
 
             tab_names = []
             for t in prod_tabs:
@@ -980,8 +994,7 @@ class Detail(Sephora):
 
             # no. of votes
             try:
-                votes = drv.find_element_by_xpath(
-                    '/html/body/div[3]/div[5]/main/div[2]/div[1]/div/div/div[2]/div[1]/div[1]/div[2]/div[2]/span/span').text
+                votes = drv.find_elements_by_class_name('css-2rg6q7')[-1].text
                 # print(votes)
             except Exception as ex:
                 log_exception(self.logger,
@@ -1146,7 +1159,7 @@ class Detail(Sephora):
                 close_popups(drv)
                 accept_alert(drv, 2)
                 reviews = int(drv.find_element_by_class_name(
-                    'css-tc6qfq').text.split()[0])
+                    'css-ils4e4').text.split()[0])
                 # print(reviews)
             except Exception as ex:
                 log_exception(self.logger,
@@ -1255,6 +1268,8 @@ class Detail(Sephora):
         if download:
             if fresh_start:
                 fresh()
+                self.logger.info(
+                    'Starting Fresh Detail Extraction.')
             else:
                 if Path(self.detail_path/'sph_detail_progress_tracker').exists():
                     self.meta = pd.read_feather(
@@ -1510,7 +1525,7 @@ class Review(Sephora):
                 close_popups(drv)
                 accept_alert(drv, 1)
                 no_of_reviews = int(drv.find_element_by_class_name(
-                    'css-tc6qfq').text.split()[0])
+                    'css-ils4e4').text.split()[0])
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f'Prod ID: {prod_id}')
@@ -1534,7 +1549,7 @@ class Review(Sephora):
 
                     time.sleep(0.4)
                     revs = drv.find_elements_by_class_name(
-                        'css-1ecc607')[2:]
+                        'css-1kk8dps')[2:]
 
                     try:
                         if pd.to_datetime(convert_ago_to_date(revs[-1].find_element_by_class_name('css-1t84k9w').text),
@@ -1562,7 +1577,7 @@ class Review(Sephora):
                             continue
                     try:
                         show_more_review_button = drv.find_element_by_class_name(
-                            'css-frqcui')
+                            'css-xswy5p')
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod ID: {prod_id}. Failed to get show more review button.')
@@ -1603,7 +1618,7 @@ class Review(Sephora):
                     close_popups(drv)
                     try:
                         show_more_review_button = drv.find_element_by_class_name(
-                            'css-frqcui')
+                            'css-xswy5p')
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod ID: {prod_id}. Failed to get show more review button.')
@@ -1660,7 +1675,7 @@ class Review(Sephora):
             close_popups(drv)
 
             product_reviews = drv.find_elements_by_class_name(
-                'css-1ecc607')[2:]
+                'css-1kk8dps')[2:]
 
             # print('starting extraction')
             r = 0
@@ -1671,8 +1686,12 @@ class Review(Sephora):
                 ActionChains(drv).move_to_element(rev).perform()
 
                 try:
-                    review_text = rev.find_element_by_class_name(
-                        'css-7rv8g1').text
+                    try:
+                        review_text = rev.find_element_by_class_name(
+                            'css-1jg2pb9').text
+                    except NoSuchElementException:
+                        review_text = rev.find_element_by_class_name(
+                            'css-429528').text
                 except Exception as ex:
                     log_exception(self.logger,
                                   additional_information=f'Prod ID: {prod_id}. Failed to extract review_text. Skip review.')
@@ -1680,7 +1699,7 @@ class Review(Sephora):
 
                 try:
                     review_date = convert_ago_to_date(
-                        rev.find_element_by_class_name('css-1t84k9w').text)
+                        rev.find_element_by_class_name('css-h2vfi1').text)
                     if pd.to_datetime(review_date, infer_datetime_format=True) < \
                             pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                         continue
@@ -1691,7 +1710,7 @@ class Review(Sephora):
 
                 try:
                     review_title = rev.find_element_by_class_name(
-                        'css-85k18d').text
+                        'css-1jfmule').text
                 except Exception as ex:
                     log_exception(self.logger,
                                   additional_information=f'Prod ID: {prod_id}. Failed to extract review_title.')
@@ -1699,7 +1718,7 @@ class Review(Sephora):
 
                 try:
                     product_variant = rev.find_element_by_class_name(
-                        'css-gjgyg3').text
+                        'css-1op1cn7').text
                 except Exception as ex:
                     log_exception(self.logger,
                                   additional_information=f'Prod ID: {prod_id}. Failed to extract product_variant.')
@@ -1715,7 +1734,7 @@ class Review(Sephora):
 
                 try:
                     user_attribute = [{'_'.join(u.lower().split()[0:-1]): u.lower().split()[-1]}
-                                      for u in rev.find_element_by_class_name('css-j5yt83').text.split('\n')]
+                                      for u in rev.find_element_by_class_name('css-ecreye').text.split('\n')]
                     # user_attribute = []
                     # for u in rev.find_elements_by_class_name('css-j5yt83'):
                     #     user_attribute.append(
@@ -1727,7 +1746,7 @@ class Review(Sephora):
 
                 try:
                     recommend = rev.find_element_by_class_name(
-                        'css-1nv53ng').text
+                        'css-1tf5yph').text
                 except Exception as ex:
                     log_exception(self.logger,
                                   additional_information=f'Prod ID: {prod_id}. Failed to extract recommend.')
@@ -1741,7 +1760,7 @@ class Review(Sephora):
                 except Exception as ex:
                     log_exception(self.logger,
                                   additional_information=f'Prod ID: {prod_id}. Failed to extract helpful.')
-                    helpful = []
+                    helpful = ''
 
                 review_data.append({'prod_id': prod_id, 'product_name': product_name,
                                     'user_attribute': user_attribute, 'product_variant': product_variant,
@@ -1996,7 +2015,7 @@ class Image(Sephora):
             close_popups(drv)
 
             try:
-                price = drv.find_element_by_class_name('css-slwsq8')
+                price = drv.find_element_by_class_name('css-1865ad6')
             except Exception as ex:
                 log_exception(
                     self.logger, additional_information=f'Prod ID: {prod_id}')
@@ -2013,12 +2032,12 @@ class Image(Sephora):
             try:
                 accept_alert(drv, 1)
                 close_popups(drv)
-                images = drv.find_elements_by_class_name('css-od26es')
+                images = drv.find_elements_by_class_name('css-11rgy2w')
                 if len(images) == 0:
                     try:
                         accept_alert(drv, 1)
                         close_popups(drv)
-                        images = drv.find_elements_by_class_name('css-od26es')
+                        images = drv.find_elements_by_class_name('css-11rgy2w')
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod ID: {prod_id}')

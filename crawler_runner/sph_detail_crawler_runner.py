@@ -11,7 +11,7 @@ from meiyume.utils import chunks, ranges
 
 warnings.simplefilter(action='ignore')
 
-open_with_proxy_server = False
+open_with_proxy_server = True
 
 
 def exclude_scraped_products_from_tracker(detail_crawler: Detail, reset_na: bool = False) -> pd.DataFrame:
@@ -58,7 +58,7 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
         else:
             fresh_start = False
             auto_fresh_start = False
-        detail_crawler.extract(metadata=meta_df, download=True, n_workers=3,
+        detail_crawler.extract(metadata=meta_df, download=True, n_workers=8,
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
                                open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
@@ -73,7 +73,7 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
 
     progress_tracker = exclude_scraped_products_from_tracker(
         detail_crawler, reset_na=True)
-    n_workers = 3
+    n_workers = 4
     trials = 10
     while progress_tracker.detail_scraped[progress_tracker.detail_scraped == 'N'].count() != 0:
         detail_crawler.extract(metadata=meta_df, download=True, n_workers=n_workers,
