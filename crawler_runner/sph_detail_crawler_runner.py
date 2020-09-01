@@ -106,7 +106,7 @@ if __name__ == "__main__":
     detail_crawler = Detail(
         path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
-    gecko_log_path = detail_crawler.detail_path/'geckodriver.log'
+    gecko_log_path = detail_crawler.detail_path/'service/geckodriver.log'
     if gecko_log_path.exists():
         gecko_log_path.unlink()
 

@@ -91,7 +91,7 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
                                open_headless=False, open_with_proxy_server=True, randomize_proxy_usage=True,
-                               complie_progress_files=False, clean=False, delete_progress=False)
+                               compile_progress_files=False, clean=False, delete_progress=False)
 
         review_crawler.terminate_logging()
         del review_crawler
@@ -108,7 +108,7 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
         review_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
                                fresh_start=False, auto_fresh_start=False,
                                open_headless=False, open_with_proxy_server=True, randomize_proxy_usage=True,
-                               complie_progress_files=False, clean=False, delete_progress=False)
+                               compile_progress_files=False, clean=False, delete_progress=False)
 
         if trials <= 4:
             reset_na = True
@@ -122,7 +122,7 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
             break
 
     review_crawler.extract(metadata=None, download=False, fresh_start=False, auto_fresh_start=False,
-                           complie_progress_files=True,  clean=True, delete_progress=False)
+                           compile_progress_files=True,  clean=True, delete_progress=False)
     # Path(review_crawler.review_path/'sph_review_progress_tracker.csv').unlink()
     review_crawler.terminate_logging()
     del review_crawler
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     review_crawler = Review(
         path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
-    gecko_log_path = review_crawler.review_path/'geckodriver.log'
+    gecko_log_path = review_crawler.review_path/'service/geckodriver.log'
     if gecko_log_path.exists():
         gecko_log_path.unlink()
 

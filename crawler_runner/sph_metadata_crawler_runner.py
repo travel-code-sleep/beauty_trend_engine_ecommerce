@@ -88,7 +88,7 @@ if __name__ == "__main__":
     metadata_crawler = Metadata(
         path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
-    gecko_log_path = metadata_crawler.metadata_path/'geckodriver.log'
+    gecko_log_path = metadata_crawler.metadata_path/'service/geckodriver.log'
     if gecko_log_path.exists():
         gecko_log_path.unlink()
 

@@ -94,7 +94,7 @@ if __name__ == '__main__':
     if gecko_driver_path.exists():
         shutil.rmtree(gecko_driver_path)
 
-    gecko_log_path = image_crawler.image_path/'geckodriver.log'
+    gecko_log_path = image_crawler.image_path/'service/geckodriver.log'
     if gecko_log_path.exists():
         gecko_log_path.unlink()
 
