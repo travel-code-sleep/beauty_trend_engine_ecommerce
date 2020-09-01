@@ -50,8 +50,10 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
     Args:
         metadata_crawler (Metadata): [description]
     """
-    metadata_crawler.extract(download=True, fresh_start=True, auto_fresh_start=True, n_workers=8, open_headless=False,
-                             open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=randomize_proxy_usage,
+    metadata_crawler.extract(download=False, fresh_start=False, auto_fresh_start=False,
+                             n_workers=8, open_headless=False,
+                             open_with_proxy_server=open_with_proxy_server,
+                             randomize_proxy_usage=randomize_proxy_usage,
                              compile_progress_files=False, clean=False, delete_progress=False)
 
     progess_tracker = exclude_scraped_pages_from_tracker(
@@ -59,8 +61,10 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
     n_workers = 3
     trials = 5
     while progess_tracker.scraped[progess_tracker.scraped == 'N'].count() != 0:
-        metadata_crawler.extract(download=True, fresh_start=False, auto_fresh_start=False, n_workers=n_workers, open_headless=False,
-                                 open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=randomize_proxy_usage,
+        metadata_crawler.extract(download=True, fresh_start=False, auto_fresh_start=False,
+                                 n_workers=n_workers, open_headless=False,
+                                 open_with_proxy_server=open_with_proxy_server,
+                                 randomize_proxy_usage=randomize_proxy_usage,
                                  compile_progress_files=False, clean=False, delete_progress=False)
 
         if trials <= 2:
@@ -83,4 +87,12 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
 if __name__ == "__main__":
     metadata_crawler = Metadata(
         path="D:/Amit/Meiyume/meiyume_data/spider_runner")
+
+    gecko_log_path = metadata_crawler.metadata_path/'geckodriver.log'
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()
+
     run_metdata_crawler(metadata_crawler)
+
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()

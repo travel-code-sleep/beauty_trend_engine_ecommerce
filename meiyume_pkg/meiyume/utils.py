@@ -17,7 +17,7 @@ from typing import *
 import boto3
 import numpy as np
 import pandas as pd
-from retrying import retry
+import pg8000
 # import missingno as msno
 from selenium import webdriver
 from selenium.common.exceptions import (ElementClickInterceptedException,
@@ -37,6 +37,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
+
+from retrying import retry
 
 os.environ['WDM_LOG_LEVEL'] = '0'
 
@@ -168,12 +170,15 @@ class Browser(object):
             capabilities["marionette"] = True
             proxy.add_to_capabilities(capabilities)
             driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
-                                       desired_capabilities=capabilities, options=firefox_options, firefox_binary=binary)
+                                       desired_capabilities=capabilities, options=firefox_options,
+                                       firefox_binary=binary, service_log_path=path/'service/geckodriver.log',
+                                       log_path=path/'geckodriver.log')
             driver.set_page_load_timeout(600)
             return driver
 
         driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
-                                   options=firefox_options, firefox_binary=binary)
+                                   options=firefox_options, firefox_binary=binary,
+                                   service_log_path=path/'service/geckodriver.log', log_path=path/'geckodriver.log')
         driver.set_page_load_timeout(600)
         return driver
 
@@ -705,6 +710,45 @@ class S3FileManager(object):
             print('file deleted.')
         except Exception:
             print('delete operation failed')
+
+
+class RedShiftReader(object):
+    """RedShiftReader [summary]
+
+    [extended_summary]
+
+    Args:
+        object ([type]): [description]
+    """
+
+    def __init__(self):
+        """__init__ [summary]
+
+        [extended_summary]
+        """
+        self.host = 'lifungprod.cctlwakofj4t.ap-southeast-1.redshift.amazonaws.com'
+        self.port = 5439
+        self.database = 'lifungdb'
+        self.user_name = 'btemymuser'
+        self.password = 'Lifung123'
+        self.conn = pg8000.connect(
+            database=self.database, host=self.host, port=self.port,
+            user=self.user_name, password=self.password)
+
+    def query_database(self, query: str) -> pd.DataFrame:
+        """query_database [summary]
+
+        [extended_summary]
+
+        Args:
+            query (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+        """
+        df = pd.read_sql_query(query, self.conn)
+        df.columns = [name.decode('utf-8') for name in df.columns]
+        return df
 
 
 def log_exception(logger: Logger, additional_information: Optional[str] = None) -> None:

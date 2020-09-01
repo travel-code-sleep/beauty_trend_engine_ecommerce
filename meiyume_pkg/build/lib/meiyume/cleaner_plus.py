@@ -368,6 +368,7 @@ class Cleaner():
         if self.source == 'sph':
             # convert votes to numbers
             self.detail.votes.fillna('0.0', inplace=True)
+            self.detail.votes = self.detail.votes.apply(lambda x: x.split()[0])
             self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
                                                         if 'k' in x else float(x.replace('m', ''))*1000000)
 
@@ -386,7 +387,7 @@ class Cleaner():
             self.detail.drop('rating_dist', axis=1, inplace=True)
 
             # clean sephora would recommend
-            self.detail.would_recommend = self.detail.would_recommend.str.replace(
+            self.detail.would_recommend = self.detail.would_recommend.astype(str).str.replace(
                 '%', '').astype(float)
             self.detail.would_recommend.fillna(0.0, inplace=True)
             self.detail.rename(

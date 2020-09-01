@@ -701,7 +701,7 @@ class Detail(Sephora):
             # drv # type: webdriver.Chrome
             # close popup windows
             close_popups(drv)
-            accept_alert(drv, 2)
+            accept_alert(drv, 1)
 
             try:
                 item_price = drv.find_element_by_class_name('css-1865ad6').text
@@ -754,7 +754,7 @@ class Detail(Sephora):
 
             if 'ingredients' in tab_names:
                 close_popups(drv)
-                accept_alert(drv, 3)
+                accept_alert(drv, 1)
                 if len(tab_names) == 5:
                     try:
                         tab_num = 2
@@ -829,7 +829,7 @@ class Detail(Sephora):
             # get all the variation of product
             # close popup windows
             close_popups(drv)
-            accept_alert(drv, 2)
+            accept_alert(drv, 1)
 
             product_variety = []
             try:
@@ -855,7 +855,7 @@ class Detail(Sephora):
             if len(product_variety) > 0:
                 for typ in product_variety:
                     close_popups(drv)
-                    accept_alert(drv, 2)
+                    accept_alert(drv, 1)
                     try:
                         self.scroll_to_element(drv, typ)
                         ActionChains(drv).move_to_element(
@@ -891,7 +891,7 @@ class Detail(Sephora):
             """
             # close popup windows
             close_popups(drv)
-            accept_alert(drv, 3)
+            accept_alert(drv, 1)
 
             try:
                 review_sort_trigger = drv.find_element_by_id(
@@ -904,9 +904,9 @@ class Detail(Sephora):
                         ActionChains(drv).move_to_element(
                             btn).click(btn).perform()
                         break
-                time.sleep(8)
+                time.sleep(6)
                 close_popups(drv)
-                accept_alert(drv, 3)
+                accept_alert(drv, 1)
                 rev = drv.find_elements_by_class_name('css-1kk8dps')[2:]
                 try:
                     first_review_date = convert_ago_to_date(
@@ -1007,7 +1007,7 @@ class Detail(Sephora):
             if 'details' in tab_names:
                 try:
                     close_popups(drv)
-                    accept_alert(drv, 2)
+                    accept_alert(drv, 1)
                     tab_num = tab_names.index('details')
                     detail_button = drv.find_element_by_id(f'tab{tab_num}')
                     try:
@@ -1046,7 +1046,7 @@ class Detail(Sephora):
             if 'how to use' in tab_names:
                 try:
                     close_popups(drv)
-                    accept_alert(drv, 2)
+                    accept_alert(drv, 1)
 
                     tab_num = tab_names.index('how to use')
                     how_to_use_button = drv.find_element_by_id(f'tab{tab_num}')
@@ -1086,7 +1086,7 @@ class Detail(Sephora):
             if 'about the brand' in tab_names:
                 try:
                     close_popups(drv)
-                    accept_alert(drv, 2)
+                    accept_alert(drv, 1)
 
                     tab_num = tab_names.index('about the brand')
                     about_the_brand_button = drv.find_element_by_id(
@@ -1157,7 +1157,7 @@ class Detail(Sephora):
 
             try:
                 close_popups(drv)
-                accept_alert(drv, 2)
+                accept_alert(drv, 1)
                 reviews = int(drv.find_element_by_class_name(
                     'css-ils4e4').text.split()[0])
                 # print(reviews)
@@ -1170,7 +1170,7 @@ class Detail(Sephora):
 
             try:
                 close_popups(drv)
-                accept_alert(drv, 2)
+                accept_alert(drv, 1)
                 rating_distribution = drv.find_element_by_class_name(
                     'css-960eb6').text.split('\n')
                 # print(rating_distribution)
@@ -1183,7 +1183,7 @@ class Detail(Sephora):
 
             try:
                 close_popups(drv)
-                accept_alert(drv, 2)
+                accept_alert(drv, 1)
                 would_recommend = drv.find_element_by_class_name(
                     'css-k9ne19').text
                 # print(would_recommend)
@@ -1993,7 +1993,6 @@ class Image(Sephora):
             if self.meta.loc[prod, 'image_scraped'] in ['Y', 'NA']:
                 continue
             prod_id = self.meta.loc[prod, 'prod_id']
-            product_name = self.meta.loc[prod, 'product_name']
             product_page = self.meta.loc[prod, 'product_page']
 
             # create webdriver
@@ -2015,18 +2014,20 @@ class Image(Sephora):
             close_popups(drv)
 
             try:
-                price = drv.find_element_by_class_name('css-1865ad6')
+                product_text = drv.find_element_by_class_name(
+                    'css-1wag3se').text
+                if 'productnotcarried' in product_text.lower():
+                    self.logger.info(str.encode(f'prod_id: {prod_id} image extraction failed.\
+                                            Product may not be available for sell currently.(page: {product_page})',
+                                                'utf-8', 'ignore'))
+                    self.meta.loc[prod, 'image_scraped'] = 'NA'
+                    self.meta.to_csv(
+                        self.image_path/'sph_image_progress_tracker.csv', index=None)
+                    drv.quit()
+                    continue
             except Exception as ex:
                 log_exception(
                     self.logger, additional_information=f'Prod ID: {prod_id}')
-                self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} image extraction failed.\
-                                            Product may not be available for sell currently.(page: {product_page})',
-                                            'utf-8', 'ignore'))
-                self.meta.loc[prod, 'image_scraped'] = 'NA'
-                self.meta.to_csv(
-                    self.image_path/'sph_image_progress_tracker.csv', index=None)
-                drv.quit()
-                continue
 
             # get image elements
             try:
@@ -2041,7 +2042,7 @@ class Image(Sephora):
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod ID: {prod_id}')
-                        self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} failed to get image sources.\
+                        self.logger.info(str.encode(f'prod_id: {prod_id} failed to get image sources.\
                                                     (page: {product_page})', 'utf-8', 'ignore'))
                         self.meta.loc[prod, 'image_scraped'] = 'NA'
                         self.meta.to_csv(
@@ -2052,7 +2053,7 @@ class Image(Sephora):
                 continue
             else:
                 if len(images) == 0:
-                    self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} image extraction failed.\
+                    self.logger.info(str.encode(f'{prod_id} image extraction failed.\
                                                     (page: {product_page})', 'utf-8', 'ignore'))
                     self.meta.loc[prod, 'image_scraped'] = 'NA'
                     self.meta.to_csv(
@@ -2089,7 +2090,7 @@ class Image(Sephora):
                 log_exception(self.logger,
                               additional_information=f'Prod ID: {prod_id}')
                 if image_count <= 1:
-                    self.logger.info(str.encode(f'Product: {product_name} prod_id: {prod_id} image extraction failed.\
+                    self.logger.info(str.encode(f'prod_id: {prod_id} image extraction failed.\
                                                     (page: {product_page})', 'utf-8', 'ignore'))
                     self.meta.loc[prod, 'image_scraped'] = 'NA'
                     self.meta.to_csv(
@@ -2103,31 +2104,31 @@ class Image(Sephora):
         self.meta.to_csv(
             self.image_path/'sph_image_progress_tracker.csv', index=None)
 
-    def extract(self, start_idx: int = None, end_idx: int = None, list_of_index=None, fresh_start: bool = False,
-                n_workers: int = 5, download: bool = True, open_headless: bool = False,
-                open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True):
+    def extract(self, metadata: Union[pd.DataFrame, str, Path], download: bool = True,
+                n_workers: int = 5, fresh_start: bool = False, auto_fresh_start: bool = False,
+                open_headless: bool = False, open_with_proxy_server: bool = True,
+                randomize_proxy_usage: bool = True,
+                start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
+                ):
         """extract [summary]
 
         [extended_summary]
 
         Args:
-            start_idx (int, optional): [description]. Defaults to None.
-            end_idx (int, optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            n_workers (int, optional): [description]. Defaults to 5.
+            metadata (Union[pd.DataFrame, str, Path]): [description]
             download (bool, optional): [description]. Defaults to True.
-            open_headless (bool, optional): [description]. Defaults to True.
+            n_workers (int, optional): [description]. Defaults to 5.
+            fresh_start (bool, optional): [description]. Defaults to False.
+            auto_fresh_start (bool, optional): [description]. Defaults to False.
+            open_headless (bool, optional): [description]. Defaults to False.
             open_with_proxy_server (bool, optional): [description]. Defaults to True.
             randomize_proxy_usage (bool, optional): [description]. Defaults to True.
+            start_idx (Optional[int], optional): [description]. Defaults to None.
+            end_idx (Optional[int], optional): [description]. Defaults to None.
+            list_of_index ([type], optional): [description]. Defaults to None.
         """
         def fresh():
-            list_of_files = self.metadata_clean_path.glob(
-                'no_cat_cleaned_sph_product_metadata_all*')
-
-            self.meta = pd.read_feather(max(list_of_files, key=os.path.getctime))[
-                ['prod_id', 'product_name', 'product_page', 'meta_date']]
-
+            self.meta = metadata[['prod_id', 'product_page']]
             self.meta['image_scraped'] = 'N'
 
         if download:
@@ -2138,18 +2139,19 @@ class Image(Sephora):
                     self.meta = pd.read_csv(
                         self.image_path/'sph_image_progress_tracker.csv')
                     if sum(self.meta.image_scraped == 'N') == 0:
-                        fresh()
-                        self.logger.info(
-                            'Last Run was Completed. Starting Fresh Extraction.')
+                        if auto_fresh_start:
+                            fresh()
+                            self.logger.info(
+                                'Last Run was Completed. Starting Fresh Extraction.')
+                        else:
+                            self.logger.info(
+                                f'Image extraction for this cycle is complete. Please check files in path: {self.image_path}')
+                            print(
+                                f'Image extraction for this cycle is complete. Please check files in path: {self.image_path}')
                     else:
                         self.logger.info(
                             'Continuing Image Extraction From Last Run.')
-                else:
-                    fresh()
-                    self.logger.info(
-                        'Image Progress Tracker not found. Starting Fresh Extraction.')
 
-            self.meta = self.meta[~self.meta.image_scraped.isin(['Y', 'NA'])]
             self.meta.to_csv(
                 self.image_path/'sph_image_progress_tracker.csv', index=None)
             self.meta.reset_index(inplace=True, drop=True)
@@ -2165,17 +2167,24 @@ class Image(Sephora):
                 indices = range(start_idx, end_idx)
             else:
                 indices = range(len(self.meta))
-            # print(indices)
-            self.get_images(indices=indices, open_headless=open_headless, )
 
             if list_of_index:
                 self.get_images(
-                    indices=list_of_index)
+                    indices=list_of_index, open_headless=open_headless,
+                    open_with_proxy_server=open_with_proxy_server,
+                    randomize_proxy_usage=randomize_proxy_usage)
             else:  # By default the code will with 5 concurrent threads. you can change this behaviour by changing n_workers
-                lst_of_lst = ranges(len(indices), n_workers)
+                if start_idx:
+                    lst_of_lst = ranges(
+                        indices[-1]+1, n_workers, start_idx=start_idx)
+                else:
+                    lst_of_lst = ranges(len(indices), n_workers)
+                print(lst_of_lst)
+
                 headless = [open_headless for i in lst_of_lst]
                 proxy = [open_with_proxy_server for i in lst_of_lst]
                 rand_proxy = [randomize_proxy_usage for i in lst_of_lst]
+
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     executor.map(self.get_images, lst_of_lst, headless,
                                  proxy, rand_proxy)

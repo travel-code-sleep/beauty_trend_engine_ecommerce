@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 from meiyume.sph.crawler import Detail
+from meiyume.algorithms import SexyMetaDetail, SexyIngredient
 from meiyume.utils import chunks, ranges
 
 warnings.simplefilter(action='ignore')
@@ -58,10 +59,11 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
         else:
             fresh_start = False
             auto_fresh_start = False
-        detail_crawler.extract(metadata=meta_df, download=True, n_workers=8,
+        detail_crawler.extract(metadata=meta_df, download=True, n_workers=6,
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
-                               open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
+                               open_headless=False, open_with_proxy_server=open_with_proxy_server,
+                               randomize_proxy_usage=True,
                                compile_progress_files=False, clean=False, delete_progress=False)
 
         detail_crawler.terminate_logging()
@@ -78,7 +80,8 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
     while progress_tracker.detail_scraped[progress_tracker.detail_scraped == 'N'].count() != 0:
         detail_crawler.extract(metadata=meta_df, download=True, n_workers=n_workers,
                                fresh_start=False, auto_fresh_start=False,
-                               open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
+                               open_headless=False, open_with_proxy_server=open_with_proxy_server,
+                               randomize_proxy_usage=True,
                                compile_progress_files=False, clean=False, delete_progress=False)
         if trials <= 4:
             reset_na = True
@@ -103,6 +106,10 @@ if __name__ == "__main__":
     detail_crawler = Detail(
         path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
+    gecko_log_path = detail_crawler.detail_path/'geckodriver.log'
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()
+
     files = list(detail_crawler.detail_crawler_trigger_path.glob(
         'no_cat_cleaned_sph_product_metadata_all*'))
 
@@ -112,3 +119,20 @@ if __name__ == "__main__":
         run_detail_crawler(meta_df=meta_df, detail_crawler=detail_crawler)
 
         Path(files[0]).unlink()
+
+        meta_ranker = SexyMetaDetail(
+            path='D:/Amit/Meiyume/meiyume_data/spider_runner')
+        meta_detail = meta_ranker.make(source='sph')
+
+        del meta_detail
+        gc.collect()
+
+        sexy_ing = SexyIngredient(
+            path='D:/Amit/Meiyume/meiyume_data/spider_runner')
+        ing = sexy_ing.make(source='sph')
+
+        del ing
+        gc.collect()
+
+        if gecko_log_path.exists():
+            gecko_log_path.unlink()

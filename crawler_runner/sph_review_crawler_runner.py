@@ -7,37 +7,34 @@ from pathlib import Path
 
 import pandas as pd
 from meiyume.sph.crawler import Review
-from meiyume.utils import chunks, ranges
+from meiyume.utils import RedShiftReader, chunks, ranges
 
 warnings.simplefilter(action='ignore')
+db = RedShiftReader()
 
 
-def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame, review_crawler: Review) -> pd.DataFrame:
+def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -> pd.DataFrame:
     """get_metadata_with_last_scraped_review_date [summary]
 
     [extended_summary]
 
     Args:
-        review_crawler (Review): [description]
+        meta_df (pd.DataFrame): [description]
 
     Returns:
         pd.DataFrame: [description]
     """
-    review_files = review_crawler.old_review_clean_files_path.glob(
-        'cleaned_sph_product_review_all*')
-    rvf = []
-    for file in review_files:
-        df = pd.read_feather(file)
-        rvf.append(df)
-    rev_df = pd.concat(rvf, axis=0, ignore_index=True)
-    rev_df.drop_duplicates(inplace=True)
-    rev_df.reset_index(inplace=True, drop=True)
-
-    df = rev_df.groupby('prod_id').review_date.max().reset_index()
+    df = db.query_database("with cte as (select row_number() over (partition by prod_id\
+                                 order by review_date desc) as rn,\
+                                    prod_id,\
+                                    review_date\
+                               from r_bte_product_review_f\
+                               where prod_id like 'sph%')\
+                                select prod_id, review_date\
+                                  from cte\
+                                 where rn=1")
     df.columns = ['prod_id', 'last_scraped_review_date']
     df.set_index('prod_id', inplace=True)
-    del rev_df
-    gc.collect()
 
     meta_df.set_index('prod_id', inplace=True)
     meta_df = meta_df.join(df, how='left')
@@ -90,7 +87,7 @@ def run_review_crawler(meta_df: pd.DataFrame, review_crawler: Review):
         else:
             fresh_start = False
             auto_fresh_start = False
-        review_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=8,
+        review_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=6,
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
                                open_headless=False, open_with_proxy_server=True, randomize_proxy_usage=True,
@@ -136,6 +133,10 @@ if __name__ == "__main__":
     review_crawler = Review(
         path="D:/Amit/Meiyume/meiyume_data/spider_runner")
 
+    gecko_log_path = review_crawler.review_path/'geckodriver.log'
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()
+
     files = list(review_crawler.review_crawler_trigger_path.glob(
         'no_cat_cleaned_sph_product_metadata_all*'))
 
@@ -143,9 +144,11 @@ if __name__ == "__main__":
         meta_df = pd.read_feather(files[0])[
             ['prod_id', 'product_name', 'product_page', 'meta_date']]
 
-        meta_df = get_metadata_with_last_scraped_review_date(
-            meta_df, review_crawler)
+        meta_df = get_metadata_with_last_scraped_review_date(meta_df)
 
         run_review_crawler(meta_df=meta_df, review_crawler=review_crawler)
 
         Path(files[0]).unlink()
+
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()
