@@ -71,12 +71,12 @@ class Browser(object):
 
         Args:
             open_headless (bool, optional): [description]. Defaults to False.
-            open_for_screenshot (bool, optional): True enables image high resolution. If used to take screenshot open_headless must be set to True.
-                                                  Defaults to False.
+            open_for_screenshot (bool, optional): [description]. Defaults to False.
             open_with_proxy_server (bool, optional): [description]. Defaults to False.
+            path (Path, optional): [description]. Defaults to Path.cwd().
 
         Returns:
-            webdriver: [description]
+            webdriver.Chrome: [description]
         """
         # chrome_options = Options()
         chrome_options = webdriver.ChromeOptions()
@@ -136,6 +136,10 @@ class Browser(object):
         Returns:
             webdriver: [description]
         """
+        # Add service path creation condition to store logs
+        if not Path(path/'service').exists():
+            (path/'service').mkdir(parents=True, exist_ok=True)
+
         binary = FirefoxBinary(
             r'C:\Program Files\Mozilla Firefox\firefox.exe')
         firefox_options = webdriver.FirefoxOptions()
@@ -286,6 +290,17 @@ class Sephora(Browser):
             self.image_path.mkdir(parents=True, exist_ok=True)
             self.image_processed_path.mkdir(parents=True, exist_ok=True)
 
+        if data_def == 'detail_review_image':
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
         # set universal log path for sephora
         self.crawl_log_path = self.path/'crawler_logs'
         self.crawl_log_path.mkdir(parents=True, exist_ok=True)
@@ -358,6 +373,18 @@ class Boots(Browser):
         self.image_path = self.path/'product_images'
         self.image_processed_path = self.image_path/'processed_product_images'
         if data_def == 'image':
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        if data_def == 'detail_review_image':
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
             self.image_path.mkdir(parents=True, exist_ok=True)
             self.image_processed_path.mkdir(parents=True, exist_ok=True)
 

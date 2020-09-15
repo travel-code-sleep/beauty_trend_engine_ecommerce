@@ -202,40 +202,49 @@ class Cleaner():
         self.meta[self.meta.columns.difference(['product_name', 'product_page', 'brand'])] \
             = self.meta[self.meta.columns.difference(['product_name', 'product_page', 'brand'])]\
             .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
+        self.meta.drop_duplicates(inplace=True)
+
         # self.meta.source = self.meta.source.str.lower()
         if self.source == 'bts':
-            cat_dict = {"men": ["aftershave", "male grooming tools", "men's toiletries"],
-                        "skincare":	["skincare", "suncare", "premium beauty & skincare"],
-                        "makeup-tools":	["beauty tools"],
-                        "makeup-cosmetics": ["make-up"],
-                        "fragrance": ["fragrance gift sets", "perfume", "fragrance offers"],
+
+            self.meta.category[(self.meta.category.isin(['beauty', 'toiletries', ])) &
+                               (self.meta.product_type.isin(['conditioner',
+                                                             'luxury-beauty-hair',
+                                                             'shampoo',
+                                                             'hair-value-packs-and-bundles',
+                                                             'thinning-hair'
+                                                             ]))] = 'hair'
+            self.meta.category[(
+                self.meta.product_type.isin(['make-up-remover-']))] = 'makeup'
+            self.meta.category[(
+                self.meta.product_type.isin(['bath-accessories', 'bath-body-gifts-',
+                                             'bestsellers-luxury-bath-body',
+                                             'body-scrub', 'bubble-bath-oil',
+                                             ]))] = 'bath-body'
+
+            cat_dict = {"men": ["mens"],
+                        "skincare":	["skincare"],
+                        "makeup-tools":	["beauty"],
+                        "makeup-cosmetics": ["makeup"],
+                        "fragrance": ["fragrance"],
                         "gifts": ["gifts for her", "gifts for him"],
-                        "hair-products":	["hair", "hair styling tools"],
-                        "bath-body":	["bathroom essentials", "luxury bath & body"]
+                        "hair-products":	["hair"],
+                        "bath-body":	["bathroom essentials", "luxury bath & body", "toiletries", "baby-child"],
+                        # "toiletries": []
                         }
             df = pd.DataFrame.from_dict(cat_dict, orient='index').reset_index()
             df = df.melt(id_vars=["index"]).drop(columns='variable')
             df.columns = ['to_cat', 'from_cat']
 
-            self.meta = self.meta[self.meta.category.isin(['aftershave',
-                                                           'bathroom essentials',
-                                                           'beauty tools',
-                                                           'fragrance gift sets',
-                                                           'fragrance offers',
-                                                           'gifts for her',
-                                                           'gifts for him',
+            self.meta = self.meta[self.meta.category.isin(['baby-child',
+                                                           'beauty',
+                                                           'fragrance',
                                                            'hair',
-                                                           'hair styling tools',
-                                                           'luxury bath & body',
-                                                           'make-up',
-                                                           'male grooming tools',
-                                                           "men's toiletries",
-                                                           #    'new in beauty & skincare',
-                                                           #    'new in fragrance',
-                                                           'perfume',
-                                                           'premium beauty & skincare',
+                                                           'makeup',
+                                                           'mens',
                                                            'skincare',
-                                                           'suncare'])]
+                                                           'toiletries',
+                                                           ])]
 
             self.meta.reset_index(inplace=True, drop=True)
 
@@ -249,6 +258,41 @@ class Cleaner():
                 lambda x: [i for i in brand_names if unidecode(i.lower()) in unidecode(x.lower())])
             self.meta.brand = self.meta.brand.apply(
                 lambda x: x[0] if len(x) > 0 else '')
+
+            self.meta['price1'], self.meta['price2'] = zip(
+                *self.meta.price.str.split('|', expand=True).values)
+
+            self.meta.discount = self.meta.discount.map(Cleaner.clean_price)
+            self.meta.discount[self.meta.discount == ''] = str(0)
+
+            self.meta.price1 = self.meta.price1.apply(self.clean_price).apply(
+                lambda x: x.split()[0]).astype('float')
+
+            self.meta.price2 = self.meta.price2.fillna('')
+            self.meta.price2 = self.meta.price2.apply(self.clean_price)
+            self.meta.price2 = self.meta.apply(lambda x: str(x.price1) if x.price2 ==
+                                               '' else x.price2, axis=1).apply(lambda x: x.split()[0]).astype('float')
+
+            def get_low_high_price(x):
+                if x.price1 > x.price2:
+                    high_p = x.price1
+                    low_p = x.price2
+                elif x.price1 == x.price2:
+                    high_p = x.price1
+                    low_p = x.price1
+                else:
+                    high_p = x.price2
+                    low_p = x.price1
+                return low_p, high_p
+
+            self.meta['low_p'], self. meta['high_p'] = zip(
+                *self.meta.apply(get_low_high_price, axis=1))
+
+            self.meta['mrp'] = self.meta.high_p.astype(
+                float) + self.meta.discount.astype(float)
+
+            self.meta.drop(columns=['discount', 'price',
+                                    'price1', 'price2'], inplace=True)
 
         def fix_multi_low_price(x):
             """[summary]
@@ -273,9 +317,6 @@ class Cleaner():
             self.meta.low_p[self.meta.low_p.apply(len) > 7], self.meta.mrp[self.meta.low_p.apply(len) > 7] =\
                 zip(*self.meta.low_p[self.meta.low_p.apply(len)
                                      > 7].apply(fix_multi_low_price))
-        else:
-            for i in ['mrp', 'high_p', 'low_p']:
-                self.meta[i] = self.meta[i].map(Cleaner.clean_price)
 
         # create product id
         self.meta['prod_id'] = self.meta.product_page.apply(
@@ -312,8 +353,9 @@ class Cleaner():
         self.meta_no_cat = self.meta.loc[:,
                                          self.meta.columns.difference(['category'])]
         self.meta_no_cat.drop_duplicates(subset='prod_id', inplace=True)
-
         self.meta_no_cat.reset_index(drop=True, inplace=True)
+
+        self.meta.drop_duplicates(inplace=True)
         self.meta.reset_index(drop=True, inplace=True)
 
         if save:
@@ -367,10 +409,11 @@ class Cleaner():
 
         if self.source == 'sph':
             # convert votes to numbers
-            self.detail.votes.fillna('0.0', inplace=True)
-            self.detail.votes = self.detail.votes.apply(lambda x: x.split()[0])
-            self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
-                                                        if 'k' in x else float(x.replace('m', ''))*1000000)
+            # self.detail.votes.fillna('0.0', inplace=True)
+            # self.detail.votes = self.detail.votes.apply(lambda x: x.split()[0])
+            # self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
+            #                                             if 'k' in x else float(x.replace('m', ''))*1000000)
+            self.detail.votes = ''
 
             # split sephora rating distribution
             def split_rating_dist(x):
@@ -726,7 +769,9 @@ class Cleaner():
             '''
             # separate helpful and not helpful
             self.review['helpful_n'], self.review['helpful_y'] = zip(
-                *self.review.helpful.str.replace(' ', '').str.split('helpful', expand=True).loc[:, 1:2].values)
+                *self.review.helpful.astype(str).str.replace(' ',
+                                                             '').str.split('helpful',
+                                                                           expand=True).loc[:, 1:2].values)
 
             hlp_regex = re.compile('[a-zA-Z()]')
             self.review.helpful_y = self.review.helpful_y.apply(
