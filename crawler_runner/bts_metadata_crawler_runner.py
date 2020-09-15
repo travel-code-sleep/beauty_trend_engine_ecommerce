@@ -6,14 +6,14 @@ import warnings
 from pathlib import Path
 
 import pandas as pd
-from meiyume.sph.crawler import Metadata
+from meiyume.bts.crawler import Metadata
 from meiyume.utils import chunks, ranges
 
 # from meiyume.utils import Sephora
 warnings.simplefilter(action='ignore')
 
-open_with_proxy_server = True
-randomize_proxy_usage = True
+open_with_proxy_server = False
+randomize_proxy_usage = False
 
 
 def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: bool = False) -> pd.DataFrame:
@@ -28,7 +28,7 @@ def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: boo
         pd.DataFrame: [description]
     """
     progress_tracker = pd.read_feather(
-        metadata_crawler.metadata_path/'sph_metadata_progress_tracker')
+        metadata_crawler.metadata_path/'bts_metadata_progress_tracker')
 
     if reset_na:
         progress_tracker.scraped[progress_tracker.scraped == 'NA'] = 'N'
@@ -38,7 +38,7 @@ def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: boo
     progress_tracker = progress_tracker[progress_tracker.scraped != 'Y']
     progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
     progress_tracker.to_feather(
-        metadata_crawler.metadata_path/'sph_metadata_progress_tracker')
+        metadata_crawler.metadata_path/'bts_metadata_progress_tracker')
     return progress_tracker
 
 
@@ -78,7 +78,7 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
         if trials == 0:
             break
     metadata_crawler.extract(download=False, fresh_start=False, auto_fresh_start=False,
-                             compile_progress_files=True, clean=True, delete_progress=True)
+                             compile_progress_files=True, clean=True, delete_progress=False)
     metadata_crawler.terminate_logging()
     del metadata_crawler
     gc.collect()

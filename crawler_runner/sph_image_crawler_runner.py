@@ -20,7 +20,7 @@ def get_meta_df() -> pd.DataFrame:
         pd.DataFrame: [description]
     """
     df = db.query_database(
-        "select distinct product_page, prod_id, source from r_bte_meta_detail_f where source='sephora.com'")
+        "select distinct prod_id, product_page, source from r_bte_meta_detail_f where source='sephora.com'")
     image_keys = [i['Key'] for i in file_manager.get_matching_s3_keys(prefix='Feeds/BeautyTrendEngine/Image/Staging/', suffix='jpg')
                   if any(job in i['Key'].lower() for job in ['image'])]
     prod_ids = set([key.split('/')[4] for key in image_keys])

@@ -1,6 +1,7 @@
 """This script runs spider to grab sephora metadata."""
 import gc
 import os
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -17,13 +18,10 @@ open_with_proxy_server = True
 
 def exclude_scraped_products_from_tracker(detail_crawler: Detail, reset_na: bool = False) -> pd.DataFrame:
     """exclude_scraped_products_from_tracker [summary]
-
     [extended_summary]
-
     Args:
         detail_crawler (Detail): [description]
         reset_na (bool, optional): [description]. Defaults to False.
-
     Returns:
         pd.DataFrame: [description]
     """
@@ -44,9 +42,7 @@ def exclude_scraped_products_from_tracker(detail_crawler: Detail, reset_na: bool
 
 def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
     """run_detail_crawler [summary]
-
     [extended_summary]
-
     Args:
         meta_df (pd.DataFrame): [description]
         detail_crawler (Detail): [description]
@@ -59,7 +55,7 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
         else:
             fresh_start = False
             auto_fresh_start = False
-        detail_crawler.extract(metadata=meta_df, download=True, n_workers=6,
+        detail_crawler.extract(metadata=meta_df, download=True, n_workers=8,
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
                                open_headless=False, open_with_proxy_server=open_with_proxy_server,
@@ -136,3 +132,6 @@ if __name__ == "__main__":
 
         if gecko_log_path.exists():
             gecko_log_path.unlink()
+    else:
+        print('*Metadata Trigger File Not Found.*')
+        sys.exit(1)
