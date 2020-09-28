@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """ [summary]
 
 [extended_summary]
@@ -526,3 +527,5 @@ class RefreshData():
 
         [extended_summary]
         """
+=======
+>>>>>>> c4e34896487780175b1e64fb581263c9c0949308

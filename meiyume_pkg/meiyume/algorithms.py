@@ -1429,15 +1429,27 @@ class SexyReview(ModelsAlgorithms):
                 self.review = review_data
         else:
             if source == 'sph':
-                review_files = self.sph.review_clean_path.glob(
-                    'cleaned_sph_product_review_all*')
-                self.review = pd.read_feather(
-                    max(review_files, key=os.path.getctime))
+                review_file_key = [i['Key'] for i in
+                                   file_manager.get_matching_s3_keys(
+                    prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_sph_product_review_all')][-1]
+                print(review_file_key)
+                self.review = file_manager.read_feather_s3(review_file_key)
+
             elif source == 'bts':
-                meta_files = self.bts.review_clean_path.glob(
-                    'cleaned_bts_product_review_all*')
-                self.review = pd.read_feather(
-                    max(review_files, key=os.path.getctime))
+                review_file_key = [i['Key'] for i in
+                                   file_manager.get_matching_s3_keys(
+                    prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_bts_product_review_all')][-1]
+                self.review = file_manager.read_feather_s3(review_file_key)
+            # if source == 'sph':
+            #     review_files = self.sph.review_clean_path.glob(
+            #         'cleaned_sph_product_review_all*')
+            #     self.review = pd.read_feather(
+            #         max(review_files, key=os.path.getctime))
+            # elif source == 'bts':
+            #     meta_files = self.bts.review_clean_path.glob(
+            #         'cleaned_bts_product_review_all*')
+            #     self.review = pd.read_feather(
+            #         max(review_files, key=os.path.getctime))
 
         self.review.review_text.fillna('', inplace=True)
         self.review = self.review[self.review.review_text != '']
