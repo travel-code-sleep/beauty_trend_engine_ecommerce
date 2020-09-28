@@ -533,9 +533,13 @@ class Cleaner():
         self.item = self.item[~self.item.item_price.isna()]
         self.item.reset_index(inplace=True, drop=True)
 
-        self.item.item_price = self.item.item_price.astype(str).apply(
-            lambda x: Cleaner.clean_price(x)).str.replace('/', ' ').str.split().apply(
-            get_item_price)
+        if self.source == 'sph':
+            self.item.item_price = self.item.item_price.astype(str).apply(
+                lambda x: Cleaner.clean_price(x)).str.replace('/', ' ').str.split().apply(
+                get_item_price)
+        elif self.source == 'bts':
+            self.item.item_price = self.item.item_price.astype(str).apply(
+                lambda x: self.clean_price(x)).str.replace('/', ' ').str.split().apply(lambda x: x[0]).astype(float)
         # self.item.item_price = self.item.item_price.apply(
         #     get_item_price)
         if self.source == 'sph':
@@ -833,8 +837,9 @@ class Cleaner():
                 self.review['skin_tone'], self.review['skin_type'] = '', '', '', '', ''
         # convert ratings to numbers
         rating_regex = re.compile('stars|star|no|nan')
-        self.review.review_rating = self.review.review_rating.astype(str).apply(
-            lambda x: rating_regex.sub('', x)).astype(int)
+        if self.source == 'sph':
+            self.review.review_rating = self.review.review_rating.astype(str).apply(
+                lambda x: rating_regex.sub('', x)).astype(float)
         # self.review.review_rating = self.review.review_rating.astype(int)
         # convert to pd datetime
         self.review.review_date = pd.to_datetime(

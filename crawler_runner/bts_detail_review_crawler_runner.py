@@ -86,14 +86,14 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
         if i[0] == 0:
-            fresh_start = False
-            auto_fresh_start = False
+            fresh_start = True
+            auto_fresh_start = True
         else:
             fresh_start = False
             auto_fresh_start = False
-        bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=8,
+        bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=4,
                             fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
-                            start_idx=i[0], end_idx=i[-1],
+                            start_idx=i[0], end_idx=i[-1],  # list_of_index=i,
                             open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
@@ -107,8 +107,8 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
 
     progress_tracker = exclude_scraped_products_from_tracker(
         bts_crawler, reset_na=True)
-    n_workers = 6
-    trials = 6
+    n_workers = 4
+    trials = 4
     while progress_tracker.scraped[progress_tracker.scraped == 'N'].count() != 0:
         bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
                             fresh_start=False, auto_fresh_start=False,
@@ -146,14 +146,12 @@ if __name__ == "__main__":
         'no_cat_cleaned_bts_product_metadata_all*'))
 
     if len(files) > 0:
-        meta_df = pd.read_feather(files[0])[
+        meta_df = pd.read_feather(files[-1])[
             ['prod_id', 'product_name', 'product_page', 'meta_date']]
 
         meta_df = get_metadata_with_last_scraped_review_date(meta_df)
 
         run_bts_crawler(meta_df=meta_df, bts_crawler=bts_crawler)
-
-        Path(files[0]).unlink()
 
         meta_ranker = SexyMetaDetail(
             path='D:/Amit/Meiyume/meiyume_data/spider_runner')
@@ -168,6 +166,8 @@ if __name__ == "__main__":
 
         del ing
         gc.collect()
+
+        Path(files[0]).unlink()
 
         if gecko_log_path.exists():
             gecko_log_path.unlink()

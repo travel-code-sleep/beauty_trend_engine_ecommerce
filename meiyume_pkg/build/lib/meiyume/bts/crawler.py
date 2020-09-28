@@ -1046,15 +1046,17 @@ class DetailReview(Boots):
                 if len(reviews) > 0:
                     review_data.extend(reviews)
 
-            if not incremental:
-                self.logger.info(str.encode(
-                    f'Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
-                    extracted_reviews: {len(reviews)}, page: {product_page})', 'utf-8', 'ignore'))
+                    if not incremental:
+                        self.logger.info(str.encode(
+                            f'Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
+                            extracted_reviews: {len(reviews)}, page: {product_page})', 'utf-8', 'ignore'))
+                    else:
+                        self.logger.info(str.encode(
+                            f'Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
+                                (no_of_new_extracted_reviews: {len(reviews)},\
+                                page: {product_page})', 'utf-8', 'ignore'))
             else:
-                self.logger.info(str.encode(
-                    f'Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
-                        (no_of_new_extracted_reviews: {len(reviews)},\
-                         page: {product_page})', 'utf-8', 'ignore'))
+                reviews = 0
 
             if prod != 0 and prod % 5 == 0:
                 detail_data, item_df, review_data = store_data_refresh_mem(

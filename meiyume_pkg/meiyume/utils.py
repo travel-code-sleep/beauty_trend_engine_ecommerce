@@ -10,6 +10,7 @@ import logging
 import os
 import sys
 import time
+import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import *
@@ -646,6 +647,8 @@ class S3FileManager(object):
             prefix = 'Feeds/BeautyTrendEngine/Image/Staging/'
         elif job_name == 'cleaned_pre_algorithm':
             prefix = 'Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/'
+        elif job_name == 'webapp':
+            prefix = 'Feeds/BeautyTrendEngine/WebAppData'
         else:
             raise MeiyumeException(
                 'Unrecognizable job. Please input correct job_name.')
@@ -789,7 +792,7 @@ def log_exception(logger: Logger, additional_information: Optional[str] = None) 
     """
     exc_type, exc_obj, exc_tb = \
         sys.exc_info(
-        )  # type:  Tuple[Optional[Type[BaseException]], Optional[BaseException], Optional[types.TracebackType]]
+        )
     file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
     if additional_information:
         logger.info(str.encode(
@@ -858,6 +861,20 @@ def ranges(N: int, nb: int, start_idx: int = 0) -> list:
     """
     step = (N-start_idx) / nb
     return [range(start_idx+round(step*i), start_idx+round(step*(i+1))) for i in range(nb)]
+
+
+def hasNumbers(inputString: str)->bool:
+    """hasNumbers [summary]
+
+    [extended_summary]
+
+    Args:
+        inputString (str): [description]
+
+    Returns:
+        bool: [description]
+    """
+    return bool(re.search(r'\d', inputString))
 
 
 class DataAggregator(object):
