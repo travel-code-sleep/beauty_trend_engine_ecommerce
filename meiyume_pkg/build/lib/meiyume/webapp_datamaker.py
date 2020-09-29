@@ -12,16 +12,18 @@ import concurrent.futures
 import gc
 import os
 import time
+import re
 import warnings
 from ast import literal_eval
 from datetime import datetime, timedelta
 from functools import reduce
 from pathlib import Path
+from ast import literal_eval
 from typing import *
 
 import numpy as np
-# import swifter
 import pandas as pd
+
 from meiyume.utils import (Boots, Logger, MeiyumeException, ModelsAlgorithms,
                            RedShiftReader, S3FileManager, Sephora)
 
@@ -438,10 +440,12 @@ class RefreshData():
         cat_page_new_products_details_df.rename(columns={'bayesian_estimate': 'adjusted_rating',
                                                          "low_p": 'small_size_price',
                                                          'high_p': 'big_size_price'}, inplace=True)
-        cat_page_new_products_details_df.small_size_price = cat_page_new_products_details_df.apply(lambda x: f'${x.small_size_price}'
-                                                                                                   if x.source == 'us' else f'£{x.small_size_price}', axis=1)
-        cat_page_new_products_details_df.big_size_price = cat_page_new_products_details_df.apply(lambda x: f'${x.big_size_price}'
-                                                                                                 if x.source == 'us' else f'£{x.big_size_price}', axis=1)
+        cat_page_new_products_details_df.small_size_price = cat_page_new_products_details_df.apply(
+            lambda x: f'${x.small_size_price}'
+            if x.source == 'us' else f'£{x.small_size_price}', axis=1)
+        cat_page_new_products_details_df.big_size_price = cat_page_new_products_details_df.apply(
+            lambda x: f'${x.big_size_price}'
+            if x.source == 'us' else f'£{x.big_size_price}', axis=1)
         cat_page_new_products_details_df.adjusted_rating = cat_page_new_products_details_df.adjusted_rating.apply(
             lambda x: round(x, 3))
         cat_page_new_products_details_df.sort_values(
@@ -465,8 +469,10 @@ class RefreshData():
             product_name, product_type, ban_flag, bayesian_estimate from r_bte_product_ingredients_f")
         ingredients['source'] = ingredients.prod_id.apply(
             lambda x: 'us' if 'sph' in x else 'uk')
-        cat_page_new_ingredients_df = ingredients[ingredients.new_flag == 'new_ingredient'][['prod_id', 'source', 'category', 'product_type', 'brand', 'product_name', 'ingredient',
-                                                                                             'ingredient_type', 'bayesian_estimate', 'ban_flag']]
+        cat_page_new_ingredients_df = ingredients[ingredients.new_flag == 'new_ingredient'][
+            ['prod_id', 'source', 'category', 'product_type', 'brand', 'product_name', 'ingredient',
+             'ingredient_type', 'bayesian_estimate', 'ban_flag']
+        ]
         cat_page_new_ingredients_df.rename(
             columns={'bayesian_estimate': 'adjusted_rating'}, inplace=True)
         cat_page_new_ingredients_df.reset_index(inplace=True, drop=True)
@@ -504,8 +510,13 @@ class RefreshData():
             lambda x: 'us' if 'sph' in x else 'uk')
         reviews.replace('none', '', regex=True, inplace=True)
         cat_page_reviews_by_user_attributes = reviews[['prod_id', 'source', 'category', 'product_type', 'age', 'eye_color',
-                                                       'hair_color', 'skin_tone', 'skin_type']][(reviews.age != '') | (reviews.eye_color != '') | (reviews.hair_color != '') |
-                                                                                                (reviews.skin_tone != '') | (reviews.skin_type != '')].reset_index(drop=True)
+                                                       'hair_color', 'skin_tone', 'skin_type']
+                                                      ][(reviews.age != '') |
+                                                        (reviews.eye_color != '') |
+                                                        (reviews.hair_color != '') |
+                                                        (reviews.skin_tone != '') |
+                                                        (reviews.skin_type != '')
+                                                        ].reset_index(drop=True)
         cat_page_reviews_by_user_attributes.drop(
             columns='prod_id', inplace=True)
         for col in cat_page_reviews_by_user_attributes.columns:
@@ -526,3 +537,139 @@ class RefreshData():
 
         [extended_summary]
         """
+        # get metadata
+        metadata = db.query_database("select prod_id, product_name, brand, category, product_type, new_flag, meta_date, low_p, high_p, \
+                              mrp, reviews, bayesian_estimate, first_review_date from r_bte_meta_detail_f")
+        metadata['source'] = metadata.prod_id.apply(
+            lambda x: 'us' if 'sph' in x else 'uk')
+        metadata['meta_date'] = metadata['meta_date'].astype('datetime64')
+
+        # initialize landing page data dict
+        landing_page_data = {}
+        landing_page_data['products'] = metadata.prod_id.nunique()
+        landing_page_data['brands'] = metadata.brand.nunique()
+
+        dt = metadata.groupby('source').meta_date.max(
+        ).reset_index().to_dict('records')
+        meta = []
+        for i in dt:
+            meta.append(metadata[(metadata.source == i['source']) &
+                                 (metadata.meta_date == i['meta_date'])])
+        metadata = pd.concat(meta, axis=0)
+        metadata.fillna('', inplace=True)
+        metadata.drop_duplicates(subset='prod_id', inplace=True)
+
+        landing_page_data['latest_scraped_date'] = metadata.meta_date.max().strftime(
+            "%d/%m/%Y")
+
+        metadata[metadata.columns.difference(['product_name', 'brand'])] \
+            = metadata[metadata.columns.difference(['product_name', 'brand'])]\
+            .apply(lambda x: x.astype(str).str.lower() if(x.dtype == 'object') else x)
+
+        # get review data
+        reviews = db.query_database(
+            "select prod_id, review_date, sentiment, is_influenced, meta_date, age, eye_color,\
+                 hair_color, skin_tone, skin_type, review_text from r_bte_product_review_f")
+        reviews.drop_duplicates(
+            subset=['prod_id', 'review_text', 'review_date'], inplace=True)
+        reviews.drop(columns='review_text', inplace=True)
+
+        landing_page_data['reviews'] = reviews.shape[0]
+
+        reviews.fillna('', inplace=True)
+
+        first_review_date_df = reviews.groupby(
+            'prod_id').review_date.min().reset_index()
+
+        metadata.set_index('prod_id', inplace=True)
+        reviews.set_index('prod_id', inplace=True)
+        first_review_date_df.set_index('prod_id', inplace=True)
+
+        metadata = metadata.join(first_review_date_df, how='left')
+        metadata.first_review_date = metadata.review_date
+        metadata.drop(columns='review_date', inplace=True)
+
+        del first_review_date_df
+        gc.collect()
+
+        reviews = reviews.join(
+            metadata[['source', 'category', 'product_type']], how='left')
+
+        metadata.reset_index(inplace=True)
+        reviews.reset_index(inplace=True)
+
+        reviews = reviews[reviews.prod_id.isin(metadata.prod_id.tolist())]
+        reviews['review_date'] = reviews['review_date'].astype('datetime64[M]')
+        reviews[reviews.columns.difference(['product_name'])] \
+            = reviews[reviews.columns.difference(['product_name'])]\
+            .apply(lambda x: x.astype(str).str.lower() if(x.dtype == 'object') else x)
+        reviews.reset_index(inplace=True, drop=True)
+
+        # get review summary data
+        review_sum = db.query_database(
+            "select prod_id, pos_review_summary, neg_review_summary, \
+                pos_talking_points, neg_talking_points \
+                    from r_bte_product_review_summary_f")
+        review_sum = review_sum[review_sum.prod_id.isin(
+            metadata.prod_id.tolist())]
+        review_sum.reset_index(inplace=True, drop=True)
+
+        # get ingredient data
+        ingredients = db.query_database("select prod_id, product_name, brand, category, product_type, \
+            ingredient, ingredient_type, new_flag, ban_flag \
+                from r_bte_product_ingredients_f")
+        ingredients = ingredients[ingredients.prod_id.isin(
+            metadata.prod_id.tolist())]
+        ingredients.reset_index(inplace=True, drop=True)
+        ingredients.fillna('', inplace=True)
+        ingredients['source'] = ingredients.prod_id.apply(
+            lambda x: 'us' if 'sph' in x else 'uk')
+        ingredients[ingredients.columns.difference(['product_name', 'brand'])] \
+            = ingredients[ingredients.columns.difference(['product_name', 'brand'])]\
+            .apply(lambda x: x.astype(str).str.lower() if(x.dtype == 'object') else x)
+
+        # get item data
+        items = db.query_database("select * from r_bte_product_item_f")
+        items = items[items.prod_id.isin(metadata.prod_id.tolist())]
+        items['meta_date'] = items['meta_date'].astype('datetime64[M]')
+        items.fillna('', inplace=True)
+        items.reset_index(inplace=True, drop=True)
+
+        # Dropdown and Metadata Data
+        prod_page_metadetail_data_df = metadata
+        del metadata
+        gc.collect()
+
+        prod_page_metadetail_data_df.rename(columns={'low_p': 'small_size_price', 'high_p': 'big_size_price',
+                                                     'bayesian_estimate': 'adjusted_rating'}, inplace=True)
+        prod_page_metadetail_data_df.adjusted_rating = prod_page_metadetail_data_df.adjusted_rating.apply(
+            lambda x: round(float(x), 2) if x != '' else '')
+        prod_page_metadetail_data_df = prod_page_metadetail_data_df[
+            prod_page_metadetail_data_df.small_size_price != '']
+        prod_page_metadetail_data_df.big_size_price = prod_page_metadetail_data_df.apply(
+            lambda x: x.small_size_price if x.big_size_price == '' else x.big_size_price, axis=1)
+        prod_page_metadetail_data_df.mrp = prod_page_metadetail_data_df.apply(
+            lambda x: x.big_size_price if x.mrp == '' else x.mrp, axis=1)
+        prod_page_metadetail_data_df.reset_index(inplace=True, drop=True)
+        prod_page_metadetail_data_df.small_size_price = prod_page_metadetail_data_df.small_size_price.astype(
+            float)
+        prod_page_metadetail_data_df.big_size_price = prod_page_metadetail_data_df.big_size_price.astype(
+            float)
+        prod_page_metadetail_data_df.mrp = prod_page_metadetail_data_df.mrp.astype(
+            str)
+        prod_page_metadetail_data_df.adjusted_rating = prod_page_metadetail_data_df.adjusted_rating.astype(
+            str)
+        for col in ['brand', 'category', 'product_type', 'new_flag', 'source']:
+            prod_page_metadetail_data_df[col] = prod_page_metadetail_data_df[col].astype(
+                'category')
+        prod_page_metadetail_data_df.to_feather(
+            self.dash_data_path/'product_page_metadetail_data')
+
+        del prod_page_metadetail_data_df
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'product_page_metadetail_data',
+            job_name='webapp')
+
+        # Review Tab Data

@@ -1723,10 +1723,12 @@ class SexyReview(ModelsAlgorithms):
         self.review_summary_all.to_feather(self.output_path/filename)
 
         self.review_summary_all.fillna('', inplace=True)
-        self.review_summary_all = self.review_summary_all.replace(
-            '\n', ' ', regex=True)
-        self.review_summary_all = self.review_summary_all.replace(
-            '~', ' ', regex=True)
+        self.review_summary_all.replace(
+            '\n', ' ', regex=True, inplace=True)
+        self.review_summary_all.replace(
+            '~', ' ', regex=True, inplace=True)
+        self.review_summary_all.replace(
+            '~', '', regex=True, inplace=True)
 
         filename = filename + '.csv'
         self.review_summary_all.to_csv(
