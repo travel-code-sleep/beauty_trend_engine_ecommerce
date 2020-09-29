@@ -53,6 +53,7 @@ class RefreshData():
         self.bts = Boots(path=self.path)
         self.out = ModelsAlgorithms(path=self.path)
         self.dash_data_path = Path(r'D:\Amit\Meiyume\meiyume_data\dash_data')
+        self.landing_page_data = {}
 
     def refresh_market_trend_data(self):
         """refresh_market_trend_data [summary]
@@ -99,9 +100,9 @@ class RefreshData():
         # Influenced Review Trend
         rev_by_marketing_cate_month = reviews[reviews.is_influenced == 'yes'].groupby(
             by=['source', 'category', 'month']).prod_id.count().reset_index()
-        for col in ['source', 'category']:
-            rev_by_marketing_cate_month[col] = rev_by_marketing_cate_month[col].astype(
-                'category')
+        # for col in ['source', 'category']:
+        #     rev_by_marketing_cate_month[col] = rev_by_marketing_cate_month[col].astype(
+        #         'category')
         rev_by_marketing_cate_month.rename(
             columns={'prod_id': 'review_text'}, inplace=True)
         rev_by_marketing_cate_month.to_feather(
@@ -116,9 +117,9 @@ class RefreshData():
 
         rev_by_marketing_ptype_month = reviews[reviews.is_influenced == 'yes'].groupby(
             by=['source', 'category', 'product_type', 'month']).prod_id.count().reset_index()
-        for col in ['source', 'category', 'product_type']:
-            rev_by_marketing_ptype_month[col] = rev_by_marketing_ptype_month[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     rev_by_marketing_ptype_month[col] = rev_by_marketing_ptype_month[col].astype(
+        #         'category')
         rev_by_marketing_ptype_month.rename(
             columns={'prod_id': 'review_text'}, inplace=True)
         rev_by_marketing_ptype_month.to_feather(
@@ -134,9 +135,9 @@ class RefreshData():
         # Review Trend
         rev_by_cate_month = reviews.groupby(
             by=['source', 'category', 'month']).prod_id.count().reset_index()
-        for col in ['source', 'category']:
-            rev_by_cate_month[col] = rev_by_cate_month[col].astype(
-                'category')
+        # for col in ['source', 'category']:
+        #     rev_by_cate_month[col] = rev_by_cate_month[col].astype(
+        #         'category')
         rev_by_cate_month.rename(
             columns={'prod_id': 'review_text'}, inplace=True)
         rev_by_cate_month.to_feather(
@@ -151,9 +152,9 @@ class RefreshData():
 
         rev_by_ptype_month = reviews.groupby(
             by=['source', 'category', 'product_type', 'month']).prod_id.count().reset_index()
-        for col in ['source', 'category', 'product_type']:
-            rev_by_ptype_month[col] = rev_by_ptype_month[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     rev_by_ptype_month[col] = rev_by_ptype_month[col].astype(
+        #         'category')
         rev_by_ptype_month.rename(
             columns={'prod_id': 'review_text'}, inplace=True)
         rev_by_ptype_month.to_feather(
@@ -171,9 +172,9 @@ class RefreshData():
             by=['source', 'category', 'meta_date']).prod_id.count().reset_index()
         meta_product_launces_trend_category_month.rename(
             columns={'prod_id': 'new_product_count'}, inplace=True)
-        for col in ['source', 'category']:
-            meta_product_launces_trend_category_month[col] = meta_product_launces_trend_category_month[col].astype(
-                'category')
+        # for col in ['source', 'category']:
+        #     meta_product_launces_trend_category_month[col] = meta_product_launces_trend_category_month[col].astype(
+        #         'category')
         meta_product_launces_trend_category_month.to_feather(
             self.dash_data_path/'meta_product_launch_trend_category_month')
 
@@ -189,9 +190,9 @@ class RefreshData():
                                                                                 'product_type', 'meta_date']).prod_id.count().reset_index()
         meta_product_launch_trend_product_type_df.rename(
             columns={'prod_id': 'new_product_count'}, inplace=True)
-        for col in ['source', 'category', 'product_type']:
-            meta_product_launch_trend_product_type_df[col] = meta_product_launch_trend_product_type_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     meta_product_launch_trend_product_type_df[col] = meta_product_launch_trend_product_type_df[col].astype(
+        #         'category')
         meta_product_launch_trend_product_type_df.to_feather(
             self.dash_data_path/'meta_product_launch_trend_product_type_month')
 
@@ -210,9 +211,9 @@ class RefreshData():
             product_launch_intensity_category_df.old
         product_launch_intensity_category_df['launch_intensity'] = round(
             product_launch_intensity_category_df.new/product_launch_intensity_category_df.product_count, 3)
-        for col in ['source', 'category']:
-            product_launch_intensity_category_df[col] = product_launch_intensity_category_df[col].astype(
-                'category')
+        # for col in ['source', 'category']:
+        #     product_launch_intensity_category_df[col] = product_launch_intensity_category_df[col].astype(
+        #         'category')
         product_launch_intensity_category_df.to_feather(
             self.dash_data_path/'meta_product_launch_intensity_category_month')
 
@@ -232,9 +233,9 @@ class RefreshData():
             by=['source', 'category', 'meta_date']).new_flag.count().reset_index()
         new_ingredient_trend_category_df.rename(
             columns={'new_flag': 'new_ingredient_count'}, inplace=True)
-        for col in ['source', 'category']:
-            new_ingredient_trend_category_df[col] = new_ingredient_trend_category_df[col].astype(
-                'category')
+        # for col in ['source', 'category']:
+        #     new_ingredient_trend_category_df[col] = new_ingredient_trend_category_df[col].astype(
+        #         'category')
         new_ingredient_trend_category_df.to_feather(
             self.dash_data_path/'new_ingredient_trend_category_month')
 
@@ -249,9 +250,9 @@ class RefreshData():
             by=['source', 'category', 'product_type', 'meta_date']).new_flag.count().reset_index()
         new_ingredient_trend_product_type_df.rename(
             columns={'new_flag': 'new_ingredient_count'}, inplace=True)
-        for col in ['source', 'category', 'product_type']:
-            new_ingredient_trend_product_type_df[col] = new_ingredient_trend_product_type_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     new_ingredient_trend_product_type_df[col] = new_ingredient_trend_product_type_df[col].astype(
+        #         'category')
         new_ingredient_trend_product_type_df.to_feather(
             self.dash_data_path/'new_ingredient_trend_product_type_month')
 
@@ -290,9 +291,9 @@ class RefreshData():
         pricing_analytics_df[['min_price', 'max_price', 'avg_low_price', 'avg_high_price']] = pricing_analytics_df[[
             'min_price', 'max_price', 'avg_low_price', 'avg_high_price']].apply(lambda x: round(x, 2), axis=1)
 
-        for col in ['source', 'category', 'product_type']:
-            pricing_analytics_df[col] = pricing_analytics_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     pricing_analytics_df[col] = pricing_analytics_df[col].astype(
+        #         'category')
         pricing_analytics_df.to_feather(
             self.dash_data_path/'category_page_pricing_data')
 
@@ -306,9 +307,9 @@ class RefreshData():
         # Product Analysis Data
         cat_page_distinct_brands_products_df = grouped.agg(distinct_brands=pd.NamedAgg(column='brand', aggfunc='nunique'),
                                                            distinct_products=pd.NamedAgg(column='prod_id', aggfunc='nunique')).reset_index()
-        for col in ['source', 'category', 'product_type']:
-            cat_page_distinct_brands_products_df[col] = cat_page_distinct_brands_products_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     cat_page_distinct_brands_products_df[col] = cat_page_distinct_brands_products_df[col].astype(
+        #         'category')
         cat_page_distinct_brands_products_df.to_feather(
             self.dash_data_path/'category_page_distinct_brands_products')
 
@@ -324,9 +325,9 @@ class RefreshData():
             ['source', 'category', 'product_type']).new_flag.count().reset_index()
         cat_page_new_products_df = cat_page_new_products_df.rename(
             columns={'new_flag': 'new_product_count'})
-        for col in ['source', 'category', 'product_type']:
-            cat_page_new_products_df[col] = cat_page_new_products_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     cat_page_new_products_df[col] = cat_page_new_products_df[col].astype(
+        #         'category')
         cat_page_new_products_df.to_feather(
             self.dash_data_path/'category_page_new_products_count')
 
@@ -358,9 +359,9 @@ class RefreshData():
         gc.collect()
         cat_page_item_variations_price_df.avg_item_price = cat_page_item_variations_price_df.avg_item_price.apply(
             lambda x: round(x, 2))
-        for col in ['source', 'category', 'product_type']:
-            cat_page_item_variations_price_df[col] = cat_page_item_variations_price_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     cat_page_item_variations_price_df[col] = cat_page_item_variations_price_df[col].astype(
+        #         'category')
         cat_page_item_variations_price_df.to_feather(
             self.dash_data_path/'category_page_item_variations_price')
 
@@ -391,9 +392,9 @@ class RefreshData():
         cat_page_item_package_oz_df.item_size = cat_page_item_package_oz_df.item_size.str.replace(
             'out of stock:', '')
         cat_page_item_package_oz_df.reset_index(inplace=True, drop=True)
-        for col in ['source', 'category', 'product_type']:
-            cat_page_item_package_oz_df[col] = cat_page_item_package_oz_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     cat_page_item_package_oz_df[col] = cat_page_item_package_oz_df[col].astype(
+        #         'category')
         cat_page_item_package_oz_df.to_feather(
             self.dash_data_path/'category_page_item_package_oz')
 
@@ -419,9 +420,9 @@ class RefreshData():
                                                                                    if x.source == 'us' else f'£{x.small_size_price}', axis=1)
         cat_page_top_products_df.big_size_price = cat_page_top_products_df.apply(lambda x: f'${x.big_size_price}'
                                                                                  if x.source == 'us' else f'£{x.big_size_price}', axis=1)
-        for col in ['source', 'category', 'product_type']:
-            cat_page_top_products_df[col] = cat_page_top_products_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type']:
+        #     cat_page_top_products_df[col] = cat_page_top_products_df[col].astype(
+        #         'category')
         cat_page_top_products_df.to_feather(
             self.dash_data_path/'category_page_top_products')
 
@@ -451,9 +452,9 @@ class RefreshData():
         cat_page_new_products_details_df.sort_values(
             by='adjusted_rating', inplace=True, ascending=False)
         cat_page_new_products_details_df.reset_index(drop=True, inplace=True)
-        for col in ['source', 'category', 'product_type', 'brand']:
-            cat_page_new_products_details_df[col] = cat_page_new_products_details_df[col].astype(
-                'category')
+        # for col in ['source', 'category', 'product_type', 'brand']:
+        #     cat_page_new_products_details_df[col] = cat_page_new_products_details_df[col].astype(
+        #         'category')
         cat_page_new_products_details_df.to_feather(
             self.dash_data_path/'category_page_new_products_details')
 
@@ -476,10 +477,10 @@ class RefreshData():
         cat_page_new_ingredients_df.rename(
             columns={'bayesian_estimate': 'adjusted_rating'}, inplace=True)
         cat_page_new_ingredients_df.reset_index(inplace=True, drop=True)
-        for col in cat_page_new_ingredients_df.columns:
-            if col not in ['ingredient', 'adjusted_rating', 'ingredient']:
-                cat_page_new_ingredients_df[col] = cat_page_new_ingredients_df[col].astype(
-                    'category')
+        # for col in cat_page_new_ingredients_df.columns:
+        #     if col not in ['ingredient', 'adjusted_rating', 'ingredient']:
+        #         cat_page_new_ingredients_df[col] = cat_page_new_ingredients_df[col].astype(
+        #             'category')
         cat_page_new_ingredients_df.to_feather(
             self.dash_data_path/'category_page_new_ingredients')
 
@@ -519,9 +520,9 @@ class RefreshData():
                                                         ].reset_index(drop=True)
         cat_page_reviews_by_user_attributes.drop(
             columns='prod_id', inplace=True)
-        for col in cat_page_reviews_by_user_attributes.columns:
-            cat_page_reviews_by_user_attributes[col] = cat_page_reviews_by_user_attributes[col].astype(
-                'category')
+        # for col in cat_page_reviews_by_user_attributes.columns:
+        #     cat_page_reviews_by_user_attributes[col] = cat_page_reviews_by_user_attributes[col].astype(
+        #         'category')
         cat_page_reviews_by_user_attributes.to_feather(
             self.dash_data_path/'category_page_reviews_by_user_attributes')
 
@@ -545,9 +546,8 @@ class RefreshData():
         metadata['meta_date'] = metadata['meta_date'].astype('datetime64')
 
         # initialize landing page data dict
-        landing_page_data = {}
-        landing_page_data['products'] = metadata.prod_id.nunique()
-        landing_page_data['brands'] = metadata.brand.nunique()
+        self.landing_page_data['products'] = metadata.prod_id.nunique()
+        self.landing_page_data['brands'] = metadata.brand.nunique()
 
         dt = metadata.groupby('source').meta_date.max(
         ).reset_index().to_dict('records')
@@ -559,7 +559,7 @@ class RefreshData():
         metadata.fillna('', inplace=True)
         metadata.drop_duplicates(subset='prod_id', inplace=True)
 
-        landing_page_data['latest_scraped_date'] = metadata.meta_date.max().strftime(
+        self.landing_page_data['latest_scraped_date'] = metadata.meta_date.max().strftime(
             "%d/%m/%Y")
 
         metadata[metadata.columns.difference(['product_name', 'brand'])] \
@@ -569,12 +569,12 @@ class RefreshData():
         # get review data
         reviews = db.query_database(
             "select prod_id, review_date, sentiment, is_influenced, meta_date, age, eye_color,\
-                 hair_color, skin_tone, skin_type, review_text from r_bte_product_review_f")
+                 review_rating, hair_color, skin_tone, skin_type, review_text from r_bte_product_review_f")
         reviews.drop_duplicates(
             subset=['prod_id', 'review_text', 'review_date'], inplace=True)
         reviews.drop(columns='review_text', inplace=True)
 
-        landing_page_data['reviews'] = reviews.shape[0]
+        self.landing_page_data['reviews'] = reviews.shape[0]
 
         reviews.fillna('', inplace=True)
 
@@ -659,9 +659,11 @@ class RefreshData():
             str)
         prod_page_metadetail_data_df.adjusted_rating = prod_page_metadetail_data_df.adjusted_rating.astype(
             str)
-        for col in ['brand', 'category', 'product_type', 'new_flag', 'source']:
-            prod_page_metadetail_data_df[col] = prod_page_metadetail_data_df[col].astype(
-                'category')
+        # for col in ['brand', 'category', 'product_type', 'new_flag', 'source']:
+        #     prod_page_metadetail_data_df[col] = prod_page_metadetail_data_df[col].astype(
+        #         'category')
+        prod_page_metadetail_data_df.drop_duplicates(inplace=True)
+        prod_page_metadetail_data_df.reset_index(drop=True, inplace=True)
         prod_page_metadetail_data_df.to_feather(
             self.dash_data_path/'product_page_metadetail_data')
 
@@ -673,3 +675,205 @@ class RefreshData():
             job_name='webapp')
 
         # Review Tab Data
+        review_sum.fillna("{}", inplace=True)
+        review_sum.pos_talking_points[review_sum.pos_talking_points == ""] = "{}"
+        review_sum.neg_talking_points[review_sum.neg_talking_points == ""] = "{}"
+        indices = []
+        for i in review_sum.iterrows():
+            try:
+                d = literal_eval(i[1].pos_talking_points)
+                d = literal_eval(i[1].neg_talking_points)
+            except Exception as ex:
+                indices.append(i[0])
+        review_sum = review_sum[~review_sum.index.isin(
+            indices)].reset_index(drop=True)
+        review_sum.pos_talking_points = review_sum.pos_talking_points.apply(
+            lambda x: literal_eval(x) if x != "{}" else {})
+        review_sum.neg_talking_points = review_sum.neg_talking_points.apply(
+            lambda x: literal_eval(x) if x != "{}" else {})
+        # Review Summary Data
+        prod_page_review_sum_df = review_sum[[
+            'prod_id', 'pos_review_summary', 'neg_review_summary']]
+
+        prod_page_review_sum_df.drop_duplicates(inplace=True)
+        prod_page_review_sum_df.reset_index(drop=True, inplace=True)
+        prod_page_review_sum_df.to_feather(
+            self.dash_data_path/'prod_page_product_review_summary')
+
+        del prod_page_review_sum_df
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'prod_page_product_review_summary',
+            job_name='webapp')
+
+        # Talking Points Data
+        prod_page_review_talking_points_df = review_sum[[
+            'prod_id', 'pos_talking_points', 'neg_talking_points']]
+
+        prod_page_review_talking_points_df.drop_duplicates(inplace=True)
+        prod_page_review_talking_points_df.reset_index(drop=True, inplace=True)
+        prod_page_review_talking_points_df.to_pickle(
+            self.dash_data_path/'prod_page_review_talking_points')
+
+        del prod_page_review_talking_points_df
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'prod_page_review_talking_points',
+            job_name='webapp')
+
+        # Review Sentiment and Time Series Data
+        reviews.is_influenced = reviews.is_influenced.str.lower()
+        prod_page_review_sentiment_influence_df = reviews[[
+            'prod_id', 'sentiment', 'is_influenced', 'review_date', 'review_rating']]
+        # for col in ['prod_id', 'sentiment', 'is_influenced', 'review_rating']:
+        #     prod_page_review_sentiment_influence_df[col] = prod_page_review_sentiment_influence_df[col].astype(
+        #         'category')
+        prod_page_review_sentiment_influence_df.review_date = prod_page_review_sentiment_influence_df.review_date.astype(
+            'datetime64[M]')
+
+        prod_page_review_sentiment_influence_df.reset_index(
+            drop=True, inplace=True)
+        prod_page_review_sentiment_influence_df.to_feather(
+            self.dash_data_path/'prod_page_review_sentiment_influence')
+
+        del prod_page_review_sentiment_influence_df
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'prod_page_review_sentiment_influence',
+            job_name='webapp')
+
+        # Review User Attribute Data
+        prod_page_reviews_attribute_df = reviews[['prod_id', 'age', 'eye_color', 'hair_color', 'skin_tone', 'skin_type']][
+            (reviews.age != '') | (reviews.eye_color != '') | (reviews.hair_color != '') | (reviews.skin_tone != '') | (reviews.skin_type != '')]
+        # for col in prod_page_reviews_attribute_df.columns:
+        #     prod_page_reviews_attribute_df[col] = prod_page_reviews_attribute_df[col].astype(
+        #         'category')
+        prod_page_reviews_attribute_df.reset_index(inplace=True, drop=True)
+        prod_page_reviews_attribute_df.to_feather(
+            self.dash_data_path/'prod_page_reviews_attribute')
+
+        del prod_page_reviews_attribute_df, reviews
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'prod_page_reviews_attribute',
+            job_name='webapp')
+
+        # Pricing and Ingredients Tab Data
+        prod_page_item_df = items[['prod_id', 'product_name',
+                                   'meta_date', 'item_name', 'item_price', 'size_oz']]
+        prod_page_item_df.rename(
+            columns={'size_oz': 'item_size'}, inplace=True)
+
+        def hasNumbers(inputString):
+            return bool(re.search(r'\d', inputString))
+        prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
+            lambda x: x if hasNumbers(x) else '').str.replace('out of stock:', '').str.replace('nan', '')
+        prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
+            lambda x: x if len(x) < 30 else '')
+        prod_page_item_df.reset_index(inplace=True, drop=True)
+        # for col in ['item_price', 'item_size']:
+        #     prod_page_item_df[col] = prod_page_item_df[col].astype('category')
+        prod_page_item_df.drop_duplicates(inplace=True)
+        prod_page_item_df.reset_index(inplace=True, drop=True)
+        prod_page_item_df.to_feather(self.dash_data_path/'prod_page_item_data')
+
+        del prod_page_item_df, items
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'prod_page_item_data',
+            job_name='webapp')
+
+        # Ingredient Data
+        prod_page_ing_df = ingredients[['prod_id', 'product_name', 'ingredient', 'new_flag',
+                                        'ingredient_type', 'ban_flag',
+                                        'category', 'product_type', 'source']]
+        # for col in ['prod_id', 'product_name', 'ingredient', 'new_flag',
+        #             'ingredient_type', 'ban_flag',
+        #             'category', 'product_type', 'source']:
+        #     prod_page_ing_df[col] = prod_page_ing_df[col].astype('category')
+        prod_page_ing_df.to_feather(self.dash_data_path/'prod_page_ing_data')
+
+        del prod_page_ing_df, ingredients
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'prod_page_ing_data',
+            job_name='webapp')
+
+    def refresh_ingredient_page_data(self):
+        """refresh_ingredient_page_data [summary]
+
+        [extended_summary]
+        """
+        # get ingredients
+        ing_page_ing_df = db.query_database(
+            "select prod_id, ingredient, new_flag, ingredient_type, \
+                category, product_name, product_type, vegan_flag, ban_flag \
+                from r_bte_product_ingredients_f")
+        ing_page_ing_df.fillna('', inplace=True)
+
+        vegan_prods = ing_page_ing_df.prod_id[ing_page_ing_df.vegan_flag == 'vegan'].unique(
+        ).tolist()
+        ing_page_ing_df.ingredient_type = ing_page_ing_df.apply(
+            lambda x: 'vegan' if x.ingredient_type == '' and x.prod_id in vegan_prods else x.ingredient_type, axis=1)
+        ing_page_ing_df.drop(columns=['vegan_flag'], inplace=True)
+
+        ing_page_ing_df.drop_duplicates(
+            subset=['ingredient', 'prod_id'], inplace=True)
+        ing_page_ing_df['source'] = ing_page_ing_df.prod_id.apply(
+            lambda x: 'us' if 'sph' in x else 'uk')
+        ing_page_ing_df[ing_page_ing_df.columns.difference(['product_name', ])] \
+            = ing_page_ing_df[ing_page_ing_df.columns.difference(['product_name', ])]\
+            .apply(lambda x: x.astype(str).str.lower() if(x.dtype == 'object') else x)
+
+        self.landing_page_data['ingredients'] = ing_page_ing_df.ingredient.nunique(
+        )
+
+        # for col in ['prod_id', 'ingredient', 'new_flag', 'ingredient_type',
+        #             'category', 'product_name', 'product_type', 'source',
+        #             'ban_flag']:
+        #     ing_page_ing_df[col] = ing_page_ing_df[col].astype('category')
+
+        ing_page_ing_df.reset_index(inplace=True, drop=True)
+        ing_page_ing_df.to_feather(self.dash_data_path/'ing_page_ing_data')
+
+        del ing_page_ing_df
+        gc.collect()
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'ing_page_ing_data',
+            job_name='webapp')
+
+    def refresh_landing_page_data(self):
+        """refresh_landing_page_data [summary]
+
+        [extended_summary]
+        """
+        image_keys = [i['Key'] for i in file_manager.get_matching_s3_keys(prefix='Feeds/BeautyTrendEngine/Image/Staging/', suffix='jpg')
+                      if any(job in i['Key'].lower() for job in ['image'])]
+
+        self.landing_page_data['images'] = len(image_keys)
+
+        pd.DataFrame(self.landing_page_data, index=range(0, 1)).to_feather(
+            self.dash_data_path/'landing_page_data')
+
+        file_manager.push_file_s3(
+            file_path=self.dash_data_path/'landing_page_data',
+            job_name='webapp')
+
+    def make(self):
+        try:
+            self.refresh_market_trend_data()
+            self.refresh_category_page_data()
+            self.refresh_product_page_data()
+            self.refresh_ingredient_page_data()
+            self.refresh_landing_page_data()
+        except Exception as ex:
+            print('refresh jon failed.')
+        else:
+            print('refresh job completed.')
