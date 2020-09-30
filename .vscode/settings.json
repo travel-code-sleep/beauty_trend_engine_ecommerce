@@ -1,7 +1,44 @@
 {
     "cSpell.words": [
+        "algo",
+        "algo path",
+        "datawarehouse",
+        "meiyume",
+        "ngtv",
+        "path",
+        "pstv",
+        "pstv to ngtv stars",
+        "stars",
+        "to",
         "exception",
         "meiyume"
     ],
-    "python.linting.enabled": true
+    "python.linting.enabled": true,
+
+    "sqltools.connections": [
+        {
+            "database": "lifungdb",
+            "driver": "AWS Redshift",
+            "name": "bte_redshift",
+            "password": "Lifung123",
+            "pgOptions": {
+                "ssl": {}
+            },
+            "port": 5439,
+            "previewLimit": 50,
+            "server": "lifungprod.cctlwakofj4t.ap-southeast-1.redshift.amazonaws.com",
+            "username": "btemymuser"
+        }
+    ],
+    "editor.tokenColorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": "comment",
+        "settings": {
+          "fontStyle": "italic",
+          "foreground": "#f88706",
+        }
+      }
+    ]
+  },
 }

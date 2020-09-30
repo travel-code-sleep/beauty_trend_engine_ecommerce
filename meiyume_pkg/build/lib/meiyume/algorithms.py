@@ -27,7 +27,7 @@ import seaborn as sns
 from tqdm import tqdm
 from tqdm.notebook import tqdm
 from meiyume.utils import (Logger, Sephora, Boots,
-                           MeiyumeException, ModelsAlgorithms,
+                           MeiyumeException, ModelsAlgorithms, RedShiftReader,
                            S3FileManager, chunks)
 
 # fast ai imports
@@ -63,6 +63,7 @@ from spacy.matcher import Matcher
 # from concurrent.futures import process
 
 file_manager = S3FileManager()
+db = RedShiftReader()
 # process_manager = mp.Pool(mp.cpu_count())
 warnings.simplefilter(action='ignore')
 np.random.seed(1337)
@@ -325,6 +326,7 @@ class SexyMetaDetail(ModelsAlgorithms):
 
         meta_detail.drop(columns=['meta_datedetail',
                                   'product_namedetail'], axis=1, inplace=True)
+        meta_detail['complete_scrape_flag'] = 'y'
 
         columns = ["prod_id",
                    "product_name",
@@ -1550,15 +1552,21 @@ class SexyReview(ModelsAlgorithms):
                 self.review = review_data
         else:
             if source == 'sph':
-                review_files = self.output_path.glob(
-                    'with_keywords_sentiment_cleaned_sph_product_review_all_*')
-                rev_li = [pd.read_feather(file) for file in review_files]
-                self.review = pd.concat(rev_li, axis=0, ignore_index=True)
+                self.review = db.query_database(
+                    "select prod_id, product_name, sentiment, is_influenced, \
+                        review_text, review_title, helpful_n, helpful_y, keywords\
+                    from r_bte_product_review_f \
+                    where prod_id like 'sph%'")
+                # review_files = self.output_path.glob(
+                #     'with_keywords_sentiment_cleaned_sph_product_review_all_*')
+                # rev_li = [pd.read_feather(file) for file in review_files]
+                # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])
                 self.review.reset_index(inplace=True, drop=True)
             elif source == 'bts':
+<<<<<<< HEAD
                 review_files = self.output_path.glob(
                     'with_keywords_sentiment_cleaned_bts_product_review_all_*')
                 print(list(review_files))
@@ -1566,6 +1574,18 @@ class SexyReview(ModelsAlgorithms):
                     'with_keywords_sentiment_cleaned_bts_product_review_all_*')
                 rev_li = [pd.read_feather(file) for file in review_files]
                 self.review = pd.concat(rev_li, axis=0, ignore_index=True)
+=======
+                self.review = db.query_database(
+                    "select prod_id, product_name, sentiment, is_influenced, \
+                        review_text, review_title, helpful_n, helpful_y, keywords\
+                    from r_bte_product_review_f \
+                    where prod_id like 'bts%'")
+                # review_files = self.output_path.glob(
+                #     'with_keywords_sentiment_cleaned_bts_product_review_all_*')
+                # rev_li = [pd.read_feather(file) for file in review_files]
+                # print()
+                # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
+>>>>>>> 705cdfff3ca4d2217d862f20837de19f1fec6f75
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])
@@ -1715,10 +1735,12 @@ class SexyReview(ModelsAlgorithms):
         self.review_summary_all.to_feather(self.output_path/filename)
 
         self.review_summary_all.fillna('', inplace=True)
-        self.review_summary_all = self.review_summary_all.replace(
-            '\n', ' ', regex=True)
-        self.review_summary_all = self.review_summary_all.replace(
-            '~', ' ', regex=True)
+        self.review_summary_all.replace(
+            '\n', ' ', regex=True, inplace=True)
+        self.review_summary_all.replace(
+            '~', ' ', regex=True, inplace=True)
+        self.review_summary_all.replace(
+            '~', '', regex=True, inplace=True)
 
         filename = filename + '.csv'
         self.review_summary_all.to_csv(

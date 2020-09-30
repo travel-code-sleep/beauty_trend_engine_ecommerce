@@ -1,0 +1,1 @@
+"D:\cmd.exe" "crawlera-headless-proxy --api-key e1852cc56f66409c862b4f11858e3a44 --crawlera-host proxy.crawlera.com --crawlera-port 8010 -x profile=desktop -v -t -d"
