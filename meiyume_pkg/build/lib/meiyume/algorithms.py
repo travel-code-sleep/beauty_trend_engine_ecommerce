@@ -1561,6 +1561,9 @@ class SexyReview(ModelsAlgorithms):
             elif source == 'bts':
                 review_files = self.output_path.glob(
                     'with_keywords_sentiment_cleaned_bts_product_review_all_*')
+                print(list(review_files))
+                review_files = self.output_path.glob(
+                    'with_keywords_sentiment_cleaned_bts_product_review_all_*')
                 rev_li = [pd.read_feather(file) for file in review_files]
                 self.review = pd.concat(rev_li, axis=0, ignore_index=True)
                 self.review.drop_duplicates(inplace=True)
@@ -1568,7 +1571,9 @@ class SexyReview(ModelsAlgorithms):
                     subset=['prod_id', 'review_text', 'review_date'])
                 self.review.reset_index(inplace=True, drop=True)
 
-        meta_date = pd.to_datetime(self.review.meta_date.max()).date()
+        self.review.meta_date = self.review.meta_date.astype(str)
+        meta_date = self.review.meta_date.max()
+        print(meta_date)
         self.review = self.review[['prod_id', 'product_name', 'review_text', 'review_title', 'helpful_n',
                                    'helpful_y', 'sentiment', 'is_influenced', 'keywords']]
         self.review = self.review.replace('\n', ' ', regex=True)
