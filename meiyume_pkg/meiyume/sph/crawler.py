@@ -1,6 +1,5 @@
 
-"""[summary]
-"""
+"""The module to crawl Sephora website data."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from typing import *
@@ -41,37 +40,44 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Metadata(Sephora):
-    """[summary]
+    """The module to get product metadata such as product page url, prices and brand.
+
+    The Metadata class begins the data crawling process and all other stages depend on the product urls extracted by Metadata class.
 
     Arguments:
-        Sephora {[type]} -- [description]
+        Sephora {Browser} -- Class that initializes folder paths and selenium webdriver for data scraping.
+
     """
+
     base_url = "https://www.sephora.com"
     info = tldextract.extract(base_url)
     source = info.registered_domain
 
     @classmethod
     def update_base_url(cls, url: str) -> None:
-        """[summary]
+        """Define the parent url from where the data scraping process will begin.
 
         Arguments:
-            url {[type]} -- [description]
+            url {str} -- The URL from which the spider will enter the website.
+
         """
+
         cls.base_url = url
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
-        """[summary]
+        """__init__ Metadata class instace initializer.
 
-        Arguments:
-            driver_path {[type]} -- [description]
+        This method sets all the folder paths required for Metadata crawler to work.
+        If the paths does not exist the paths get automatically created depending on current directory or provided directory.
 
-        Keyword Arguments:
-            log {bool} -- [description] (default: {True})
-            path {[type]} -- [description] (default: {Path.cwd()})
-            show {bool} -- [description] (default: {True})
+        Args:
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Metadata will be extracted. Defaults to current directory(Path.cwd()).
+
         """
+
         super().__init__(path=path, data_def='meta')
         self.path = path
         self.current_progress_path = self.metadata_path/'current_progress'
@@ -94,16 +100,18 @@ class Metadata(Sephora):
             self.logger, _ = self.prod_meta_log.start_log()
 
     def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -> pd.DataFrame:
-        """get_product_type_urls [summary]
+        """get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
 
-        [extended_summary]
+        Extracts the links of pages containing the list of all products structured into
+        category/subcategory/product type to effectively stored in relational database.
+        Defines the structure of data extraction that helps store unstructured data in a structured manner.
 
         Args:
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use proxy server.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
         """
         # create webdriver instance
         drv = self.open_browser_firefox(
