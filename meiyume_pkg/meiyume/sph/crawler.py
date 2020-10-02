@@ -212,16 +212,19 @@ class Metadata(Sephora):
                      open_headless: bool, open_with_proxy_server: bool,
                      randomize_proxy_usage: bool,
                      product_meta_data: list = []) -> None:
-        """get_metadata [summary]
+        """get_metadata Crawls product list pages for price, name, brand etc.
 
-        [extended_summary]
+        Get metadata crawls a product type page for example lipstick.
+        The function gets individual product urls, names, brands and prices etc. and stores
+        in a relational table structure to use later to download product images, scrape reviews and
+        other specific information.
 
         Args:
-            indices (Union[list, range]): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            product_meta_data (list, optional): [description]. Defaults to [].
+            indices (Union[list, range]): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use proxy server.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            product_meta_data (list, optional): Empty intermediate list to store product metadata during parallel crawl. Defaults to [].
         """
         for pt in self.product_type_urls.index[self.product_type_urls.index.isin(indices)]:
             cat_name = self.product_type_urls.loc[pt, 'category_raw']
