@@ -50,12 +50,12 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
         if i[0] == 0:
-            fresh_start = True
-            auto_fresh_start = True
+            fresh_start = False
+            auto_fresh_start = False
         else:
             fresh_start = False
             auto_fresh_start = False
-        detail_crawler.extract(metadata=meta_df, download=True, n_workers=8,
+        detail_crawler.extract(metadata=meta_df, download=True, n_workers=6,
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
                                open_headless=False, open_with_proxy_server=open_with_proxy_server,

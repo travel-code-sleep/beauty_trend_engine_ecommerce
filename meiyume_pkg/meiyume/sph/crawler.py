@@ -40,12 +40,12 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Metadata(Sephora):
-    """The module to get product metadata such as product page url, prices and brand.
+    """Metadata extracts product metadata such as product page url, prices and brand from Sephora website.
 
     The Metadata class begins the data crawling process and all other stages depend on the product urls extracted by Metadata class.
 
-    Arguments:
-        Sephora {Browser} -- Class that initializes folder paths and selenium webdriver for data scraping.
+    Args:
+        Sephora {Browser}: Class that initializes folder paths and selenium webdriver for data scraping.
 
     """
 
@@ -212,7 +212,7 @@ class Metadata(Sephora):
                      open_headless: bool, open_with_proxy_server: bool,
                      randomize_proxy_usage: bool,
                      product_meta_data: list = []) -> None:
-        """get_metadata Crawls product list pages for price, name, brand etc.
+        """get_metadata Crawls product listing pages for price, name, brand etc.
 
         Get metadata crawls a product type page for example lipstick.
         The function gets individual product urls, names, brands and prices etc. and stores
@@ -462,28 +462,35 @@ class Metadata(Sephora):
     def extract(self, download: bool = True, fresh_start: bool = False, auto_fresh_start: bool = False, n_workers: int = 5,
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
-                clean: bool = True, compile_progress_files: bool = False, delete_progress: bool = False) -> None:
-        """extract [summary]
+                compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False) -> None:
+        """extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            download (bool, optional): [description]. Defaults to True.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            n_workers (int, optional): [description]. Defaults to 5.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            clean (bool, optional): [description]. Defaults to True.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished.
+                                               Defaults to False.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            open_headless (bool, optional): Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+                                                    Defaults to True.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
         """
         def fresh():
-            """[summary]
+            """ If fresh_start is True, this function sets initial parameters for a fresh data crawl.
             """
             self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
                                                                 open_with_proxy_server=open_with_proxy_server)
@@ -603,9 +610,7 @@ class Metadata(Sephora):
                 self.logger.info('Progress files deleted')
 
     def terminate_logging(self):
-        """terminate_logging [summary]
-
-        [extended_summary]
+        """terminate_logging ends log generation for the crawler and cleaner after the job finshes successfully.
         """
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
@@ -619,22 +624,25 @@ class Metadata(Sephora):
 
 
 class Detail(Sephora):
-    """Detail [summary]
+    """Detail extracts product details such as ingredients, price, size, color etc. from Sephora website.
 
-    [extended_summary]
+    The Detail module utilizes product urls scraped by Metadata by opening the pages one by one and getting
+    details for each individual products.
 
     Args:
-        Sephora ([type]): [description]
+        Sephora ([type]): Class that initializes folder paths and selenium webdriver for data scraping.
     """
 
     def __init__(self, path: Path = Path.cwd(), log: bool = True):
-        """__init__ [summary]
+        """__init__ Deatil class instace initializer.
 
-        [extended_summary]
+        This method sets all the folder paths required for Detail crawler to work.
+        If the paths does not exist the paths get automatically created depending on
+        current directory or provided directory.
 
         Args:
-            path (Path, optional): [description]. Defaults to Path.cwd().
-            log (bool, optional): [description]. Defaults to True.
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Detail will be extracted. Defaults to current directory(Path.cwd()).
         """
         super().__init__(path=path, data_def='detail')
         self.path = path
@@ -657,33 +665,37 @@ class Detail(Sephora):
                                           path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_log.start_log()
 
-    def get_detail(self, indices: list, open_headless: bool, open_with_proxy_server: bool,
+    def get_detail(self, indices: Union[list, range], open_headless: bool, open_with_proxy_server: bool,
                    randomize_proxy_usage: bool, detail_data: list = [],
                    item_df=pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
                                                  'item_size', 'item_price',
                                                  'item_ingredients'])) -> None:
-        """get_detail [summary]
+        """get_detail scrapes individual product pages for price, ingredients, color etc.
 
-        [extended_summary]
+        Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
+        size specific prices, color, product claims and other information pertaining to one individual product.
 
         Args:
-            indices (list): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            detail_data (list, optional): [description]. Defaults to [].
-            item_df ([type], optional): [description]. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
+            indices (Union[list, range]): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use ip rotation service.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            detail_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            item_df ([type], optional): Empty intermediate dataframe to store data during parallel crawl.
+                                        Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
                                                                                          'item_size', 'item_price', 'item_ingredients']).
         """
         def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame) -> Tuple[list, pd.DataFrame]:
-            """[summary]
+            """store_data_refresh_mem method stores crawled data in regular interval to free up system memory.
 
-            Arguments:
-                detail_data {[type]} -- [description]
-                item_df {[type]} -- [description]
+            Store data after ten products are extracted every time to free up RAM.
+
+            Args:
+                detail_data (list): List containing crawled detail data to store.
+                item_df (pd.DataFrame): Dataframe containing scraped item data to store.
 
             Returns:
-                [type] -- [description]
+                Tuple[list, pd.DataFrame]: Empty list and dataframe to accumulate data from next ten products scrape.
             """
             pd.DataFrame(detail_data).to_csv(self.current_progress_path /
                                              f'sph_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv',
@@ -698,22 +710,20 @@ class Detail(Sephora):
                 self.detail_path/'sph_detail_progress_tracker')
             return [], item_df
 
-        def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str, use_button: bool = False,
+        def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
                                 multi_variety: bool = False, typ=None, ) -> Tuple[str, str, str, str]:
-            """get_item_attributes [summary]
-
-            [extended_summary]
+            """get_item_attributes scrapes product item specific data such as item_name, size, price, and ingredients.
 
             Args:
-                drv (webdriver.Chrome): [description]
-                product_name (str): [description]
-                prod_id (str): [description]
-                use_button (bool, optional): [description]. Defaults to False.
-                multi_variety (bool, optional): [description]. Defaults to False.
-                typ ([type], optional): [description]. Defaults to None.
+                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                product_name (str): Name of the product from metadata.
+                prod_id (str): Id of the product from metdata.
+                use_button (bool, optional): Whether to use buttons to extract item name. Defaults to False.
+                multi_variety (bool, optional): Whether product has multiple color/size varieties. Defaults to False.
+                typ ([type], optional): The product the currently selected. Defaults to None.
 
             Returns:
-                Tuple[str, str, str, str]: [description]
+                Tuple[str, str, str, str]: item_name, size, price, ingredients.
             """
             # drv # type: webdriver.Chrome
             # close popup windows
@@ -830,18 +840,17 @@ class Detail(Sephora):
             # print(item_ing)
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -> list:
-            """get_product_attributes [summary]
-
-            [extended_summary]
+        def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -> list:
+            """get_product_attributes uses get_item_attribute method to scrape item details and stores in a list which is returned to
+            get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Chrome): [description]
-                product_name (str): [description]
-                prod_id (str): [description]
+                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                product_name (str): Name of the product from metadata.
+                prod_id (str): Id of the product from metdata.
 
             Returns:
-                list: [description]
+                list: List containing all product item attributes of multiple varieties with name and id.
             """
             # get all the variation of product
             # close popup windows
@@ -895,16 +904,14 @@ class Detail(Sephora):
 
             return product_attributes
 
-        def get_first_review_date(drv: webdriver.Chrome) -> str:
-            """get_first_review_date [summary]
-
-            [extended_summary]
+        def get_first_review_date(drv: webdriver.Firefox) -> str:
+            """get_first_review_date scraped the first review data of the product.
 
             Args:
-                drv (webdriver.Chrome): [description]
+                drv (webdriver.Firefox): Selenium webdriver with opened product page.
 
             Returns:
-                str: [description]
+                str: first review date.
             """
             # close popup windows
             close_popups(drv)
@@ -1241,25 +1248,31 @@ class Detail(Sephora):
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = False,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-        """extract [summary]
+        """extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            metadata (pd.DataFrame): [description]
-            download (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to False.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            clean (bool, optional): [description]. Defaults to True.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            metadata (pd.DataFrame): Dataframe containing product specific url, name and id of the products to be scraped.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+            open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+                                                    Defaults to False.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
         """
         '''
         change metadata read logic.add logic to look for metadata in a folder path. if metadata is found in the folder path
@@ -1271,6 +1284,8 @@ class Detail(Sephora):
         #     ['prod_id', 'product_name', 'product_page', 'meta_date']]
 
         def fresh():
+            """ If fresh_start is True, this function sets initial parameters for a fresh data crawl.
+            """
             if not isinstance(metadata, pd.core.frame.DataFrame):
                 list_of_files = self.metadata_clean_path.glob(
                     'no_cat_cleaned_sph_product_metadata_all*')
@@ -1433,28 +1448,32 @@ class Detail(Sephora):
             self.logger.info('Progress files deleted')
 
     def terminate_logging(self):
-        """terminate_logging [summary]
-
-        [extended_summary]
+        """terminate_logging ends log generation for the crawler and cleaner after the job finshes successfully.
         """
         self.logger.handlers.clear()
         self.prod_detail_log.stop_log()
 
 
 class Review(Sephora):
-    """[summary]
+    """Review extracts product reviews, review rating and user attributes from Sephora website.
 
-    Arguments:
-        Sephora {[type]} -- [description]
+    The Review module utilizes product urls scraped by Metadata by opening the pages one by one and getting
+    reviews for each individual products.
+
+    Args:
+        Sephora ([type]): Class that initializes folder paths and selenium webdriver for data scraping.
     """
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
-        """__init__ [summary]
+        """__init__ Review class instace initializer.
 
-        [extended_summary]
+        This method sets all the folder paths required for Review crawler to work.
+        If the paths does not exist the paths get automatically created depending on
+        current directory or provided directory.
 
         Args:
-            log (bool, optional): [description]. Defaults to True.
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Review will be extracted. Defaults to current directory(Path.cwd()).
         """
         super().__init__(path=path, data_def='review')
         self.path = path
@@ -1478,26 +1497,26 @@ class Review(Sephora):
     def get_reviews(self, indices: list, open_headless: bool, open_with_proxy_server: bool,
                     randomize_proxy_usage: bool,
                     review_data: list = [], incremental: bool = True):
-        """get_reviews [summary]
-
-        [extended_summary]
+        """get_reviews Crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
-            indices (list): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            review_data (list, optional): [description]. Defaults to [].
-            incremental (bool, optional): [description]. Defaults to True.
+            indices (list): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use ip rotation service.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
         """
         def store_data_refresh_mem(review_data: list) -> list:
-            """[summary]
+            """store_data_refresh_mem method stores crawled data in regular interval to free up system memory.
 
-            Arguments:
-                review_data {[type]} -- [description]
+            Store data after each product's reviews are extracted to free up RAM.
+
+            Args:
+                review_data (list): List containing scraped Review data to store.
 
             Returns:
-                [type] -- [description]
+                list: Empty list to accumulate data from next product scraping.
             """
             pd.DataFrame(review_data).to_csv(self.current_progress_path /
                                              f'sph_prod_review_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv',
@@ -1808,28 +1827,36 @@ class Review(Sephora):
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False) -> None:
-        """extract [summary]
+        """extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            metadata (Union[pd.DataFrame, str, Path]): [description]
-            download (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            incremental (bool, optional): [description]. Defaults to True.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            clean (bool, optional): [description]. Defaults to True.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            metadata (Union[pd.DataFrame, str, Path]): Dataframe containing product specific url, name and id of the products to be scraped.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            Defaults to False.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
         """
         def fresh():
+            """ If fresh_start is True, this function sets initial parameters for a fresh data crawl.
+            """
             if not isinstance(metadata, pd.core.frame.DataFrame):
                 list_of_files = self.metadata_clean_path.glob(
                     'no_cat_cleaned_sph_product_metadata_all*')
@@ -1962,9 +1989,7 @@ class Review(Sephora):
             self.logger.info('Progress files deleted')
 
     def terminate_logging(self):
-        """terminate_logging [summary]
-
-        [extended_summary]
+        """terminate_logging ends log generation for the crawler and cleaner after the job finshes successfully.
         """
         self.logger.handlers.clear()
         self.prod_review_log.stop_log()
@@ -1996,18 +2021,18 @@ class Image(Sephora):
                 "sph_prod_image_extraction", path=self.crawl_log_path)
             self.logger, _ = self.prod_image_log.start_log()
 
-    def get_images(self, indices: list, open_headless: bool,
+    def get_images(self, indices: Union[list, range], open_headless: bool,
                    open_with_proxy_server: bool,
                    randomize_proxy_usage: bool) -> None:
-        """get_images [summary]
+        """get_images scrapes individual product images.
 
-        [extended_summary]
+        Get Images download up to four images for on product.
 
         Args:
-            indices (list): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
+            indices (Union[list, range]): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use ip rotation service.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
         """
 
         for prod in self.meta.index[self.meta.index.isin(indices)]:
@@ -2131,22 +2156,31 @@ class Image(Sephora):
                 randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 ):
-        """extract [summary]
+        """extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            metadata (Union[pd.DataFrame, str, Path]): [description]
-            download (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
+            metadata (pd.DataFrame): Dataframe containing product specific url, name and id of the products to be scraped.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+            open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+                                                    Defaults to False.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
         """
         def fresh():
             self.meta = metadata[['prod_id', 'product_page']]
@@ -2218,9 +2252,7 @@ class Image(Sephora):
             Please look for file sph_product_review_all in path {self.image_path}')
 
     def terminate_logging(self) -> None:
-        """terminate_logging [summary]
-
-        [extended_summary]
+        """terminate_logging ends log generation for the crawler and cleaner after the job finshes successfully.
         """
         self.logger.handlers.clear()
         self.prod_image_log.stop_log()
