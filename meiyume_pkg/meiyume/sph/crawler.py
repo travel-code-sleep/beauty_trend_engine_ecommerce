@@ -45,7 +45,7 @@ class Metadata(Sephora):
     The Metadata class begins the data crawling process and all other stages depend on the product urls extracted by Metadata class.
 
     Args:
-        Sephora {Browser}: Class that initializes folder paths and selenium webdriver for data scraping.
+        Sephora (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
 
     """
 
@@ -55,13 +55,12 @@ class Metadata(Sephora):
 
     @classmethod
     def update_base_url(cls, url: str) -> None:
-        """Define the parent url from where the data scraping process will begin.
+        """update_base_url defines the parent url from where the data scraping process will begin.
 
-        Arguments:
-            url {str} -- The URL from which the spider will enter the website.
+        Args:
+            url (str): The URL from which the spider will enter the website.
 
         """
-
         cls.base_url = url
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
@@ -214,7 +213,7 @@ class Metadata(Sephora):
                      product_meta_data: list = []) -> None:
         """get_metadata Crawls product listing pages for price, name, brand etc.
 
-        Get metadata crawls a product type page for example lipstick.
+        Get Metadata crawls a product type page for example lipstick.
         The function gets individual product urls, names, brands and prices etc. and stores
         in a relational table structure to use later to download product images, scrape reviews and
         other specific information.
@@ -841,8 +840,8 @@ class Detail(Sephora):
             return item_name, item_size, item_price, item_ing
 
         def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -> list:
-            """get_product_attributes uses get_item_attribute method to scrape item details and stores in a list which is returned to
-            get_detail method for storing in a product specific dataframe.
+            """get_product_attributes uses get_item_attribute method to scrape item details and stores in a list
+            which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
                 drv (webdriver.Firefox): Selenium webdriver with opened product page.

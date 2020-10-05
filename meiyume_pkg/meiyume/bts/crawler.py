@@ -1,6 +1,5 @@
 
-"""[summary]
-"""
+"""The module to crawl Boots website data."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 from typing import *
@@ -41,10 +40,14 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 class Metadata(Boots):
-    """[summary]
+    """Metadata extracts product metadata such as product page url, prices and brand from Boots website.
 
-    Arguments:
-        Sephora {[type]} -- [description]
+    The Metadata class begins the data crawling process and all other stages depend on
+    the product urls extracted by Metadata class.
+
+    Args:
+        Boots (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
+
     """
     base_url = "https://www.boots.com"
     info = tldextract.extract(base_url)
@@ -52,27 +55,28 @@ class Metadata(Boots):
 
     @classmethod
     def update_base_url(cls, url: str)->None:
-        """update_base_url [summary]
-
-        [extended_summary]
+        """update_base_url defines the parent url from where the data scraping process will begin.
 
         Args:
-            url (str): [description]
+            url (str): The URL from which the spider will enter the website.
+
         """
         cls.base_url = url
         cls.info = tldextract.extract(cls.base_url)
         cls.source = cls.info.registered_domain
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
-        """[summary]
+        """__init__ Metadata class instace initializer.
 
-        Arguments:
-            driver_path {[type]} -- [description]
+        This method sets all the folder paths required for Metadata crawler to work.
+        If the paths does not exist the paths get automatically created depending on current directory or
+        provided directory.
 
-        Keyword Arguments:
-            log {bool} -- [description] (default: {True})
-            path {[type]} -- [description] (default: {Path.cwd()})
-            show {bool} -- [description] (default: {True})
+        Args:
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Metadata will be extracted. Defaults to
+                                   current directory(Path.cwd()).
+
         """
         super().__init__(path=path, data_def='meta')
         self.path = path
@@ -96,16 +100,18 @@ class Metadata(Boots):
             self.logger, _ = self.prod_meta_log.start_log()
 
     def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -> pd.DataFrame:
-        """get_product_type_urls [summary]
+        """get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
 
-        [extended_summary]
+        Extracts the links of pages containing the list of all products structured into
+        category/subcategory/product type to effectively stored in relational database.
+        Defines the structure of data extraction that helps store unstructured data in a structured manner.
 
         Args:
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use proxy server.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
         """
         # create webdriver instance
         drv = self.open_browser(
@@ -198,16 +204,19 @@ class Metadata(Boots):
                      open_headless: bool, open_with_proxy_server: bool,
                      randomize_proxy_usage: bool,
                      product_meta_data: list = []):
-        """get_metadata [summary]
+        """get_metadata Crawls product listing pages for price, name, brand etc.
 
-        [extended_summary]
+        Get Metadata crawls a product type page for example lipstick.
+        The function gets individual product urls, names, brands and prices etc. and stores
+        in a relational table structure to use later to download product images, scrape reviews and
+        other specific information.
 
         Args:
-            indices (Union[list, range]): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            product_meta_data (list, optional): [description]. Defaults to [].
+            indices (Union[list, range]): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use proxy server.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            product_meta_data (list, optional): Empty intermediate list to store product metadata during parallel crawl. Defaults to [].
         """
         for pt in self.product_type_urls.index[self.product_type_urls.index.isin(indices)]:
             cat_name = self.product_type_urls.loc[pt, 'category_raw']
@@ -372,24 +381,31 @@ class Metadata(Boots):
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 clean: bool = True, compile_progress_files: bool = False, delete_progress: bool = False) -> None:
-        """extract [summary]
+        """extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            download (bool, optional): [description]. Defaults to True.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            n_workers (int, optional): [description]. Defaults to 5.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            clean (bool, optional): [description]. Defaults to True.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished.
+                                               Defaults to False.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            open_headless (bool, optional): Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+                                                    Defaults to True.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
         """
         def fresh():
             """[summary]
@@ -512,9 +528,7 @@ class Metadata(Boots):
                 self.logger.info('Progress files deleted')
 
     def terminate_logging(self):
-        """terminate_logging [summary]
-
-        [extended_summary]
+        """terminate_logging ends log generation for the crawler and cleaner after the job finshes successfully.
         """
         self.logger.handlers.clear()
         self.prod_meta_log.stop_log()
@@ -571,20 +585,31 @@ class DetailReview(Boots):
             self.logger, _ = self.prod_detail_review_image_log.start_log()
 
     def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -> Tuple[dict, pd.DataFrame]:
-        """get_detail [summary]
+        """get_detail scrapes individual product pages for price, ingredients, color etc.
 
-        [extended_summary]
+        Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
+        size specific prices, color, product claims and other information pertaining to one individual product.
 
         Args:
-            drv (webdriver.Firefox): [description]
-            prod_id (str): [description]
-            product_name (str): [description]
+            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            prod_id (str): Id of the product from metdata.
+            product_name (str): Name of the product from metadata.
 
         Returns:
-            Tuple[dict, pd.DataFrame]: [description]
+            Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
+                                       attributes of a product.
         """
         def get_product_attributes(drv: webdriver.Firefox, prod_id: str, product_name: str):
-            """[summary]
+            """get_product_attributes uses get_item_attribute method to scrape item details and stores
+            in a list which is returned to get_detail method for storing in a product specific dataframe.
+
+            Args:
+                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                prod_id (str): Id of the product from metdata.
+                product_name (str): Name of the product from metadata.
+
+            Returns:
+                list: List containing all product item attributes of multiple varieties with name and id.
             """
             # get all the variation of product
             product_attributes = []
@@ -719,21 +744,19 @@ class DetailReview(Boots):
     def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
                     last_scraped_review_date: str, no_of_reviews: int,
                     incremental: bool = True, reviews: list = [])-> list:
-        """get_reviews [summary]
-
-        [extended_summary]
+        """get_reviews Crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
-            drv (webdriver.Firefox): [description]
-            prod_id (str): [description]
-            product_name (str): [description]
-            last_scraped_review_date (str): [description]
-            no_of_reviews (int): [description]
-            incremental (bool, optional): [description]. Defaults to True.
-            reviews (list, optional): [description]. Defaults to [].
+            drv (webdriver.Firefox): drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            prod_id (str): Id of the product from metdata.
+            product_name (str): Name of the product from metadata.
+            last_scraped_review_date (str): The last review date scraped as per database.
+            no_of_reviews (int): No.of reviews a product has.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
         Returns:
-            list: [description]
+            list: List od dictionaries containing all the scraped reviews of a product.
         """
         # print(no_of_reviews)
         # drv.find_element_by_class_name('css-2rg6q7').click()
@@ -922,35 +945,35 @@ class DetailReview(Boots):
                                                  'item_size', 'item_price',
                                                  'item_ingredients']),
                    review_data: list = [], incremental: bool = True):
-        """crawl_page
+        """crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
-        [extended_summary]
-
+        The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
         Args:
-            indices (list): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            detail_data (list, optional): [description]. Defaults to [].
-            item_df ([type], optional): [description]. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
-            'item_size', 'item_price', 'item_ingredients']).
-            review_data (list, optional): [description]. Defaults to [].
-            incremental (bool, optional): [description]. Defaults to True.
+            indices (list): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use ip rotation service.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            detail_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            item_df ([type], optional): Empty intermediate dataframe to store data during parallel crawl.
+                                        Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
+                                                                                         'item_size', 'item_price', 'item_ingredients']).
+            review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
         """
 
         def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
                                    review_data: list) -> Tuple[list, pd.DataFrame, list]:
-            """store_data_refresh_mem [summary]
+            """store_data_refresh_mem method stores crawled data in regular interval to free up system memory.
 
-            [extended_summary]
+            Store data after five products are extracted every time to free up RAM.
 
             Args:
-                detail_data (list): [description]
-                item_df (pd.DataFrame): [description]
-                review_data (list): [description]
+                detail_data (list): List containing crawled detail data to store.
+                item_df (pd.DataFrame): Dataframe containing scraped item data to store.
+                review_data (list): List containing scraped Review data to store.
 
             Returns:
-                Tuple[list, pd.DataFrame, list]: [description]
+                Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
             """
             pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                              f'bts_prod_detail_extract_progress_{time.strftime("%Y-%m-%d-%H%M%S")}.csv',
@@ -1075,26 +1098,32 @@ class DetailReview(Boots):
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-        """extract [summary]
+        """extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            metadata (Union[pd.DataFrame, str, Path]): [description]
-            download (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            incremental (bool, optional): [description]. Defaults to True.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            clean (bool, optional): [description]. Defaults to True.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            metadata (Union[pd.DataFrame, str, Path]): Dataframe containing product specific url, name and id of the products to be scraped.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            Defaults to False.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
         """
         def fresh():
             if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -1291,9 +1320,7 @@ class DetailReview(Boots):
             self.logger.info('Progress files deleted')
 
     def terminate_logging(self):
-        """terminate_logging [summary]
-
-        [extended_summary]
+        """terminate_logging ends log generation for the crawler and cleaner after the job finshes successfully.
         """
         self.logger.handlers.clear()
         self.prod_detail_review_image_log.stop_log()
