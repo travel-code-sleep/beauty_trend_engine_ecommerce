@@ -55,7 +55,7 @@ def run_detail_crawler(meta_df: pd.DataFrame, detail_crawler: Detail):
         else:
             fresh_start = False
             auto_fresh_start = False
-        detail_crawler.extract(metadata=meta_df, download=True, n_workers=6,
+        detail_crawler.extract(metadata=meta_df, download=True, n_workers=8,
                                fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                                start_idx=i[0], end_idx=i[-1],
                                open_headless=False, open_with_proxy_server=open_with_proxy_server,
@@ -114,7 +114,7 @@ if __name__ == "__main__":
 
         run_detail_crawler(meta_df=meta_df, detail_crawler=detail_crawler)
 
-        Path(files[0]).unlink()
+        # Path(files[0]).unlink()
 
         meta_ranker = SexyMetaDetail(
             path='D:/Amit/Meiyume/meiyume_data/spider_runner')

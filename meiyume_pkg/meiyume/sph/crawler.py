@@ -1,4 +1,3 @@
-
 """The module to crawl Sephora website data."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -113,7 +112,7 @@ class Metadata(Sephora):
             pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
         """
         # create webdriver instance
-        drv = self.open_browser_firefox(
+        drv = self.open_browser(
             open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
 
         drv.get(self.base_url)
@@ -242,11 +241,11 @@ class Metadata(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                                path=self.metadata_path)
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                        path=self.metadata_path)
             else:
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
-                                                path=self.metadata_path)
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                        path=self.metadata_path)
 
             drv.get(product_type_link)
             time.sleep(15)  # 30
@@ -967,11 +966,11 @@ class Detail(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                                path=self.detail_path)
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                        path=self.detail_path)
             else:
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
-                                                path=self.detail_path)
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                        path=self.detail_path)
             # open product page
             drv.get(product_page)
             time.sleep(20)  # 30
@@ -1542,14 +1541,14 @@ class Review(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                                path=self.detail_path)
-                # drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                        path=self.detail_path)
+                # drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
                 #                                 path=self.detail_path)
             else:
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
-                                                path=self.detail_path)
-                # drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                        path=self.detail_path)
+                # drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
                 #                                 path=self.detail_path)
 
             drv.get(product_page)
@@ -3108,11 +3107,11 @@ class DetailReview(Sephora):
                 use_proxy = True
             if open_with_proxy_server:
                 # print(use_proxy)
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                                path=self.detail_path)
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                        path=self.detail_path)
             else:
-                drv = self.open_browser_firefox(open_headless=open_headless, open_with_proxy_server=False,
-                                                path=self.detail_path)
+                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                        path=self.detail_path)
             # open product page
             drv.get(product_page)
             time.sleep(20)  # 30

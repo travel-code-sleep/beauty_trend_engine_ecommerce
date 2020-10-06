@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
         run_review_crawler(meta_df=meta_df, review_crawler=review_crawler)
 
-        Path(files[0]).unlink()
+        # Path(files[0]).unlink()
 
         if gecko_log_path.exists():
             gecko_log_path.unlink()
