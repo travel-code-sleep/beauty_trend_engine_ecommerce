@@ -773,7 +773,7 @@ class KeyWords(ModelsAlgorithms):
             return 'failed'
 
     def summarize_keywords(self, keywords: Union[str, list], sep: str = ',', exclude_keys: list = [],
-                           max_keys: int = -1) -> dict[str, int]:
+                           max_keys: int = -1) -> dict:
         """summarize_keywords summarizes generated keywords of a document.
 
         Args:
@@ -827,7 +827,7 @@ class KeyWords(ModelsAlgorithms):
     def generate_sentiment_ngrams(self, text: str, n: list = [2, 3, 4, 5, 6], min_freq: int = 2,
                                   max_terms: int = -1, exclude_ngrams: list = [],
                                   sentiment: str = 'negative', sentiment_threshold: float = 0.0,
-                                  increase_threshold_by: float = 0.2) -> dict[Any, int]:
+                                  increase_threshold_by: float = 0.2) -> dict:
         """generate_sentiment_ngrams extracts sentiment wise ngrams from input text.
 
         Depending on the input text's sentiment this method generates the most crucial n-gram phrases of a document
