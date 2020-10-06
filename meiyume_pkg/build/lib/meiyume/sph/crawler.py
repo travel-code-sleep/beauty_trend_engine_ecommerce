@@ -1,4 +1,3 @@
-
 """The module to crawl Sephora website data."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
@@ -2792,7 +2791,7 @@ class DetailReview(Sephora):
 
     def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
                     last_scraped_review_date: str, no_of_reviews: int,
-                    incremental: bool = True, reviews: list = [])-> list:
+                    incremental: bool = True, reviews: list = []) -> list:
         """get_reviews [summary]
 
         [extended_summary]

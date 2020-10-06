@@ -2,39 +2,39 @@
 """The module to crawl Boots website data."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from typing import *
-import sys
-import types
-import pdb
+
 import concurrent.futures
 import os
+import pdb
 import shutil
+import sys
 import time
-from datetime import datetime, timedelta
+import types
 import warnings
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import *
+
 import numpy as np
 import pandas as pd
 import tldextract
+from meiyume.cleaner_plus import Cleaner
+from meiyume.utils import (Boots, Browser, Logger, MeiyumeException,
+                           accept_alert, chunks, close_popups,
+                           convert_ago_to_date, log_exception, ranges)
 from selenium import webdriver
 from selenium.common.exceptions import (ElementClickInterceptedException,
                                         NoSuchElementException,
                                         StaleElementReferenceException,
                                         TimeoutException)
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.alert import Alert
-
-from meiyume.cleaner_plus import Cleaner
-from meiyume.utils import (Browser, Logger, MeiyumeException, Boots,
-                           accept_alert, close_popups, log_exception,
-                           chunks, ranges, convert_ago_to_date)
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -54,7 +54,7 @@ class Metadata(Boots):
     source = info.registered_domain
 
     @classmethod
-    def update_base_url(cls, url: str)->None:
+    def update_base_url(cls, url: str) -> None:
         """update_base_url defines the parent url from where the data scraping process will begin.
 
         Args:
@@ -535,21 +535,24 @@ class Metadata(Boots):
 
 
 class DetailReview(Boots):
-    """
-    [summary]
+    """DetailReview class carries out scraping of Boots Detail and Review data.
 
-    Arguments:
-        Browser {[type]} -- [description]
+    Args:
+        Boots (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
     """
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
-        """__init__ [summary]
+        """__init__ DetailReview class instace initializer.
 
-        [extended_summary]
+        This method sets all the folder paths required for Metadata crawler to work.
+        If the paths does not exist the paths get automatically created depending on current directory
+        or provided directory.
 
         Args:
-            log (bool, optional): [description]. Defaults to True.
-            path (Path, optional): [description]. Defaults to Path.cwd().
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Metadata will be extracted.
+                                   Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path, data_def='detail_review_image')
         self.path = Path(path)
@@ -743,7 +746,7 @@ class DetailReview(Boots):
 
     def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
                     last_scraped_review_date: str, no_of_reviews: int,
-                    incremental: bool = True, reviews: list = [])-> list:
+                    incremental: bool = True, reviews: list = []) -> list:
         """get_reviews Crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
