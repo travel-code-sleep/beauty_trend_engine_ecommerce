@@ -8,9 +8,9 @@ import gc
 import io
 import logging
 import os
+import re
 import sys
 import time
-import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import *
@@ -19,6 +19,7 @@ import boto3
 import numpy as np
 import pandas as pd
 import pg8000
+from retrying import retry
 # import missingno as msno
 from selenium import webdriver
 from selenium.common.exceptions import (ElementClickInterceptedException,
@@ -38,8 +39,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
-
-from retrying import retry
 
 os.environ['WDM_LOG_LEVEL'] = '0'
 
@@ -863,7 +862,7 @@ def ranges(N: int, nb: int, start_idx: int = 0) -> list:
     return [range(start_idx+round(step*i), start_idx+round(step*(i+1))) for i in range(nb)]
 
 
-def hasNumbers(inputString: str)->bool:
+def hasNumbers(inputString: str) -> bool:
     """hasNumbers [summary]
 
     [extended_summary]
