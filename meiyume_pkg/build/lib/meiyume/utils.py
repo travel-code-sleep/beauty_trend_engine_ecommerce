@@ -44,39 +44,43 @@ os.environ['WDM_LOG_LEVEL'] = '0'
 
 
 class MeiyumeException(Exception):
-    """class to define custom exceptions in runtime
+    """MeiyumeException class to define custom exceptions in runtime.
 
-    Arguments:
-        Exception {[type]} -- [description]
+    Args:
+        Exception (object): Python exceptions module.
     """
     pass
 
 
 class Browser(object):
-    """Browser class serves selenium web-driver in head and headless
-       mode. It also provides some additional utilities such as scrolling etc.
+    """Browser class serves selenium web-driver in head and headless mode for web scraping.
 
-    Arguments:
-        object {[type]} -- [description]
+    Browser module provides methods to either use chrome or firefox browser for scraping.
+
+    It carries out below functions:
+    1. Instantiate selenium driver for scraping.
+    2. Enable or disable ip rotation service
+    3. Open web pages to take high resolution screenshots.
+    4. Scroll web page.
+    5. Scroll to particular element on a webpage.
+
     """
-
     # def __init__(self):
     #     pass
 
     def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
                      open_with_proxy_server: bool = False, path: Path = Path.cwd()) -> webdriver.Chrome:
-        """open_browser [summary]
-
-        [extended_summary]
+        """open_browser instantiates selenium chrome driver with or without proxy services.
 
         Args:
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_for_screenshot (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to False.
-            path (Path, optional): [description]. Defaults to Path.cwd().
+            open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+            open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+            path (Path, optional): Folder path where the driver software will be saved and used from.
+                                   Defaults to current working directory(Path.cwd()).
 
         Returns:
-            webdriver.Chrome: [description]
+            webdriver.Chrome: Instantiated chrome driver.
         """
         # chrome_options = Options()
         chrome_options = webdriver.ChromeOptions()
@@ -123,18 +127,17 @@ class Browser(object):
 
     def open_browser_firefox(self, open_headless: bool = False, open_for_screenshot: bool = False,
                              open_with_proxy_server: bool = False, path: Path = Path.cwd()) -> webdriver.Firefox:
-        """open_browser_firefox [summary]
-
-        [extended_summary]
+        """open_browser instantiates selenium firefox geckodriver with or without proxy services.
 
         Args:
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_for_screenshot (bool, optional): True enables image high resolution. If used to take screenshot open_headless must be set to True.
-                                                  Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to False.
+            open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+            open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+            path (Path, optional): Folder path where the driver software will be saved and used from.
+                                   Defaults to current working directory(Path.cwd()).
 
         Returns:
-            webdriver: [description]
+            webdriver.Firefox: Instantiated firefox driver.
         """
         # Add service path creation condition to store logs
         if not Path(path/'service').exists():
@@ -187,16 +190,15 @@ class Browser(object):
         return driver
 
     @staticmethod
-    def scroll_down_page(driver, speed=8, h1=0, h2=1):
-        """[summary]
+    def scroll_down_page(driver: Union[webdriver.Firefox, webdriver.Chrome], speed: int = 8,
+                         h1: int = 0, h2: int = 1) -> None:
+        """scroll_down_page scrolls up or down a page at given speed.
 
-        Arguments:
-            driver {[type]} -- [description]
-
-        Keyword Arguments:
-            speed {int} -- [description] (default: {8})
-            h1 {int} -- [description] (default: {0})
-            h2 {int} -- [description] (default: {1})
+        Args:
+            driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+            speed (int, optional): Scrolling speed. Defaults to 8.
+            h1 (int, optional): Starting height from which to scroll. Defaults to 0.
+            h2 (int, optional): Ending height to which to scroll. Defaults to 1.
         """
         current_scroll_position, new_height = h1, h2
         while current_scroll_position <= new_height:
@@ -207,40 +209,36 @@ class Browser(object):
                 "return document.body.scrollHeight")
 
     @staticmethod
-    def scroll_to_element(driver: webdriver.Firefox, element: WebElement) -> None:
-        """scroll_to_element [summary]
-
-        [extended_summary]
+    def scroll_to_element(driver: Union[webdriver.Firefox, webdriver.Chrome], element: WebElement) -> None:
+        """scroll_to_element scrolls to a particular element on a webpage.
 
         Args:
-            driver (webdriver.Firefox): [description]
-            element (WebElement): [description]
+            driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+            element (WebElement): The web element to scroll to.
         """
         driver.execute_script(
             "arguments[0].scrollIntoView();", element)
 
 
 class Sephora(Browser):
-    """ This object is inherited by all crawler and cleaner classes in sph_crawler
-        and sph_cleaner modules.
+    """This object is inherited by all crawler and cleaner classes in sph.crawler module.
 
-        Sephora class creates and sets directories for respective data definitions.
+    Sephora class creates and sets directories for respective data definitions.
 
-    Arguments:
-        Browser {[type]} -- [Browser class serves selenium webdriver in head and headless
-                             mode. It also provides some additional utilities such as scrolling etc.]
+    Args:
+        Browser (object): Browser class serves selenium webdriver in head or headless
+                          mode. It also provides some additional utilities such as scrolling. proxies etc.
     """
 
-    def __init__(self, data_def=None, path=Path.cwd()):
-        """__init__ [summary]
+    def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
+        """__init__ Sephora class instacne constructor creates all the data folder paths as per data definition.
 
-        [extended_summary]
+        The sub directories are created under parent directory only when the folders don't already exist.
 
         Args:
-            data_def ([type], optional): [description]. Defaults to None.
-            driver_path ([type], optional): [description]. Defaults to None.
-            path ([type], optional): [description]. Defaults to Path.cwd().
-            show (bool, optional): [description]. Defaults to True.
+            data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
+            path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
+                                               will be created. Defaults to Path.cwd().
         """
         super().__init__()
         self.path = Path(Path(path)/'sephora')
@@ -309,25 +307,24 @@ class Sephora(Browser):
 
 
 class Boots(Browser):
-    """ This object is inherited by all crawler classes in sph.crawler module.
+    """This object is inherited by all crawler and cleaner classes in bts.crawler module.
 
-        Boots class creates and sets directories for respective data definitions.
+    Boots class creates and sets directories for respective data definitions.
 
-    Arguments:
-        Browser (class) -- Browser class serves selenium web-drvier in head and headless
-                             mode. It also provides some additional utilities such as scrolling etc.
+    Args:
+        Browser (object): Browser class serves selenium webdriver in head or headless
+                          mode. It also provides some additional utilities such as scrolling. proxies etc.
     """
 
-    def __init__(self, data_def=None, path=Path.cwd()):
-        """__init__ [summary]
+    def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
+        """__init__ Boots class instacne constructor creates all the data folder paths as per data definition.
 
-        [extended_summary]
+        The sub directories are created under parent directory only when the folders don't already exist.
 
         Args:
-            data_def (str, optional): [description]. Defaults to None.
-            path (path:str, optional): [description]. Defaults to Path.cwd().
-            driver_path (path:str, optional): [description]. Defaults to None.
-            show (bool, optional): [description]. Defaults to True.
+            data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
+            path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
+                                               will be created. Defaults to Path.cwd().
         """
         super().__init__()
         self.path = Path(Path(path)/'boots')
@@ -396,9 +393,7 @@ class Boots(Browser):
 
 
 class ModelsAlgorithms(object):
-    """ModelsAlgorithms [summary]
-
-    [extended_summary]
+    """ModelsAlgorithms creates folder structure to store outputs from several algorithms to disk.
 
     Args:
         object ([type]): [description]

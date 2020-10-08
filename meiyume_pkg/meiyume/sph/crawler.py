@@ -5,6 +5,7 @@ from typing import *
 import sys
 import types
 import pdb
+import gc
 import concurrent.futures
 import os
 import shutil
@@ -68,7 +69,8 @@ class Metadata(Sephora):
         """__init__ Metadata class instace initializer.
 
         This method sets all the folder paths required for Metadata crawler to work.
-        If the paths does not exist the paths get automatically created depending on current directory or provided directory.
+        If the paths does not exist the paths get automatically created depending on current directory
+        or provided directory.
 
         Args:
             log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
@@ -110,6 +112,7 @@ class Metadata(Sephora):
 
         Returns:
             pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
+
         """
         # create webdriver instance
         drv = self.open_browser(
@@ -223,6 +226,7 @@ class Metadata(Sephora):
             open_with_proxy_server (bool): Whether to use proxy server.
             randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
             product_meta_data (list, optional): Empty intermediate list to store product metadata during parallel crawl. Defaults to [].
+
         """
         for pt in self.product_type_urls.index[self.product_type_urls.index.isin(indices)]:
             cat_name = self.product_type_urls.loc[pt, 'category_raw']
@@ -2001,6 +2005,7 @@ class Image(Sephora):
 
     Args:
         Sephora ([type]): [description]
+
     """
 
     def __init__(self, path: Path = Path.cwd(), log: bool = True):
@@ -3444,9 +3449,6 @@ class DetailReview(Sephora):
             self.logger.info('Progress files deleted')
 
     def terminate_logging(self):
-        """terminate_logging [summary]
-
-        [extended_summary]
-        """
+        """terminate_logging."""
         self.logger.handlers.clear()
         self.prod_detail_review_image_log.stop_log()

@@ -40,6 +40,7 @@ class Cleaner():
         Args:
             path (Union[str, Path], optional): Folder path where the cleaned output data structure will be saved
                                                and uncleaned data will be read. Defaults to current directory(Path.cwd()).
+
         """
         self.path = Path(path)
         self.sph = Sephora(path=self.path)
@@ -48,7 +49,7 @@ class Cleaner():
 
     def clean(self, data: Union[str, Path, pd.DataFrame], save: bool = True,
               logs: bool = False, source: Optional[str] = None, definition: Optional[str] = None) -> pd.DataFrame:
-        """clean method takes an uncleaned data file or path, determines the source and applies relevant function to clean webdata.
+        """Clean method takes an uncleaned data file or path, determines the source and applies relevant function to clean webdata.
 
         Clean method is dependent on four methods to clean specific types of e-commerce webdata:
         1. Metadata cleaner
@@ -73,6 +74,7 @@ class Cleaner():
 
         Returns:
             pd.DataFrame: Cleaned and structured metadata, detail, item, ingredient and review data.
+
         """
         if not isinstance(data, pd.core.frame.DataFrame):
             filename = str(data).split('\\')[-1]
@@ -135,6 +137,7 @@ class Cleaner():
 
         Returns:
             Tuple[str, str, str]: Cleaned and separated small product price, larger product price and mrp.
+
         """
         if '/' not in price and '-' not in price:
             return price, '', ''
@@ -167,6 +170,7 @@ class Cleaner():
             price (str): input price
         Returns:
             str: Cleaned price.
+
         """
         replace_strings = (('$', ''), ('(', '/ '),
                            (')', ''), ('value', ''),
@@ -183,6 +187,7 @@ class Cleaner():
 
         Returns:
             pd.DataFrame: Cleaned metadata.
+
         """
         self.meta = data
         del data
@@ -284,11 +289,7 @@ class Cleaner():
                                     'price1', 'price2'], inplace=True)
 
         def fix_multi_low_price(x):
-            """[summary]
-
-            Arguments:
-                x {[type]} -- [description]
-            """
+            """Choose correct low price."""
             if len(x) > 7 and ' ' in x:
                 p = x.split()
                 return p[-1], p[0]
@@ -386,6 +387,7 @@ class Cleaner():
 
         Returns:
             pd.DataFrame: Cleaned detail data.
+
         """
         self.detail = data
         del data
@@ -479,6 +481,7 @@ class Cleaner():
 
         Returns:
             pd.DataFrame: Cleaned Item and Ingredient data.
+
         """
         nlp = spacy.load('en_core_web_lg')
 
@@ -512,6 +515,7 @@ class Cleaner():
 
             Returns:
                 float: The chosen correct price of a product.
+
             """
             x = [float(i) for i in x]
             if len(x) == 1:
@@ -542,6 +546,7 @@ class Cleaner():
 
                 Returns:
                     str: Extracted item size.
+
                 """
                 if x.item_size == '' and x.item_name != '':
                     if ' oz' in x.item_name or x.item_name.count(' ml') >= 1 or x.item_name.count(' g') >= 1:
@@ -556,8 +561,10 @@ class Cleaner():
 
                 Args:
                     x (str): Item size.
+
                 Returns:
                     Tuple[str, str]: Size in oz and ml_gm.
+
                 """
                 if x != '':
                     lst = str(x).split('/')
@@ -610,6 +617,7 @@ class Cleaner():
 
             Returns:
                 str: Cleaned required ingredients.
+
             """
             if x.clean_flag == 'Clean' and x.item_ingredients is not np.nan:
                 return x.item_ingredients.split('clean at sephora')[0]+'\n'
@@ -741,6 +749,7 @@ class Cleaner():
 
         Returns:
             pd.DataFrame: Cleaned review data.
+
         """
         self.review = data
         del data
