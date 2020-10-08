@@ -1,6 +1,5 @@
 
-"""[summary]
-"""
+"""Utils module contains crucial classes and functions that are used in all other modules of meiyume package."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -48,7 +47,9 @@ class MeiyumeException(Exception):
 
     Args:
         Exception (object): Python exceptions module.
+
     """
+
     pass
 
 
@@ -65,8 +66,6 @@ class Browser(object):
     5. Scroll to particular element on a webpage.
 
     """
-    # def __init__(self):
-    #     pass
 
     def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
                      open_with_proxy_server: bool = False, path: Path = Path.cwd()) -> webdriver.Chrome:
@@ -81,6 +80,7 @@ class Browser(object):
 
         Returns:
             webdriver.Chrome: Instantiated chrome driver.
+
         """
         # chrome_options = Options()
         chrome_options = webdriver.ChromeOptions()
@@ -138,6 +138,7 @@ class Browser(object):
 
         Returns:
             webdriver.Firefox: Instantiated firefox driver.
+
         """
         # Add service path creation condition to store logs
         if not Path(path/'service').exists():
@@ -199,6 +200,7 @@ class Browser(object):
             speed (int, optional): Scrolling speed. Defaults to 8.
             h1 (int, optional): Starting height from which to scroll. Defaults to 0.
             h2 (int, optional): Ending height to which to scroll. Defaults to 1.
+
         """
         current_scroll_position, new_height = h1, h2
         while current_scroll_position <= new_height:
@@ -215,6 +217,7 @@ class Browser(object):
         Args:
             driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
             element (WebElement): The web element to scroll to.
+
         """
         driver.execute_script(
             "arguments[0].scrollIntoView();", element)
@@ -228,6 +231,7 @@ class Sephora(Browser):
     Args:
         Browser (object): Browser class serves selenium webdriver in head or headless
                           mode. It also provides some additional utilities such as scrolling. proxies etc.
+
     """
 
     def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
@@ -239,6 +243,7 @@ class Sephora(Browser):
             data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
             path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
                                                will be created. Defaults to Path.cwd().
+
         """
         super().__init__()
         self.path = Path(Path(path)/'sephora')
@@ -314,10 +319,11 @@ class Boots(Browser):
     Args:
         Browser (object): Browser class serves selenium webdriver in head or headless
                           mode. It also provides some additional utilities such as scrolling. proxies etc.
+
     """
 
     def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
-        """__init__ Boots class instacne constructor creates all the data folder paths as per data definition.
+        """__init__ Boots class instance constructor creates all the data folder paths as per data definition.
 
         The sub directories are created under parent directory only when the folders don't already exist.
 
@@ -325,6 +331,7 @@ class Boots(Browser):
             data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
             path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
                                                will be created. Defaults to Path.cwd().
+
         """
         super().__init__()
         self.path = Path(Path(path)/'boots')
@@ -393,19 +400,15 @@ class Boots(Browser):
 
 
 class ModelsAlgorithms(object):
-    """ModelsAlgorithms creates folder structure to store outputs from several algorithms to disk.
+    """ModelsAlgorithms creates folder structure to store outputs from several algorithms to disk."""
 
-    Args:
-        object ([type]): [description]
-    """
-
-    def __init__(self, path='.'):
-        """__init__ [summary]
-
-        [extended_summary]
+    def __init__(self, path: Union[str, Path] = Path.cwd()):
+        """__init__ ModelsAlgorithms instance constructor will create the output paths at time of instantiation.
 
         Args:
-            path (str, optional): [description]. Defaults to '.'.
+            path Union[str, Path]: The parent directory where the output subdirectories will be created.
+                                   Defaults to current working directory(Path.cwd()).
+
         """
         self.path = Path(path)
         self.output_path = self.path/'algorithm_outputs'
@@ -422,22 +425,21 @@ class ModelsAlgorithms(object):
 
 
 class Logger(object):
-    """[summary]
+    """Logger creates file handlers to write program execution logs to disk."""
 
-    Arguments:
-        object {[type]} -- [description]
+    def __init__(self, task_name: str, path: Path):
+        """__init__ initializes the file write stream.
 
-    Returns:
-        [type] -- [description]
-    """""" pass """
+        Args:
+            task_name (str): Name of the log file.
+            path (Path): Path in which the generated logs will be stored.
 
-    def __init__(self, task_name, path):
+        """
         self.filename = path / \
             f'{task_name}_{time.strftime("%Y-%m-%d-%H%M%S")}.log'
 
     def start_log(self):
-        """[summary]
-        """
+        """Start writing logs."""
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self.logger.propagate = False
@@ -452,25 +454,10 @@ class Logger(object):
         return self.logger, self.filename
 
     def stop_log(self):
-        """[summary]
-        """
+        """Stop writing logs and flush the file handlers."""
         # self.logger.removeHandler(self.file_handler)
         del self.logger, self.file_handler
         gc.collect()
-
-
-def nan_equal(a, b):
-    """[summary]
-
-    Arguments:
-        a {[type]} -- [description]
-        b {[type]} -- [description]
-    """
-    try:
-        np.testing.assert_equal(a, b)
-    except AssertionError:
-        return False
-    return True
 
 
 '''
@@ -500,21 +487,21 @@ def chunks(l, n):
     Arguments:
         l {[list, range, index]} -- [description]
         n {[type]} -- [description]
+
     """
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
 
-def convert_ago_to_date(x):
-    """convert_ago_to_date [summary]
-
-    [extended_summary]
+def convert_ago_to_date(x: str) -> str:
+    """convert_ago_to_date removes ago from date and converts to proper date format.
 
     Args:
-        x ([type]): [description]
+        x (str): Date data to clean. (e.g.: 11 days ago)
 
     Returns:
-        [type]: [description]
+        str: Cleaned date data in dd mm yyyy format.
+
     """
     if 'ago' in x.lower() and x is not np.nan:
         if 'd' in x.lower():
@@ -534,33 +521,38 @@ def convert_ago_to_date(x):
 
 
 class S3FileManager(object):
-    """S3FileManager [summary]
+    """S3FileManager reads from and writes data to aws S3 storage.
 
-    [extended_summary]
+    S3FileManager has below major functions:
+    1. Find stored files with string search.
+    2. Upload files to S3.
+    3. Download files from S3.
+    4. Read files from S3 into pandas dataframes.
+    5. Delete files in S3.
+    6. Crete S3 folder path for data upload.
 
-    Args:
-        object ([type]): [description]
     """
 
     def __init__(self, bucket: str = 'meiyume-datawarehouse-prod'):
-        """__init__ [summary]
-
-        [extended_summary]
+        """__init__ initializes S3FileManager instance with given data bucket.
 
         Args:
-            bucket (str, optional): [description]. Defaults to 'meiyume-datawarehouse-prod'.
+            bucket (str, optional): The S3 bucket from/to which files will be read/downloaded/uploaded.
+                                    Defaults to 'meiyume-datawarehouse-prod'.
+
         """
         self.bucket = bucket
 
     def get_matching_s3_objects(self, prefix: str = "", suffix: str = ""):
-        """
-        Generate objects in an S3 bucket.
+        """get_matching_s3_objects searches S3 with string matching to find relevant keys.
 
-        :param bucket: Name of the S3 bucket.
-        :param prefix: Only fetch objects whose key starts with
-            this prefix (optional).
-        :param suffix: Only fetch objects whose keys end with
-            this suffix (optional).
+        Args:
+            prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to "".
+            suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to "".
+
+        Yields:
+            Matching S3 keys.
+
         """
         s3 = boto3.client("s3")
         paginator = s3.get_paginator("list_objects_v2")
@@ -589,42 +581,66 @@ class S3FileManager(object):
                         yield obj
 
     def get_matching_s3_keys(self, prefix: str = "", suffix: str = ""):
-        """
-        Generate the keys in an S3 bucket.
+        """get_matching_s3_keys Generates the matching keys in an S3 bucket.
 
-        :param bucket: Name of the S3 bucket.
-        :param prefix: Only fetch keys that start with this prefix (optional).
-        :param suffix: Only fetch keys that end with this suffix (optional).
+        Args:
+            prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to "".
+            suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to "".
+
+        Yields:
+            Any: Matching S3 object key
+
         """
         for obj in self.get_matching_s3_objects(prefix, suffix):
             yield obj  # obj["Key"]
 
-    def get_last_modified_s3(self, key):
-        """get_last_modified_date_s3 [summary]
-
-        [extended_summary]
+    def get_last_modified_s3(self, key: str) -> dict:
+        """get_last_modified_date_s3 gets the last modified date of a S3 object.
 
         Args:
-            key ([type]): [description]
+            key (str): Object key to find last modified date for.
+
+        Returns:
+            dict: Dictionary containing the key and last modified timestamp.
+
         """
         s3 = boto3.resource('s3')
         k = s3.Bucket(self.bucket).Object(key)  # pylint: disable=no-member
         return {'key_name': k.key, 'key_last_modified': str(k.last_modified)}
 
-    def get_prefix_s3(self, job_name):
-        """get_prefix_s3 [summary]
+    def get_prefix_s3(self, job_name: str) -> str:
+        """get_prefix_s3 sets the correct S3 file prefix depending on the upload job.
 
         [extended_summary]
 
         Args:
-            job_name ([type]): [description]
+            job_name (str): [description]
 
         Raises:
             MeiyumeException: [description]
 
         Returns:
-            [type]: [description]
+            str: [description]
+
         """
+        upload_jobs = {
+            'source_meta': 'Feeds/BeautyTrendEngine/Source_Meta/Staging/',
+            'meta_detail': 'Feeds/BeautyTrendEngine/Meta_Detail/Staging/',
+            'item': 'Feeds/BeautyTrendEngine/Item/Staging/',
+            'ingredient': 'Feeds/BeautyTrendEngine/Ingredient/Staging/',
+            'review': 'Feeds/BeautyTrendEngine/Review/Staging/',
+            'review_summary': 'Feeds/BeautyTrendEngine/Review_Summary/Staging/',
+            'image': 'Feeds/BeautyTrendEngine/Image/Staging/',
+            'cleaned_pre_algorithm': 'Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/',
+            'webapp': 'Feeds/BeautyTrendEngine/WebAppData/'
+        }
+
+        try:
+            return upload_jobs[job_name]
+        except Exception as ex:
+            raise MeiyumeException(
+                'Unrecognizable job. Please input correct job_name.')
+        '''
         if job_name == 'source_meta':
             prefix = 'Feeds/BeautyTrendEngine/Source_Meta/Staging/'
         elif job_name == 'meta_detail':
@@ -647,16 +663,17 @@ class S3FileManager(object):
             raise MeiyumeException(
                 'Unrecognizable job. Please input correct job_name.')
         return prefix
+        '''
 
-    def push_file_s3(self, file_path, job_name):
-        """[summary]
+    def push_file_s3(self, file_path: Union[str, Path], job_name: str) -> None:
+        """push_file_s3 upload file to S3 storage with job name specific prefix.
 
-        Arguments:
-            file_path {[path:str]} -- [File name to store in S3]
-            job_name {[str]} -- [Type of job: One of [meta_detail | item | ingredient | review | review_summary]]
+        Args:
+            file_path (Union[str, Path]): File path of the file to be uploaded as a string or Path object.
+            job_name (str): Type of file to upload: One of [meta_detail, item, ingredient,
+                                                        review, review_summary, image,
+                                                        cleaned_pre_algorithm, webappdata]
 
-        Raises:
-            MeiyumeException: [if job name is not in above defined list]
         """
         # cls.make_manager()
         file_name = str(file_path).split("\\")[-1]
@@ -671,25 +688,49 @@ class S3FileManager(object):
         except Exception:
             print('file pushing task failed.')
 
-    def pull_file_s3(self, key, file_path='.', suffix=None):
-        """pull_file_s3 [summary]
-
-        [extended_summary]
+    def pull_file_s3(self, key: str, file_path: Path = Path.cwd()) -> None:
+        """pull_file_s3 dowload file from S3.
 
         Args:
-            job_name ([type]): [description]
-            file_path ([type], optional): [description]. Defaults to None.
-        """
-        # prefix = self.get_prefix_s3(job_name)
-        # keys = self.get_matching_s3_keys(prefix)
+            key (str): The file object to download.
+            file_path (Path, optional): The path in which the downloaded file will be stored.
+                                        Defaults to current working directory (Path.cwd()).
 
+        """
         s3 = boto3.resource('s3')
         file_name = str(key).split('/')[-1]
         s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
             key, f'{file_path}/{file_name}')
 
+    def read_data_to_dataframe_s3(self, key: str, file_type: str) -> pd.DataFrame:
+        """read_data_to_dataframe_s3 reads S3 object into a pandas dataframe.
+
+        Args:
+            key (str): S3 object key.
+            file_type (str): File format.
+
+        Raises:
+            MeiyumeException: Raises exception if incorrect key or file type provied. (Accepted types: csv, feather, pickle)
+
+        Returns:
+            pd.DataFrame: File data in pandas dataframe.
+
+        """
+        s3 = boto3.client('s3')
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+
+        try:
+            if file_type == 'csv':
+                return pd.read_csv(io.BytesIO(obj['Body'].read()), sep='~')
+            elif file_type == 'feather':
+                return pd.read_feather(io.BytesIO(obj['Body'].read()))
+            elif file_type == 'pickle':
+                return pd.read_pickle(io.BytesIO(obj['Body'].read()))
+        except Exception as ex:
+            raise MeiyumeException('Provide correct file key and file type.')
+
     def read_feather_s3(self, key: str) -> pd.DataFrame:
-        """read_feather_s3 [summary]
+        """read_feather_s3 will be removed in next version.
 
         [extended_summary]
 
@@ -698,6 +739,7 @@ class S3FileManager(object):
 
         Returns:
             pd.DataFrame: [description]
+
         """
         s3 = boto3.client('s3')
         obj = s3.get_object(Bucket=self.bucket, Key=key)
@@ -705,7 +747,7 @@ class S3FileManager(object):
         return df
 
     def read_csv_s3(self, key: str) -> pd.DataFrame:
-        """read_csv_s3 [summary]
+        """read_csv_s3 will be removed in next version.
 
         [extended_summary]
 
@@ -714,19 +756,19 @@ class S3FileManager(object):
 
         Returns:
             pd.DataFrame: [description]
+
         """
         s3 = boto3.client('s3')
         obj = s3.get_object(Bucket=self.bucket, Key=key)
         df = pd.read_csv(io.BytesIO(obj['Body'].read()), sep='~')
         return df
 
-    def delete_file_s3(self, key: str):
-        """delete_file_s3 [summary]
-
-        [extended_summary]
+    def delete_file_s3(self, key: str) -> None:
+        """delete_file_s3 delete file object from S3.
 
         Args:
-            key ([type]): [description]
+            key (str): The file key to delete.
+
         """
         s3 = boto3.resource('s3')
         try:
@@ -737,19 +779,10 @@ class S3FileManager(object):
 
 
 class RedShiftReader(object):
-    """RedShiftReader [summary]
-
-    [extended_summary]
-
-    Args:
-        object ([type]): [description]
-    """
+    """RedShiftReader connects to Redshift database and performs table querying for trend engine schema."""
 
     def __init__(self):
-        """__init__ [summary]
-
-        [extended_summary]
-        """
+        """__init__ initializes RedshiftReader instance with all the database connection properties."""
         self.host = 'lifungprod.cctlwakofj4t.ap-southeast-1.redshift.amazonaws.com'
         self.port = 5439
         self.database = 'lifungdb'
@@ -760,15 +793,14 @@ class RedShiftReader(object):
             user=self.user_name, password=self.password)
 
     def query_database(self, query: str) -> pd.DataFrame:
-        """query_database [summary]
-
-        [extended_summary]
+        """query_database takes a sql query in text format and returns table/view query results as pandas dataframe.
 
         Args:
-            query (str): [description]
+            query (str): Sql query as a string in double quotes.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Dataframe containing query results.
+
         """
         df = pd.read_sql_query(query, self.conn)
         df.columns = [name.decode('utf-8') for name in df.columns]
@@ -776,13 +808,13 @@ class RedShiftReader(object):
 
 
 def log_exception(logger: Logger, additional_information: Optional[str] = None) -> None:
-    """log_exception [summary]
-
-    [extended_summary]
+    """log_exception logs exception when occurred while executing code.
 
     Args:
-        logger (Logger): [description]
-        additional_information (Optional[str], optional): [description]. Defaults to None.
+        logger (Logger): The logger handler with access to log file.
+        additional_information (Optional[str], optional): Any additional text info to add to the exception log.
+                                                          Defaults to None.
+
     """
     exc_type, exc_obj, exc_tb = \
         sys.exc_info(
@@ -798,13 +830,12 @@ def log_exception(logger: Logger, additional_information: Optional[str] = None) 
             (Filename: {file_name}).', 'utf-8', 'ignore'))
 
 
-def close_popups(drv: webdriver.Chrome):
-    """close_popups [summary]
-
-    [extended_summary]
+def close_popups(drv: Union[webdriver.Firefox, webdriver.Chrome]):
+    """close_popups closes pop up banners/messages/windows on webpage during scraping.
 
     Args:
-        drv (webdriver.Chrome): [description]
+        drv (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+
     """
     # close popup windows
     try:
@@ -820,14 +851,13 @@ def close_popups(drv: webdriver.Chrome):
         pass
 
 
-def accept_alert(drv: webdriver.Chrome, wait_time: int):
-    """accept_alert [summary]
-
-    [extended_summary]
+def accept_alert(drv: Union[webdriver.Firefox, webdriver.Chrome], wait_time: int) -> None:
+    """accept_alert accepts unusual alerts on the webpage when scraping.
 
     Args:
-        drv (webdriver.Chrome): [description]
-        wait_time (int): [description]
+        drv (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+        wait_time (int): Time to wait for the alert to appear.
+
     """
     try:
         WebDriverWait(drv, wait_time).until(EC.alert_is_present(),
@@ -841,45 +871,45 @@ def accept_alert(drv: webdriver.Chrome, wait_time: int):
 
 
 def ranges(N: int, nb: int, start_idx: int = 0) -> list:
-    """ranges [summary]
-
-    [extended_summary]
+    """Ranges partions a sequence of integers into equally spaced ranges.
 
     Args:
         N (int): end index of the range or length
         nb (int): no. of equally spaced ranges to return
-        start_idx (int, optional): start index of the range list. Defaults to 0.
+        start_idx (int, optional): Start index of the range list. Defaults to 0.
+                                   If start index is given the range partions will start from start_idx instead of 0.
 
     Returns:
         list: list of equispaced ranges between [(start_idx, N)]
+
     """
     step = (N-start_idx) / nb
     return [range(start_idx+round(step*i), start_idx+round(step*(i+1))) for i in range(nb)]
 
 
 def hasNumbers(inputString: str) -> bool:
-    """hasNumbers [summary]
-
-    [extended_summary]
+    """Hasnumbers checks whether string contains any numerical characters.
 
     Args:
-        inputString (str): [description]
+        inputString (str): Input String
 
     Returns:
-        bool: [description]
+        bool: True if contains numbers.
+
     """
     return bool(re.search(r'\d', inputString))
 
 
 class DataAggregator(object):
-    """DataAggregator [summary]
+    """DataAggregator future class to handle data merging from multiple sites.
 
     [extended_summary]
 
     Args:
         object ([type]): [description]
+
     """
 
-    def __init__(self):
-        self.sph = Sephora(path='.')
-        pass
+    # def __init__(self):
+    #     self.sph = Sephora(path='.')
+    #     pass

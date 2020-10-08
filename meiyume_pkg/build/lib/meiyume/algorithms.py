@@ -77,12 +77,13 @@ class SexyMetaDetail(ModelsAlgorithms):
         Args:
             path (Union[str, Path], optional): Folder path where the output folder structure will be saved
                                                and data will be read. Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path)
 
     def make(self, source: str, metadata: Optional[Union[Path, str, pd.DataFrame]] = None,
              detail_data: Optional[Union[Path, str, pd.DataFrame]] = None) -> pd.DataFrame:
-        """make defines and runs bayesian ranker and data transformations to feed data correctly into redshift database.
+        """Make defines and runs bayesian ranker and data transformations to feed data correctly into redshift database.
 
         Args:
             source (str): source code of the metadata and detail files. (Current accepted values: [sph, bts])
@@ -94,6 +95,7 @@ class SexyMetaDetail(ModelsAlgorithms):
 
         Returns:
             pd.DataFrame: Datafrane containing outputs from algorithms and other transformations.
+
         """
         if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
             raise MeiyumeException(
@@ -181,15 +183,14 @@ class SexyMetaDetail(ModelsAlgorithms):
                            ]
 
             def choose_type(x: str) -> str:
-                """choose_type [summary]
-
-                [extended_summary]
+                """choose_type correct product_type of a product.
 
                 Args:
-                    x (str): [description]
+                    x (str): Product types.
 
                 Returns:
-                    str: [description]
+                    str: Correct product type.
+
                 """
                 x = x.split()
                 t = list(set(x) - set(exclude_pdt))
@@ -260,15 +261,14 @@ class SexyMetaDetail(ModelsAlgorithms):
         def total_stars(x): return x.reviews * x.rating
 
         def bayesian_estimate(x) -> float:
-            """bayesian_estimate [summary]
-
-            [extended_summary]
+            """bayesian_estimate computes bayesian ranking score.
 
             Args:
-                x ([type]): [description]
+                x : pandas iterrow.
 
             Returns:
-                float: [description]
+                float: ranking score.
+
             """
             c = round(review_conf['reviews'][(review_conf.category == x.category) & (
                 review_conf.product_type == x.product_type)].values[0])
@@ -283,15 +283,14 @@ class SexyMetaDetail(ModelsAlgorithms):
         meta_detail.reset_index(drop=True, inplace=True)
 
         def ratio(x) -> Tuple[float, float]:
-            """ratio [summary]
-
-            [extended_summary]
+            """Ratio computes ration of positive to negative and total stars.
 
             Args:
-                x ([type]): [description]
+                x : pandas iterrow.
 
             Returns:
-                Tuple[float, float]: [description]
+                Tuple[float, float]: ratios.
+
             """
             pstv_to_ngtv_stars = ((x.five_star + x.four_star)+1) / \
                 ((x.two_star+1 + x.one_star+1)+1)
@@ -475,6 +474,7 @@ class SexyIngredient(ModelsAlgorithms):
 
         Returns:
             pd.DataFrame: Datafrane containing outputs from algorithms and other transformations.
+
         """
         if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
             raise MeiyumeException(
@@ -685,6 +685,7 @@ class KeyWords(ModelsAlgorithms):
 
         Returns:
             int: no. of keywords to extract.
+
         """
         p = 0.2
         if length < 50:
@@ -715,6 +716,7 @@ class KeyWords(ModelsAlgorithms):
 
         Returns:
             str: Keywords separated by comma.
+
         """
         try:
             if is_doc:
@@ -784,6 +786,7 @@ class KeyWords(ModelsAlgorithms):
 
         Returns:
             dict[str, int]: Dictionary containing keywords and their frequencies.
+
         """
         self.exclude_keys = ['', 'product', 'easy', 'glad', 'minutes', 'fingers', 'job', 'year',
                              'negative reviews', 'negative review', 'stuff', 'store', 'lot',
@@ -846,6 +849,7 @@ class KeyWords(ModelsAlgorithms):
 
         Returns:
             dict[Any, int]: Dictionary containing sentiment phrases and their frequencies.
+
         """
         self.exclude_ngram_list = ['good product', 'great product', 'works best', 'love love', 'great job', 'great tool',
                                    'works good', 'tool is great', 'recommend this product', 'tool works great', 'like this tool',
@@ -940,6 +944,7 @@ class PredictSentiment(ModelsAlgorithms):
             model_path (Path, optional): Folder path for trained model files. Defaults to None.
             path (Union[Path,str], optional): Folder path where the output folder structure will be saved
                                               and data will be read. Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path)
         if model_path:
@@ -961,6 +966,7 @@ class PredictSentiment(ModelsAlgorithms):
 
         Returns:
             Tuple[str, float, float]: Predicted Label, Positive Probability, Negative Probability
+
         """
         pred = self.learner.predict(text)
         return pred[0], pred[1].numpy(), pred[2].numpy()
@@ -978,6 +984,7 @@ class PredictSentiment(ModelsAlgorithms):
 
         Returns:
             pd.DataFrame: Output of the sentiment classification algorithm contaiing predicted labels and probabilities.
+
         """
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -1026,12 +1033,14 @@ class PredictInfluence(ModelsAlgorithms):
 
     Args:
         ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self) -> None:
         """__init__ PredictInfluence class instace initializer.
 
         Initializes the influence keywords, punctuations, stopwords and english language parser.
+
         """
         super().__init__()
         self.lookup_ = ['free sample', 'free test', 'complimentary test', 'complimentary review', 'complimentary review',
@@ -1044,13 +1053,12 @@ class PredictInfluence(ModelsAlgorithms):
     def spacy_tokenizer(self, text: str) -> str:
         """spacy_tokenizer tokenizes input text/document.
 
-        [extended_summary]
-
         Args:
             text (str): Input text.
 
         Returns:
             str: Tokenized text.
+
         """
         tokens = self.parser(text)
         tokens = [word.lemma_.lower().strip() if word.lemma_ !=
@@ -1068,6 +1076,7 @@ class PredictInfluence(ModelsAlgorithms):
 
         Returns:
             str: Predicted label.
+
         """
         tokenized_text = self.spacy_tokenizer(text)
         if any(i in tokenized_text.lower() for i in self.lookup_):
@@ -1087,6 +1096,7 @@ class PredictInfluence(ModelsAlgorithms):
 
         Returns:
             data(pd.DataFrame): Output of the influence classification algorithm contaiing predicted labels.
+
         """
         if not isinstance(data, pd.core.frame.DataFrame):
             filename = data
@@ -1127,7 +1137,7 @@ class SelectCandidate(ModelsAlgorithms):
                groupby_columns: Union[str, list], fraction: float = 0.3,
                select_column=Optional[str], sep: str = ' ', drop_weights: bool = True,
                inverse_weights: bool = True, keep_all: bool = True, **kwargs) -> pd.DataFrame:
-        """select method determines which documents are the best candidates based on weighted threshold.
+        """Select method determines which documents are the best candidates based on weighted threshold.
 
         Args:
             data (Union[str, Path, pd.DataFrame]): dataset. prefarably dataframe, csv or feather file.
@@ -1142,6 +1152,7 @@ class SelectCandidate(ModelsAlgorithms):
 
         Returns:
             data_sample(pd.DataFrame): Sampled data after probabilistic weighted candidate selection.
+
         """
         if type(groupby_columns) != list:
             groupby_columns = [groupby_columns]
@@ -1199,6 +1210,7 @@ class Summarizer(ModelsAlgorithms):
 
     Args:
         ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self, current_device: int = -1, initialize_model: bool = False):
@@ -1211,6 +1223,7 @@ class Summarizer(ModelsAlgorithms):
             current_device (int, optional): GPU or CPU to run inference. Defaults to -1(CPU).
             initialize_model (bool, optional): Set to True if using method summarize_instance or summarize_batch.
                                                Set to False if using method summarize_batch_plus. Defaults to False.
+
         """
         super().__init__()
 
@@ -1232,6 +1245,7 @@ class Summarizer(ModelsAlgorithms):
 
         Returns:
             str: Generated text summary.
+
         """
         assert self.bart_summarizer is not None, "Set initialize model parameter to True when using summarize_instance or \
                                                   summarize_batch methods. "
@@ -1262,6 +1276,7 @@ class Summarizer(ModelsAlgorithms):
 
         Returns:
             List: List of generated document summaries.
+
         """
         # device = "cuda" if torch.cuda.is_available() else "cpu"
         generated_summaries = []
@@ -1301,6 +1316,7 @@ class Summarizer(ModelsAlgorithms):
 
         Returns:
             str: Generated text summary.
+
         """
         return self.generate_summary(text, min_length=min_length)
 
@@ -1316,6 +1332,7 @@ class Summarizer(ModelsAlgorithms):
 
         Returns:
             pd.DataFrame: Dataframe containing generated summaries of the text documents.
+
         """
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -1358,6 +1375,7 @@ class Summarizer(ModelsAlgorithms):
 
         Returns:
             pd.DataFrame: Dataframe containing generated summaries of the text documents.
+
         """
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -1414,6 +1432,7 @@ class SexyReview(ModelsAlgorithms):
 
     Args:
         ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self, path: Union[Path, str] = Path.cwd(), initialize_sentiment_model: bool = True,
@@ -1427,6 +1446,7 @@ class SexyReview(ModelsAlgorithms):
                                                and data will be read. Defaults to current directory(Path.cwd()).
             initialize_sentiment_model (bool, optional): Initialize sentiment model for classification. Defaults to True.
             initialize_summarizer_model (bool, optional): Initialize pre-trained language model for summarization. Defaults to False.
+
         """
         super().__init__(path=path)
         if initialize_sentiment_model:
@@ -1443,7 +1463,7 @@ class SexyReview(ModelsAlgorithms):
              predict_sentiment: bool = True,
              predict_influence: bool = True,
              extract_keywords: bool = True) -> pd.DataFrame:
-        """make performs sentiment and influence classification, keyword extraction and data transformation for Redshift ingestion.
+        """Make performs sentiment and influence classification, keyword extraction and data transformation for Redshift ingestion.
 
         Args:
             source (str): source code of the metadata and detail files. (Accepted values: [sph, bts])
@@ -1458,6 +1478,7 @@ class SexyReview(ModelsAlgorithms):
 
         Returns:
             pd.DataFrame: Review dataframe with keywords, sentiment labels and influence flag.
+
         """
         if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
             raise MeiyumeException(
@@ -1558,15 +1579,17 @@ class SexyReview(ModelsAlgorithms):
 
         return self.review
 
-    def make_summary(self, source: str, review_data: Optional[Union[str, Path, DataFrame]] = None,
+    def make_summary(self, source: str, review_data: Optional[Union[str, Path, pd.DataFrame]] = None,
                      # candidate_criterion=[],
                      summarize_review: bool = True, summarize_keywords: bool = True,
                      extract_ngrams: bool = True, extract_topic: bool = True) -> pd.DataFrame:
-        """make_summary performs summarization of all reviews and keywords of a product, and positive/negative keyphrase generation.
+        """make_summary performs summarization of all reviews and keywords of a product.
+
+        Also performs positive/negative keyphrase generation.
 
         Args:
             source (str): source code of the metadata and detail files. (Accepted values: [sph, bts])
-            review_data (Optional[Union[str, Path, DataFrame]], optional): Review dataframe or data file path. Defaults to None.
+            review_data (Optional[Union[str, Path, pd.DataFrame]], optional): Review dataframe or data file path. Defaults to None.
             summarize_review (bool, optional): Whether to summarize reviews. Defaults to True.
             summarize_keywords (bool, optional): Whether to summarize keywords. Defaults to True.
             extract_ngrams (bool, optional): Whether to extract sentiment ngrams. Defaults to True.
@@ -1578,6 +1601,7 @@ class SexyReview(ModelsAlgorithms):
         Returns:
             pd.DataFrame: Algorithm output dataframe containing positive/negative review summary,
                           positive/negative keyword summary and positive/negative talking points.
+
         """
 
         # replace the list with sql source metadata table read
