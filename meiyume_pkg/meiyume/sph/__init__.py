@@ -1,3 +1,4 @@
+"""Sephora Spider."""
 # import sph
 # import sph.crawler
 # import sph.master

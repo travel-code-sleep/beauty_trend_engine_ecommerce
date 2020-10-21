@@ -124,7 +124,7 @@ class Metadata(Sephora):
         accept_alert(drv, 10)
         close_popups(drv)
 
-        cats = drv.find_elements_by_class_name('css-1ms0vuh')
+        cats = drv.find_elements_by_css_selector('a[id^="top_nav_drop_"]')
         cat_urls = []
         for c in cats:
             if c.get_attribute('href') is not None:
@@ -146,7 +146,8 @@ class Metadata(Sephora):
             accept_alert(drv, 10)
             close_popups(drv)
 
-            sub_cats = drv.find_elements_by_class_name('css-10wlsyd')
+            sub_cats = drv.find_elements_by_css_selector(
+                'a[data-at*="top_level_category"]')
             # sub_cats.extend(drv.find_elements_by_class_name("css-or7ouu"))
             if len(sub_cats) > 0:
                 for s in sub_cats:
@@ -162,7 +163,7 @@ class Metadata(Sephora):
         for su in sub_cat_urls:
             cat_name = su[0]
             sub_cat_name = su[1]
-            if 'new' in sub_cat_name:
+            if any(name in sub_cat_name for name in ['best-selling', 'new', 'mini']):
                 continue
             sub_cat_url = su[2]
             drv.get(sub_cat_url)
@@ -171,7 +172,8 @@ class Metadata(Sephora):
             accept_alert(drv, 10)
             close_popups(drv)
 
-            product_types = drv.find_elements_by_class_name('css-3mlsw9')
+            product_types = drv.find_elements_by_css_selector(
+                'a[data-at*="nth_level"]')
             if len(product_types) > 0:
                 for item in product_types:
                     product_type_urls.append((cat_name, sub_cat_name, item.get_attribute("href").split("/")[-1],
@@ -269,17 +271,24 @@ class Metadata(Sephora):
 
             # sort by new products (required to get all new products properly)
             try:
-                sort_dropdown = drv.find_element_by_class_name('css-16tfpwn')
-                self.scroll_to_element(drv, sort_dropdown)
+                sort_dropdown = drv.find_element_by_css_selector(
+                    'button[id="cat_sort_menu_trigger"]')
+                Browser().scroll_to_element(drv, sort_dropdown)
                 ActionChains(drv).move_to_element(
                     sort_dropdown).click(sort_dropdown).perform()
-                button = drv.find_element_by_xpath(
-                    '//*[@id="cat_sort_menu"]/button[3]')
-                drv.implicitly_wait(4)
-                self.scroll_to_element(drv, button)
-                ActionChains(drv).move_to_element(
-                    button).click(button).perform()
-                time.sleep(15)
+                drv.find_elements_by_css_selector(
+                    'div[id="cat_sort_menu"]>button')[2].click()
+                time.sleep(10)
+                # sort_dropdown = drv.find_element_by_class_name('css-16tfpwn')
+                # self.scroll_to_element(drv, sort_dropdown)
+                # ActionChains(drv).move_to_element(
+                #     sort_dropdown).click(sort_dropdown).perform()
+                # button = drv.find_element_by_xpath(
+                #     '//*[@id="cat_sort_menu"]/button[3]')
+                # drv.implicitly_wait(4)
+                # self.scroll_to_element(drv, button)
+                # ActionChains(drv).move_to_element(
+                #     button).click(button).perform()
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f'Prod Type: {product_type}')
@@ -316,8 +325,8 @@ class Metadata(Sephora):
                 # get a list of all available pages
                 one_page = False
                 # get next page button
-                next_page_button = drv.find_element_by_class_name(
-                    'css-1lkjxdl')
+                next_page_button = drv.find_element_by_css_selector(
+                    'div>nav>ul>button[aria-label="Next"]')
                 pages = []
                 for page in drv.find_elements_by_class_name('css-1lk9n5p'):
                     pages.append(page.text)
@@ -331,7 +340,8 @@ class Metadata(Sephora):
                 time.sleep(5)
                 close_popups(drv)
                 accept_alert(drv, 2)
-                products = drv.find_elements_by_class_name('css-12egk0t')
+                products = drv.find_elements_by_css_selector(
+                    'div[data-comp="ProductGrid "]>div>div>a')
                 # print(len(products))
 
                 for p in products:
@@ -344,8 +354,7 @@ class Metadata(Sephora):
                     ActionChains(drv).move_to_element(p).perform()
 
                     try:
-                        product_name = p.find_element_by_class_name(
-                            'css-ix8km1').get_attribute('aria-label')
+                        product_name = p.get_attribute('aria-label')
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -356,7 +365,8 @@ class Metadata(Sephora):
                         continue
 
                     try:
-                        new_f = p.find_element_by_class_name("css-8o71lk").text
+                        new_f = p.find_element_by_css_selector(
+                            'div[data-at="product_badges"]').text
                         product_new_flag = 'NEW'
                     except Exception as ex:
                         log_exception(self.logger,
@@ -366,8 +376,7 @@ class Metadata(Sephora):
                         #                              product {products.index(p)} product_new_flag extraction failed.\
                         #                         (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
-                        product_page = p.find_element_by_class_name(
-                            'css-ix8km1').get_attribute('href')
+                        product_page = p.get_attribute('href')
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -376,8 +385,8 @@ class Metadata(Sephora):
                                                      product {products.index(p)} product_page extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
-                        brand = p.find_element_by_class_name(
-                            'css-182j26q').text
+                        brand = p.find_element_by_css_selector(
+                            'span[data-at="sku_item_brand"]').text
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -386,8 +395,8 @@ class Metadata(Sephora):
                                                      product {products.index(p)} brand extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
-                        rating = p.find_element_by_class_name(
-                            'css-ychh9y').get_attribute('aria-label')
+                        rating = p.find_element_by_css_selector(
+                            'div[data-comp="StarRating "]').get_attribute('aria-label')
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -396,7 +405,8 @@ class Metadata(Sephora):
                                                      product {products.index(p)} rating extraction failed.\
                                                 (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
                     try:
-                        price = p.find_element_by_class_name('css-68u28a').text
+                        price = p.find_element_by_css_selector(
+                            'span[data-at="sku_item_price_list"]').text
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')

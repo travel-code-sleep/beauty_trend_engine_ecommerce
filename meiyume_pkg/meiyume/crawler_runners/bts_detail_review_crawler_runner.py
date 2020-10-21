@@ -86,8 +86,8 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
         if i[0] == 0:
-            fresh_start = True
-            auto_fresh_start = True
+            fresh_start = False
+            auto_fresh_start = False
         else:
             fresh_start = False
             auto_fresh_start = False
