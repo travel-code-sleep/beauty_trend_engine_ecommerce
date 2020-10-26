@@ -264,10 +264,9 @@ class Metadata(Sephora):
             product_type = self.product_type_urls.loc[pt, &#39;product_type&#39;]
             product_type_link = self.product_type_urls.loc[pt, &#39;url&#39;]
 
-            self.progress_tracker.loc[pt, &#39;product_type&#39;] = product_type
             # print(product_type_link)
             if &#39;best-selling&#39; in product_type.lower() or &#39;new&#39; in product_type.lower():
-                self.progress_tracker.loc[pt, &#39;scraped&#39;] = &#39;NA&#39;
+                self.product_type_urls.loc[pt, &#39;scraped&#39;] = &#39;NA&#39;
                 continue
 
             if randomize_proxy_usage:
@@ -354,8 +353,8 @@ class Metadata(Sephora):
                 # get a list of all available pages
                 one_page = False
                 # get next page button
-                next_page_button = drv.find_element_by_css_selector(
-                    &#39;div&gt;nav&gt;ul&gt;button[aria-label=&#34;Next&#34;]&#39;)
+                next_page_button = drv.find_element_by_class_name(
+                    &#39;css-1lkjxdl&#39;)
                 pages = []
                 for page in drv.find_elements_by_class_name(&#39;css-1lk9n5p&#39;):
                     pages.append(page.text)
@@ -493,9 +492,9 @@ class Metadata(Sephora):
                     self.current_progress_path/f&#39;sph_prod_meta_extract_progress_{product_type}_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}&#39;)
                 self.logger.info(
                     f&#39;Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})&#39;)
-                self.progress_tracker.loc[pt, &#39;scraped&#39;] = &#39;Y&#39;
-                self.progress_tracker.to_feather(
-                    self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
+                self.product_type_urls.loc[pt, &#39;scraped&#39;] = &#39;Y&#39;
+                self.product_type_urls.to_feather(
+                    self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;)
                 product_meta_data = []
         self.logger.info(&#39;Metadata Extraction Complete&#39;)
         print(&#39;Metadata Extraction Complete&#39;)
@@ -535,10 +534,11 @@ class Metadata(Sephora):
             &#34;&#34;&#34;
             self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
                                                                 open_with_proxy_server=open_with_proxy_server)
-            # progress tracker: captures scraped and error desc
-            self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
-                &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
-            self.progress_tracker.scraped = &#39;N&#39;
+            # # progress tracker: captures scraped and error desc
+            # self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
+            #     &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
+            # self.progress_tracker.scraped = &#39;N&#39;
+            self.product_type_urls.scraped = &#39;N&#39;
 
         if fresh_start:
             self.logger.info(&#39;Starting Fresh Extraction.&#39;)
@@ -547,20 +547,10 @@ class Metadata(Sephora):
             if Path(self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;).exists():
                 self.product_type_urls = pd.read_feather(
                     self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;)
-                if Path(self.metadata_path/&#39;sph_metadata_progress_tracker&#39;).exists():
-                    self.progress_tracker = pd.read_feather(
-                        self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
-                else:
-                    self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
-                        &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
-                    self.progress_tracker.scraped = &#39;N&#39;
-                    self.progress_tracker.to_feather(
-                        self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
-                if sum(self.progress_tracker.scraped == &#39;N&#39;) &gt; 0:
+                if sum(self.product_type_urls.scraped == &#39;N&#39;) &gt; 0:
                     self.logger.info(
                         &#39;Continuing Metadata Extraction From Last Run.&#39;)
-                    self.product_type_urls = self.product_type_urls[self.product_type_urls.index.isin(
-                        self.progress_tracker.index[self.progress_tracker.scraped == &#39;N&#39;].values.tolist())]
+                    self.product_type_urls = self.product_type_urls[self.product_type_urls.scraped == &#39;N&#39;]
                 else:
                     if auto_fresh_start:
                         self.logger.info(
@@ -751,12 +741,12 @@ class Detail(Sephora):
                 self.detail_path/&#39;sph_detail_progress_tracker&#39;)
             return [], item_df
 
-        def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
+        def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str, use_button: bool = False,
                                 multi_variety: bool = False, typ=None, ) -&gt; Tuple[str, str, str, str]:
             &#34;&#34;&#34;get_item_attributes scrapes product item specific data such as item_name, size, price, and ingredients.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
                 product_name (str): Name of the product from metadata.
                 prod_id (str): Id of the product from metdata.
                 use_button (bool, optional): Whether to use buttons to extract item name. Defaults to False.
@@ -881,12 +871,12 @@ class Detail(Sephora):
             # print(item_ing)
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -&gt; list:
+        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -&gt; list:
             &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores in a list
             which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
                 product_name (str): Name of the product from metadata.
                 prod_id (str): Id of the product from metdata.
 
@@ -940,16 +930,21 @@ class Detail(Sephora):
             else:
                 item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
                                                                                          product_name, prod_id)
-                product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name, &#34;item_name&#34;: item_name,
-                                           &#34;item_size&#34;: item_size, &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                           &#34;product_name&#34;: product_name,
+                                           &#34;item_name&#34;: item_name,
+                                           &#34;item_size&#34;: item_size,
+                                           &#34;item_price&#34;: item_price,
+                                           &#34;item_ingredients&#34;: item_ingredients}
+                                          )
 
             return product_attributes
 
-        def get_first_review_date(drv: webdriver.Firefox) -&gt; str:
+        def get_first_review_date(drv: webdriver.Chrome) -&gt; str:
             &#34;&#34;&#34;get_first_review_date scraped the first review data of the product.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
 
             Returns:
                 str: first review date.
@@ -2301,25 +2296,33 @@ class Image(Sephora):
 
 
 class DetailReview(Sephora):
-    &#34;&#34;&#34;DetailReview [summary]
-
-    [extended_summary]
+    &#34;&#34;&#34;DetailReview class carries out scraping of Sephora Detail and Review data.
 
     Args:
-        Sephora ([type]): [description]
+        Sephora (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
+
     &#34;&#34;&#34;
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
-        &#34;&#34;&#34;__init__ [summary]
+        &#34;&#34;&#34;__init__ DetailReview class instace initializer.
 
-        [extended_summary]
+        This method sets all the folder paths required for DetailReview crawler to work.
+        If the paths does not exist the paths get automatically created depending on current directory
+        or provided directory.
+
+        Initializer Tasks:
+        1. Set folder paths for data reading and storing.
+        2. Move old scraped and cleaned data files to archive folders before starting new extraction.
+        3. Create data scraping log files in log path to monitor/correct failed data extraction from website.
 
         Args:
-            log (bool, optional): [description]. Defaults to True.
-            path (Path, optional): [description]. Defaults to Path.cwd().
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Detail and Review data will be extracted.
+                                   Defaults to current directory(Path.cwd()).
+
         &#34;&#34;&#34;
         super().__init__(path=path, data_def=&#39;detail_review_image&#39;)
-        self.path = path
+        self.path = Path(path)
         self.detail_current_progress_path = self.detail_path/&#39;current_progress&#39;
         self.detail_current_progress_path.mkdir(parents=True, exist_ok=True)
 
@@ -2332,7 +2335,7 @@ class DetailReview(Sephora):
         for f in old_detail_files:
             shutil.move(str(f), str(self.old_detail_files_path))
 
-        old_clean_detail_files = files = os.listdir(self.detail_clean_path)
+        old_clean_detail_files = os.listdir(self.detail_clean_path)
         for f in old_clean_detail_files:
             shutil.move(str(self.detail_clean_path/f),
                         str(self.old_detail_clean_files_path))
@@ -2348,39 +2351,39 @@ class DetailReview(Sephora):
                         str(self.old_review_clean_files_path))
         if log:
             self.prod_detail_review_image_log = Logger(
-                &#34;sph_prod_review_extraction&#34;, path=self.crawl_log_path)
+                &#34;sph_prod_detail_review_image_extraction&#34;, path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_review_image_log.start_log()
 
-    def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
-        &#34;&#34;&#34;get_detail [summary]
+    def get_details(self, drv: webdriver.Chrome, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
+        &#34;&#34;&#34;get_detail scrapes individual product pages for price, ingredients, color etc.
 
-        [extended_summary]
+        Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
+        size specific prices, color, product claims and other information pertaining to one individual product.
 
         Args:
-            drv (webdriver.Firefox): [description]
-            prod_id (str): [description]
-            product_name (str): [description]
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
+            prod_id (str): Id of the product from metdata.
+            product_name (str): Name of the product from metadata.
 
         Returns:
-            Tuple[dict, pd.DataFrame]: [description]
+            Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
+                                       attributes of a product.
         &#34;&#34;&#34;
 
-        def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
+        def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str,
                                 multi_variety: bool = False, typ=None, ) -&gt; Tuple[str, str, str, str]:
-            &#34;&#34;&#34;get_item_attributes [summary]
-
-            [extended_summary]
+            &#34;&#34;&#34;get_item_attributes extracts product type specific information.
 
             Args:
-                drv (webdriver.Chrome): [description]
-                product_name (str): [description]
-                prod_id (str): [description]
-                use_button (bool, optional): [description]. Defaults to False.
-                multi_variety (bool, optional): [description]. Defaults to False.
-                typ ([type], optional): [description]. Defaults to None.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
+                product_name (str): Name of the product from metadata.
+                prod_id (str): Id of the product from metdata.
+                multi_variety (bool, optional): Whether product has multiple colors/sizes. Defaults to False.
+                typ ([type], optional): Webelement corresponding to a particular product type. Defaults to None.
 
             Returns:
-                Tuple[str, str, str, str]: [description]
+                Tuple[str, str, str, str]: item_name, item_size, item_price, item_ingredient
+
             &#34;&#34;&#34;
             # drv # type: webdriver.Chrome
             # close popup windows
@@ -2388,7 +2391,8 @@ class DetailReview(Sephora):
             accept_alert(drv, 1)
 
             try:
-                item_price = drv.find_element_by_class_name(&#39;css-1865ad6&#39;).text
+                item_price = drv.find_element_by_css_selector(
+                    &#39;span[data-at=&#34;price&#34;]&#39;).text
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -2397,11 +2401,7 @@ class DetailReview(Sephora):
 
             if multi_variety:
                 try:
-                    if use_button:
-                        item_name = typ.find_element_by_tag_name(
-                            &#39;button&#39;).get_attribute(&#39;aria-label&#39;)
-                    else:
-                        item_name = typ.get_attribute(&#39;aria-label&#39;)
+                    item_name = typ.get_attribute(&#39;aria-label&#39;)
                     # print(item_name)
                 except Exception as ex:
                     log_exception(self.logger,
@@ -2413,7 +2413,8 @@ class DetailReview(Sephora):
                 item_name = &#34;&#34;
 
             try:
-                item_size = drv.find_element_by_class_name(&#39;css-128n72s&#39;).text
+                item_size = drv.find_element_by_css_selector(
+                    &#39;div[data-at=&#34;sku_size&#34;]&#39;).text
                 # print(item_size)
             except Exception as ex:
                 log_exception(self.logger,
@@ -2427,9 +2428,11 @@ class DetailReview(Sephora):
             self.scroll_to_element(drv, first_tab)
             ActionChains(drv).move_to_element(
                 first_tab).click(first_tab).perform()
+
             prod_tabs = []
-            prod_tabs = drv.find_elements_by_class_name(&#39;css-1wugx5m&#39;)
-            prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
+            prod_tabs = drv.find_elements_by_css_selector(
+                &#39;div[aria-label=&#34;Product Information&#34;]&gt;button&gt;span&#39;)
+            # prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
 
             tab_names = []
             for t in prod_tabs:
@@ -2439,57 +2442,14 @@ class DetailReview(Sephora):
             if &#39;ingredients&#39; in tab_names:
                 close_popups(drv)
                 accept_alert(drv, 1)
-                if len(tab_names) == 5:
-                    try:
-                        tab_num = 2
-                        ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                        self.scroll_to_element(drv, ing_button)
-                        ActionChains(drv).move_to_element(
-                            ing_button).click(ing_button).perform()
-                        item_ing = drv.find_element_by_xpath(
-                            f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                    except Exception as ex:
-                        log_exception(self.logger,
-                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                        print(&#39;cant get ingredient but tab exists&#39;)
-                        item_ing = &#34;&#34;
-                        self.logger.info(str.encode(
-                            f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed&#39;,
-                            &#39;utf-8&#39;, &#39;ignore&#39;))
-                elif len(tab_names) == 4:
-                    try:
-                        tab_num = 1
-                        ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                        self.scroll_to_element(drv, ing_button)
-                        ActionChains(drv).move_to_element(
-                            ing_button).click(ing_button).perform()
-                        item_ing = drv.find_element_by_xpath(
-                            f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                    except Exception as ex:
-                        log_exception(self.logger,
-                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                        print(&#39;cant get ingredient but tab exists&#39;)
-                        item_ing = &#34;&#34;
-                        self.logger.info(str.encode(
-                            f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed.&#39;,
-                            &#39;utf-8&#39;, &#39;ignore&#39;))
-                elif len(tab_names) &lt; 4:
-                    try:
-                        tab_num = 0
-                        ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                        self.scroll_to_element(drv, ing_button)
-                        ActionChains(drv).move_to_element(
-                            ing_button).click(ing_button).perform()
-                        item_ing = drv.find_element_by_xpath(
-                            f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                    except Exception as ex:
-                        log_exception(self.logger,
-                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                        print(&#39;cant get ingredient but tab exists&#39;)
-                        item_ing = &#34;&#34;
-                        self.logger.info(str.encode(
-                            f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed.&#39;,
-                            &#39;utf-8&#39;, &#39;ignore&#39;))
+
+                tab_num = tab_names.index(&#39;ingredients&#39;)
+                ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
+                self.scroll_to_element(drv, ing_button)
+                ActionChains(drv).move_to_element(
+                    ing_button).click(ing_button).perform()
+                item_ing = drv.find_element_by_xpath(
+                    f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
             else:
                 item_ing = &#34;&#34;
                 self.logger.info(str.encode(
@@ -2497,18 +2457,18 @@ class DetailReview(Sephora):
             # print(item_ing)
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -&gt; list:
-            &#34;&#34;&#34;get_product_attributes [summary]
-
-            [extended_summary]
+        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -&gt; list:
+            &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores
+            in a list which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Chrome): [description]
-                product_name (str): [description]
-                prod_id (str): [description]
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
+                product_name (str): Name of the product from metadata.
+                prod_id (str): Id of the product from metdata.
 
             Returns:
-                list: [description]
+                list: List containing all product item attributes of multiple varieties with name and id.
+
             &#34;&#34;&#34;
             # get all the variation of product
             # close popup windows
@@ -2517,19 +2477,8 @@ class DetailReview(Sephora):
 
             product_variety = []
             try:
-                product_variety = drv.find_elements_by_class_name(
-                    &#39;css-1j1jwa4&#39;)
-                product_variety.extend(
-                    drv.find_elements_by_class_name(&#39;css-cl742e&#39;))
-                use_button = False
-            except Exception as ex:
-                log_exception(self.logger,
-                              additional_information=f&#39;Prod ID: {prod_id}&#39;)
-            try:
-                if len(product_variety) &lt; 1:
-                    product_variety = drv.find_elements_by_class_name(
-                        &#39;css-5jqxch&#39;)
-                    use_button = True
+                product_variety = drv.find_elements_by_css_selector(
+                    &#39;button[data-at=&#34;selected_swatch&#34;]&#39;)
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -2549,29 +2498,37 @@ class DetailReview(Sephora):
                                       additional_information=f&#39;Prod ID: {prod_id}&#39;)
                     time.sleep(4)  # 8
                     item_name, item_size, item_price, item_ingredients = get_item_attributes(drv, product_name, prod_id,
-                                                                                             multi_variety=True, typ=typ,
-                                                                                             use_button=use_button)
-                    product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name,
-                                               &#34;item_name&#34;: item_name, &#34;item_size&#34;: item_size,
-                                               &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                                                                                             multi_variety=True, typ=typ)
+                    product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                               &#34;product_name&#34;: product_name,
+                                               &#34;item_name&#34;: item_name,
+                                               &#34;item_size&#34;: item_size,
+                                               &#34;item_price&#34;: item_price,
+                                               &#34;item_ingredients&#34;: item_ingredients
+                                               })
             else:
                 item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
                                                                                          product_name, prod_id)
-                product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name, &#34;item_name&#34;: item_name,
-                                           &#34;item_size&#34;: item_size, &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                           &#34;product_name&#34;: product_name,
+                                           &#34;item_name&#34;: item_name,
+                                           &#34;item_size&#34;: item_size,
+                                           &#34;item_price&#34;: item_price,
+                                           &#34;item_ingredients&#34;: item_ingredients
+                                           })
 
             return product_attributes
 
-        def get_first_review_date(drv: webdriver.Firefox) -&gt; str:
-            &#34;&#34;&#34;get_first_review_date [summary]
-
-            [extended_summary]
+        &#39;&#39;&#39;
+        def get_first_review_date(drv: webdriver.Chrome) -&gt; str:
+            &#34;&#34;&#34;get_first_review_date scrapes the first review data of a product.
 
             Args:
-                drv (webdriver.Chrome): [description]
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
 
             Returns:
-                str: [description]
+                str: First review date.
+
             &#34;&#34;&#34;
             # close popup windows
             close_popups(drv)
@@ -2611,20 +2568,19 @@ class DetailReview(Sephora):
                               additional_information=f&#39;Prod ID: {prod_id}&#39;)
                 first_review_date = &#39;&#39;
             return first_review_date
+        &#39;&#39;&#39;
 
         # get all product info tabs such as how-to-use, about-brand, ingredients
         prod_tabs = []
-        prod_tabs = drv.find_elements_by_class_name(&#39;css-1wugx5m&#39;)
-        prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
+        prod_tabs = prod_tabs = drv.find_elements_by_css_selector(
+            &#39;div[aria-label=&#34;Product Information&#34;]&gt;button&gt;span&#39;)
 
         tab_names = []
         for t in prod_tabs:
             tab_names.append(t.text.lower())
 
-        # no. of votes
         try:
             votes = drv.find_elements_by_class_name(&#39;css-2rg6q7&#39;)[-1].text
-            # print(votes)
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -2766,7 +2722,8 @@ class DetailReview(Sephora):
             pass
         # click no. of reviews
         try:
-            review_button = drv.find_element_by_class_name(&#39;css-1pjru6n&#39;)
+            review_button = drv.find_element_by_css_selector(
+                &#39;span[data-at=&#34;number_of_reviews&#34;]&#39;)
             self.scroll_to_element(drv, review_button)
             ActionChains(drv).move_to_element(
                 review_button).click(review_button).perform()
@@ -2775,12 +2732,12 @@ class DetailReview(Sephora):
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
 
         try:
-            first_review_date = get_first_review_date(drv)
+            first_review_date = &#39;&#39;
             # print(first_review_date)
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
-            first_review_date = &#34;&#34;
+            first_review_date = &#39;&#39;
             self.logger.info(str.encode(
                 f&#39;product: {product_name} (prod_id: {prod_id}) first_review_date scrape failed.&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
 
@@ -2800,8 +2757,8 @@ class DetailReview(Sephora):
         try:
             close_popups(drv)
             accept_alert(drv, 1)
-            rating_distribution = drv.find_element_by_class_name(
-                &#39;css-960eb6&#39;).text.split(&#39;\n&#39;)
+            rating_distribution = drv.find_element_by_css_selector(
+                &#39;table[data-comp=&#34;HistogramChart &#34;]&#39;).text.split(&#39;\n&#39;)
             # print(rating_distribution)
         except Exception as ex:
             log_exception(self.logger,
@@ -2833,24 +2790,24 @@ class DetailReview(Sephora):
 
         return detail, item
 
-    def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
+    def get_reviews(self,  drv: webdriver.Chrome, prod_id: str, product_name: str, product_page: str,
                     last_scraped_review_date: str, no_of_reviews: int,
                     incremental: bool = True, reviews: list = []) -&gt; list:
-        &#34;&#34;&#34;get_reviews [summary]
-
-        [extended_summary]
+        &#34;&#34;&#34;get_reviews crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
-            drv (webdriver.Firefox): [description]
-            prod_id (str): [description]
-            product_name (str): [description]
-            last_scraped_review_date (str): [description]
-            no_of_reviews (int): [description]
-            incremental (bool, optional): [description]. Defaults to True.
-            reviews (list, optional): [description]. Defaults to [].
+            drv (webdriver.Chrome): drv (webdriver.Chrome): Selenium webdriver with opened product page.
+            prod_id (str): Id of the product from metdata.
+            product_name (str): Name of the product from metadata.
+            product_page (str): Url of the product page.
+            last_scraped_review_date (str): The last review date scraped as per database.
+            no_of_reviews (int): No.of reviews a product has.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
         Returns:
-            list: [description]
+            list: List of dictionaries containing all the scraped reviews of a product.
+
         &#34;&#34;&#34;
         # print(no_of_reviews)
         # drv.find_element_by_class_name(&#39;css-2rg6q7&#39;).click()
@@ -2922,7 +2879,7 @@ class DetailReview(Sephora):
                 when crawling all reviews. By default it will get latest 1800 reviews.
                 then in subsequent incremental runs it will get al new reviews on weekly basis
                 &#39;&#39;&#39;
-                if n &gt;= 400:  # 200:
+                if n &gt;= 300:  # 200:
                     break
                 time.sleep(1)
                 # close any opened popups by escape
@@ -2986,8 +2943,8 @@ class DetailReview(Sephora):
         accept_alert(drv, 2)
         close_popups(drv)
 
-        product_reviews = drv.find_elements_by_class_name(
-            &#39;css-1kk8dps&#39;)[2:]
+        product_reviews = drv.find_elements_by_css_selector(
+            &#39;div[data-comp=&#34;Review &#34;]&#39;)
 
         # print(&#39;starting extraction&#39;)
         r = 0
@@ -3011,9 +2968,8 @@ class DetailReview(Sephora):
 
             try:
                 review_date = convert_ago_to_date(
-                    rev.find_element_by_class_name(&#39;css-h2vfi1&#39;).text)
-                if pd.to_datetime(review_date, infer_datetime_format=True) &lt;= \
-                        pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
+                    rev.find_element_by_css_selector(&#39;span[data-at=&#34;time_posted&#34;]&#39;).text)
+                if pd.to_datetime(review_date, infer_datetime_format=True) &lt;= pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                     continue
             except Exception as ex:
                 log_exception(self.logger,
@@ -3037,8 +2993,8 @@ class DetailReview(Sephora):
                 product_variant = &#39;&#39;
 
             try:
-                user_rating = rev.find_element_by_class_name(
-                    &#39;css-3z5ot7&#39;).get_attribute(&#39;aria-label&#39;)
+                user_rating = rev.find_element_by_css_selector(
+                    &#39;div[data-comp=&#34;StarRating &#34;]&#39;).get_attribute(&#39;aria-label&#39;)
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f&#39;Prod ID: {prod_id}. Failed to extract user_rating.&#39;)
@@ -3074,11 +3030,17 @@ class DetailReview(Sephora):
                               additional_information=f&#39;Prod ID: {prod_id}. Failed to extract helpful.&#39;)
                 helpful = &#39;&#39;
 
-            reviews.append({&#39;prod_id&#39;: prod_id, &#39;product_name&#39;: product_name,
-                            &#39;user_attribute&#39;: user_attribute, &#39;product_variant&#39;: product_variant,
-                            &#39;review_title&#39;: review_title, &#39;review_text&#39;: review_text,
-                            &#39;review_rating&#39;: user_rating, &#39;recommend&#39;: recommend,
-                            &#39;review_date&#39;: review_date,   &#39;helpful&#39;: helpful})
+            reviews.append({&#39;prod_id&#39;: prod_id,
+                            &#39;product_name&#39;: product_name,
+                            &#39;user_attribute&#39;: user_attribute,
+                            &#39;product_variant&#39;: product_variant,
+                            &#39;review_title&#39;: review_title,
+                            &#39;review_text&#39;: review_text,
+                            &#39;review_rating&#39;: user_rating,
+                            &#39;recommend&#39;: recommend,
+                            &#39;review_date&#39;: review_date,
+                            &#39;helpful&#39;: helpful
+                            })
         return reviews
 
     def crawl_page(self, indices: list, open_headless: bool, open_with_proxy_server: bool,
@@ -3087,35 +3049,38 @@ class DetailReview(Sephora):
                                                  &#39;item_size&#39;, &#39;item_price&#39;,
                                                  &#39;item_ingredients&#39;]),
                    review_data: list = [], incremental: bool = True):
-        &#34;&#34;&#34;crawl_page
+        &#34;&#34;&#34;crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
-        [extended_summary]
+        The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
 
         Args:
-            indices (list): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            detail_data (list, optional): [description]. Defaults to [].
-            item_df ([type], optional): [description]. Defaults to pd.DataFrame(columns=[&#39;prod_id&#39;, &#39;product_name&#39;, &#39;item_name&#39;,
-            &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
-            review_data (list, optional): [description]. Defaults to [].
-            incremental (bool, optional): [description]. Defaults to True.
+            indices (list): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use ip rotation service.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            detail_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            item_df ([type], optional): Empty intermediate dataframe to store data during parallel crawl.
+                                        Defaults to []. Defaults to pd.DataFrame(columns=[&#39;prod_id&#39;, &#39;product_name&#39;, &#39;item_name&#39;,
+                                                                                         &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
+            review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+
         &#34;&#34;&#34;
 
         def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
                                    review_data: list) -&gt; Tuple[list, pd.DataFrame, list]:
-            &#34;&#34;&#34;store_data_refresh_mem [summary]
+            &#34;&#34;&#34;store_data_refresh_mem method stores crawled data in regular interval to free up system memory.
 
-            [extended_summary]
+            Store data after five products are extracted every time to free up RAM.
 
             Args:
-                detail_data (list): [description]
-                item_df (pd.DataFrame): [description]
-                review_data (list): [description]
+                detail_data (list): List containing crawled detail data to store.
+                item_df (pd.DataFrame): Dataframe containing scraped item data to store.
+                review_data (list): List containing scraped Review data to store.
 
             Returns:
-                Tuple[list, pd.DataFrame, list]: [description]
+                Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
+
             &#34;&#34;&#34;
             pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                              f&#39;sph_prod_detail_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
@@ -3131,7 +3096,7 @@ class DetailReview(Sephora):
                                              f&#39;sph_prod_review_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
                                              index=None)
             self.meta.to_csv(
-                self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;, index=None)
+                self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
             return [], item_df, []
 
         for prod in self.meta.index[self.meta.index.isin(indices)]:
@@ -3156,47 +3121,60 @@ class DetailReview(Sephora):
             else:
                 drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
                                         path=self.detail_path)
-            # open product page
-            drv.get(product_page)
-            time.sleep(20)  # 30
-            accept_alert(drv, 10)
-            close_popups(drv)
+
+            try:
+                # open product page
+                drv.get(product_page)
+                time.sleep(20)  # 30
+                accept_alert(drv, 10)
+                close_popups(drv)
+                price = drv.find_element_by_css_selector(
+                    &#39;span[data-at=&#34;price&#34;]&#39;).text
+            except NoSuchElementException:
+                try:
+                    product_text = drv.find_element_by_class_name(
+                        &#39;css-1wag3se&#39;).text
+                    if &#39;productnotcarried&#39; in product_text.lower():
+                        self.logger.info(str.encode(f&#39;Product Name: {product_name}, Product ID: {prod_id} extraction failed.\
+                                                Product may not be available for sell currently.(Page: {product_page})&#39;,
+                                                    &#39;utf-8&#39;, &#39;ignore&#39;))
+                        self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
+                        self.meta.to_csv(
+                            self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
+                        drv.quit()
+                        continue
+                except Exception as ex:
+                    log_exception(
+                        self.logger, additional_information=f&#39;Prod ID: {prod_id}&#39;)
+                    try:
+                        drv.get(product_page)
+                        time.sleep(20)  # 30
+                        accept_alert(drv, 10)
+                        close_popups(drv)
+                        price = drv.find_element_by_css_selector(
+                            &#39;span[data-at=&#34;price&#34;]&#39;).text
+                    except Exception as ex:
+                        try:
+                            drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                                    path=self.detail_path)
+                            drv.get(product_page)
+                            time.sleep(20)  # 30
+                            accept_alert(drv, 10)
+                            close_popups(drv)
+                            price = drv.find_element_by_css_selector(
+                                &#39;span[data-at=&#34;price&#34;]&#39;).text
+                        except Exception as ex:
+                            log_exception(self.logger,
+                                          additional_information=f&#39;Prod ID: {prod_id}&#39;)
+                            drv.quit()
+                            self.logger.info(str.encode(
+                                f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link \
+                                    or loaded new style page. (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                            self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
+                            continue
 
             self.scroll_down_page(drv, speed=6, h2=0.6)
             time.sleep(5)
-
-            try:
-                product_text = drv.find_element_by_class_name(
-                    &#39;css-1wag3se&#39;).text
-                if &#39;productnotcarried&#39; in product_text.lower():
-                    self.logger.info(str.encode(f&#39;Product Name: {product_name}, Product ID: {prod_id} extraction failed.\
-                                            Product may not be available for sell currently.(Page: {product_page})&#39;,
-                                                &#39;utf-8&#39;, &#39;ignore&#39;))
-                    self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
-                    self.meta.to_csv(
-                        self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;, index=None)
-                    drv.quit()
-                    continue
-            except Exception as ex:
-                log_exception(
-                    self.logger, additional_information=f&#39;Prod ID: {prod_id}&#39;)
-
-            # check product page is valid and exists
-            try:
-                close_popups(drv)
-                accept_alert(drv, 2)
-                price = drv.find_element_by_class_name(&#39;css-1865ad6&#39;)
-                self.scroll_to_element(drv, price)
-                price = price.text
-            except Exception as ex:
-                log_exception(self.logger,
-                              additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                drv.quit()
-                self.logger.info(str.encode(
-                    f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
-                        (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
-                self.meta.loc[prod, &#39;detail_scraped&#39;] = &#39;NA&#39;
-                continue
 
             try:
                 chat_popup_button = WebDriverWait(drv, 3).until(
@@ -3231,30 +3209,26 @@ class DetailReview(Sephora):
                                               Either product has no reviews or not\
                                               available for sell currently.(page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
                 no_of_reviews = 0
-                # self.meta.loc[prod, &#39;review_scraped&#39;] = &#34;NA&#34;
-                # self.meta.to_csv(
-                #     self.review_path/&#39;sph_review_progress_tracker.csv&#39;, index=None)
-                # drv.quit()
-                # # print(&#39;in except - continue&#39;)
-                # continue
 
             if no_of_reviews &gt; 0:
                 reviews = self.get_reviews(
-                    drv, prod_id, product_name, last_scraped_review_date, no_of_reviews, incremental)
+                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
                 if len(reviews) &gt; 0:
                     review_data.extend(reviews)
 
-            if not incremental:
-                self.logger.info(str.encode(
-                    f&#39;Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
-                    extracted_reviews: {len(reviews)}, page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                    if not incremental:
+                        self.logger.info(str.encode(
+                            f&#39;Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
+                            extracted_reviews: {len(reviews)}, page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                    else:
+                        self.logger.info(str.encode(
+                            f&#39;Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
+                                (no_of_new_extracted_reviews: {len(reviews)},\
+                                page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
             else:
-                self.logger.info(str.encode(
-                    f&#39;Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
-                        (no_of_new_extracted_reviews: {len(reviews)},\
-                         page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                reviews = []
 
-            if prod != 0 and prod % 5 == 0:
+            if prod != 0 and prod % 10 == 0:
                 detail_data, item_df, review_data = store_data_refresh_mem(
                     detail_data, item_df, review_data)
 
@@ -3271,26 +3245,33 @@ class DetailReview(Sephora):
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-        &#34;&#34;&#34;extract [summary]
+        &#34;&#34;&#34;Extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            metadata (Union[pd.DataFrame, str, Path]): [description]
-            download (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            incremental (bool, optional): [description]. Defaults to True.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            clean (bool, optional): [description]. Defaults to True.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            metadata (Union[pd.DataFrame, str, Path]): Dataframe containing product specific url, name and id of the products to be scraped.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            Defaults to False.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
+
         &#34;&#34;&#34;
         def fresh():
             if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -3310,9 +3291,9 @@ class DetailReview(Sephora):
                 self.logger.info(
                     &#39;Starting Fresh Deatil Review Image Extraction.&#39;)
             else:
-                if Path(self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;).exists():
+                if Path(self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;).exists():
                     self.meta = pd.read_csv(
-                        self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;)
+                        self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;)
                     if sum(self.meta.scraped == &#39;N&#39;) == 0:
                         if auto_fresh_start:
                             fresh()
@@ -3325,9 +3306,10 @@ class DetailReview(Sephora):
                         self.logger.info(
                             &#39;Continuing Deatil Review Image Extraction From Last Run.&#39;)
                 else:
-                    fresh()
-                    self.logger.info(
-                        &#39;Deatil Review Image Progress Tracker does not exist. Starting Fresh Extraction.&#39;)
+                    if auto_fresh_start:
+                        fresh()
+                        self.logger.info(
+                            &#39;Deatil Review Image Progress Tracker does not exist. Starting Fresh Extraction.&#39;)
 
             # set list or range of product indices to crawl
             if list_of_index:
@@ -3432,10 +3414,7 @@ class DetailReview(Sephora):
                         sph_product_item_all in path {self.detail_path}&#39;)
 
                 self.logger.info(&#39;Creating Combined Review File&#39;)
-                if datetime.now().day &lt; 15:
-                    meta_date = f&#39;{time.strftime(&#34;%Y-%m&#34;)}-01&#39;
-                else:
-                    meta_date = f&#39;{time.strftime(&#34;%Y-%m&#34;)}-15&#39;
+
                 rev_li = []
                 self.bad_rev_li = []
                 review_files = [f for f in self.current_progress_path.glob(
@@ -3451,8 +3430,7 @@ class DetailReview(Sephora):
                 rev_df.drop_duplicates(inplace=True)
                 rev_df.reset_index(inplace=True, drop=True)
                 rev_df[&#39;meta_date&#39;] = pd.to_datetime(meta_date).date()
-                review_filename = f&#39;sph_product_review_all_{pd.to_datetime(meta_date).date()}&#39;
-                # , index=None)
+                review_filename = f&#39;sph_product_review_all_{meta_date}&#39;
                 rev_df.to_feather(self.review_path/review_filename)
 
                 self.logger.info(
@@ -3464,6 +3442,7 @@ class DetailReview(Sephora):
                     detail_cleaner = Cleaner(path=self.path)
                     self.detail_clean_df = detail_cleaner.clean(
                         self.detail_path/detail_filename)
+
                     item_cleaner = Cleaner(path=self.path)
                     self.item_clean_df, self.ing_clean_df = item_cleaner.clean(
                         self.detail_path/item_filename)
@@ -3475,6 +3454,7 @@ class DetailReview(Sephora):
                     file_creation_status = True
             else:
                 file_creation_status = False
+
         except Exception as ex:
             log_exception(
                 self.logger, additional_information=f&#39;Detail Item Review Combined File Creation Failed.&#39;)
@@ -3617,12 +3597,12 @@ current directory or provided directory.</p>
                 self.detail_path/&#39;sph_detail_progress_tracker&#39;)
             return [], item_df
 
-        def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
+        def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str, use_button: bool = False,
                                 multi_variety: bool = False, typ=None, ) -&gt; Tuple[str, str, str, str]:
             &#34;&#34;&#34;get_item_attributes scrapes product item specific data such as item_name, size, price, and ingredients.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
                 product_name (str): Name of the product from metadata.
                 prod_id (str): Id of the product from metdata.
                 use_button (bool, optional): Whether to use buttons to extract item name. Defaults to False.
@@ -3747,12 +3727,12 @@ current directory or provided directory.</p>
             # print(item_ing)
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -&gt; list:
+        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -&gt; list:
             &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores in a list
             which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
                 product_name (str): Name of the product from metadata.
                 prod_id (str): Id of the product from metdata.
 
@@ -3806,16 +3786,21 @@ current directory or provided directory.</p>
             else:
                 item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
                                                                                          product_name, prod_id)
-                product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name, &#34;item_name&#34;: item_name,
-                                           &#34;item_size&#34;: item_size, &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                           &#34;product_name&#34;: product_name,
+                                           &#34;item_name&#34;: item_name,
+                                           &#34;item_size&#34;: item_size,
+                                           &#34;item_price&#34;: item_price,
+                                           &#34;item_ingredients&#34;: item_ingredients}
+                                          )
 
             return product_attributes
 
-        def get_first_review_date(drv: webdriver.Firefox) -&gt; str:
+        def get_first_review_date(drv: webdriver.Chrome) -&gt; str:
             &#34;&#34;&#34;get_first_review_date scraped the first review data of the product.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
 
             Returns:
                 str: first review date.
@@ -4694,12 +4679,12 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             self.detail_path/&#39;sph_detail_progress_tracker&#39;)
         return [], item_df
 
-    def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
+    def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str, use_button: bool = False,
                             multi_variety: bool = False, typ=None, ) -&gt; Tuple[str, str, str, str]:
         &#34;&#34;&#34;get_item_attributes scrapes product item specific data such as item_name, size, price, and ingredients.
 
         Args:
-            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
             product_name (str): Name of the product from metadata.
             prod_id (str): Id of the product from metdata.
             use_button (bool, optional): Whether to use buttons to extract item name. Defaults to False.
@@ -4824,12 +4809,12 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
         # print(item_ing)
         return item_name, item_size, item_price, item_ing
 
-    def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -&gt; list:
+    def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -&gt; list:
         &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores in a list
         which is returned to get_detail method for storing in a product specific dataframe.
 
         Args:
-            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
             product_name (str): Name of the product from metadata.
             prod_id (str): Id of the product from metdata.
 
@@ -4883,16 +4868,21 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
         else:
             item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
                                                                                      product_name, prod_id)
-            product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name, &#34;item_name&#34;: item_name,
-                                       &#34;item_size&#34;: item_size, &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+            product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                       &#34;product_name&#34;: product_name,
+                                       &#34;item_name&#34;: item_name,
+                                       &#34;item_size&#34;: item_size,
+                                       &#34;item_price&#34;: item_price,
+                                       &#34;item_ingredients&#34;: item_ingredients}
+                                      )
 
         return product_attributes
 
-    def get_first_review_date(drv: webdriver.Firefox) -&gt; str:
+    def get_first_review_date(drv: webdriver.Chrome) -&gt; str:
         &#34;&#34;&#34;get_first_review_date scraped the first review data of the product.
 
         Args:
-            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
 
         Returns:
             str: first review date.
@@ -5262,46 +5252,60 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 <span>(</span><span>log: bool = True, path: pathlib.Path = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes'))</span>
 </code></dt>
 <dd>
-<div class="desc"><p>DetailReview [summary]</p>
-<p>[extended_summary]</p>
+<div class="desc"><p>DetailReview class carries out scraping of Sephora Detail and Review data.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>Sephora</code></strong> :&ensp;<code>[type]</code></dt>
-<dd>[description]</dd>
+<dt><strong><code>Sephora</code></strong> :&ensp;<code>Browser</code></dt>
+<dd>Class that initializes folder paths and selenium webdriver for data scraping.</dd>
 </dl>
-<p><strong>init</strong> [summary]</p>
-<p>[extended_summary]</p>
+<p><strong>init</strong> DetailReview class instace initializer.</p>
+<p>This method sets all the folder paths required for DetailReview crawler to work.
+If the paths does not exist the paths get automatically created depending on current directory
+or provided directory.</p>
+<p>Initializer Tasks:
+1. Set folder paths for data reading and storing.
+2. Move old scraped and cleaned data files to archive folders before starting new extraction.
+3. Create data scraping log files in log path to monitor/correct failed data extraction from website.</p>
 <h2 id="args_1">Args</h2>
 <dl>
 <dt><strong><code>log</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to create crawling exception and progess log. Defaults to True.</dd>
 <dt><strong><code>path</code></strong> :&ensp;<code>Path</code>, optional</dt>
-<dd>[description]. Defaults to Path.cwd().</dd>
+<dd>Folder path where the Detail and Review data will be extracted.
+Defaults to current directory(Path.cwd()).</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class DetailReview(Sephora):
-    &#34;&#34;&#34;DetailReview [summary]
-
-    [extended_summary]
+    &#34;&#34;&#34;DetailReview class carries out scraping of Sephora Detail and Review data.
 
     Args:
-        Sephora ([type]): [description]
+        Sephora (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
+
     &#34;&#34;&#34;
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
-        &#34;&#34;&#34;__init__ [summary]
+        &#34;&#34;&#34;__init__ DetailReview class instace initializer.
 
-        [extended_summary]
+        This method sets all the folder paths required for DetailReview crawler to work.
+        If the paths does not exist the paths get automatically created depending on current directory
+        or provided directory.
+
+        Initializer Tasks:
+        1. Set folder paths for data reading and storing.
+        2. Move old scraped and cleaned data files to archive folders before starting new extraction.
+        3. Create data scraping log files in log path to monitor/correct failed data extraction from website.
 
         Args:
-            log (bool, optional): [description]. Defaults to True.
-            path (Path, optional): [description]. Defaults to Path.cwd().
+            log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
+            path (Path, optional): Folder path where the Detail and Review data will be extracted.
+                                   Defaults to current directory(Path.cwd()).
+
         &#34;&#34;&#34;
         super().__init__(path=path, data_def=&#39;detail_review_image&#39;)
-        self.path = path
+        self.path = Path(path)
         self.detail_current_progress_path = self.detail_path/&#39;current_progress&#39;
         self.detail_current_progress_path.mkdir(parents=True, exist_ok=True)
 
@@ -5314,7 +5318,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
         for f in old_detail_files:
             shutil.move(str(f), str(self.old_detail_files_path))
 
-        old_clean_detail_files = files = os.listdir(self.detail_clean_path)
+        old_clean_detail_files = os.listdir(self.detail_clean_path)
         for f in old_clean_detail_files:
             shutil.move(str(self.detail_clean_path/f),
                         str(self.old_detail_clean_files_path))
@@ -5330,39 +5334,39 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                         str(self.old_review_clean_files_path))
         if log:
             self.prod_detail_review_image_log = Logger(
-                &#34;sph_prod_review_extraction&#34;, path=self.crawl_log_path)
+                &#34;sph_prod_detail_review_image_extraction&#34;, path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_review_image_log.start_log()
 
-    def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
-        &#34;&#34;&#34;get_detail [summary]
+    def get_details(self, drv: webdriver.Chrome, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
+        &#34;&#34;&#34;get_detail scrapes individual product pages for price, ingredients, color etc.
 
-        [extended_summary]
+        Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
+        size specific prices, color, product claims and other information pertaining to one individual product.
 
         Args:
-            drv (webdriver.Firefox): [description]
-            prod_id (str): [description]
-            product_name (str): [description]
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
+            prod_id (str): Id of the product from metdata.
+            product_name (str): Name of the product from metadata.
 
         Returns:
-            Tuple[dict, pd.DataFrame]: [description]
+            Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
+                                       attributes of a product.
         &#34;&#34;&#34;
 
-        def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
+        def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str,
                                 multi_variety: bool = False, typ=None, ) -&gt; Tuple[str, str, str, str]:
-            &#34;&#34;&#34;get_item_attributes [summary]
-
-            [extended_summary]
+            &#34;&#34;&#34;get_item_attributes extracts product type specific information.
 
             Args:
-                drv (webdriver.Chrome): [description]
-                product_name (str): [description]
-                prod_id (str): [description]
-                use_button (bool, optional): [description]. Defaults to False.
-                multi_variety (bool, optional): [description]. Defaults to False.
-                typ ([type], optional): [description]. Defaults to None.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
+                product_name (str): Name of the product from metadata.
+                prod_id (str): Id of the product from metdata.
+                multi_variety (bool, optional): Whether product has multiple colors/sizes. Defaults to False.
+                typ ([type], optional): Webelement corresponding to a particular product type. Defaults to None.
 
             Returns:
-                Tuple[str, str, str, str]: [description]
+                Tuple[str, str, str, str]: item_name, item_size, item_price, item_ingredient
+
             &#34;&#34;&#34;
             # drv # type: webdriver.Chrome
             # close popup windows
@@ -5370,7 +5374,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             accept_alert(drv, 1)
 
             try:
-                item_price = drv.find_element_by_class_name(&#39;css-1865ad6&#39;).text
+                item_price = drv.find_element_by_css_selector(
+                    &#39;span[data-at=&#34;price&#34;]&#39;).text
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -5379,11 +5384,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 
             if multi_variety:
                 try:
-                    if use_button:
-                        item_name = typ.find_element_by_tag_name(
-                            &#39;button&#39;).get_attribute(&#39;aria-label&#39;)
-                    else:
-                        item_name = typ.get_attribute(&#39;aria-label&#39;)
+                    item_name = typ.get_attribute(&#39;aria-label&#39;)
                     # print(item_name)
                 except Exception as ex:
                     log_exception(self.logger,
@@ -5395,7 +5396,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                 item_name = &#34;&#34;
 
             try:
-                item_size = drv.find_element_by_class_name(&#39;css-128n72s&#39;).text
+                item_size = drv.find_element_by_css_selector(
+                    &#39;div[data-at=&#34;sku_size&#34;]&#39;).text
                 # print(item_size)
             except Exception as ex:
                 log_exception(self.logger,
@@ -5409,9 +5411,11 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             self.scroll_to_element(drv, first_tab)
             ActionChains(drv).move_to_element(
                 first_tab).click(first_tab).perform()
+
             prod_tabs = []
-            prod_tabs = drv.find_elements_by_class_name(&#39;css-1wugx5m&#39;)
-            prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
+            prod_tabs = drv.find_elements_by_css_selector(
+                &#39;div[aria-label=&#34;Product Information&#34;]&gt;button&gt;span&#39;)
+            # prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
 
             tab_names = []
             for t in prod_tabs:
@@ -5421,57 +5425,14 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             if &#39;ingredients&#39; in tab_names:
                 close_popups(drv)
                 accept_alert(drv, 1)
-                if len(tab_names) == 5:
-                    try:
-                        tab_num = 2
-                        ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                        self.scroll_to_element(drv, ing_button)
-                        ActionChains(drv).move_to_element(
-                            ing_button).click(ing_button).perform()
-                        item_ing = drv.find_element_by_xpath(
-                            f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                    except Exception as ex:
-                        log_exception(self.logger,
-                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                        print(&#39;cant get ingredient but tab exists&#39;)
-                        item_ing = &#34;&#34;
-                        self.logger.info(str.encode(
-                            f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed&#39;,
-                            &#39;utf-8&#39;, &#39;ignore&#39;))
-                elif len(tab_names) == 4:
-                    try:
-                        tab_num = 1
-                        ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                        self.scroll_to_element(drv, ing_button)
-                        ActionChains(drv).move_to_element(
-                            ing_button).click(ing_button).perform()
-                        item_ing = drv.find_element_by_xpath(
-                            f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                    except Exception as ex:
-                        log_exception(self.logger,
-                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                        print(&#39;cant get ingredient but tab exists&#39;)
-                        item_ing = &#34;&#34;
-                        self.logger.info(str.encode(
-                            f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed.&#39;,
-                            &#39;utf-8&#39;, &#39;ignore&#39;))
-                elif len(tab_names) &lt; 4:
-                    try:
-                        tab_num = 0
-                        ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                        self.scroll_to_element(drv, ing_button)
-                        ActionChains(drv).move_to_element(
-                            ing_button).click(ing_button).perform()
-                        item_ing = drv.find_element_by_xpath(
-                            f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                    except Exception as ex:
-                        log_exception(self.logger,
-                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                        print(&#39;cant get ingredient but tab exists&#39;)
-                        item_ing = &#34;&#34;
-                        self.logger.info(str.encode(
-                            f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed.&#39;,
-                            &#39;utf-8&#39;, &#39;ignore&#39;))
+
+                tab_num = tab_names.index(&#39;ingredients&#39;)
+                ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
+                self.scroll_to_element(drv, ing_button)
+                ActionChains(drv).move_to_element(
+                    ing_button).click(ing_button).perform()
+                item_ing = drv.find_element_by_xpath(
+                    f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
             else:
                 item_ing = &#34;&#34;
                 self.logger.info(str.encode(
@@ -5479,18 +5440,18 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             # print(item_ing)
             return item_name, item_size, item_price, item_ing
 
-        def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -&gt; list:
-            &#34;&#34;&#34;get_product_attributes [summary]
-
-            [extended_summary]
+        def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -&gt; list:
+            &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores
+            in a list which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Chrome): [description]
-                product_name (str): [description]
-                prod_id (str): [description]
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
+                product_name (str): Name of the product from metadata.
+                prod_id (str): Id of the product from metdata.
 
             Returns:
-                list: [description]
+                list: List containing all product item attributes of multiple varieties with name and id.
+
             &#34;&#34;&#34;
             # get all the variation of product
             # close popup windows
@@ -5499,19 +5460,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 
             product_variety = []
             try:
-                product_variety = drv.find_elements_by_class_name(
-                    &#39;css-1j1jwa4&#39;)
-                product_variety.extend(
-                    drv.find_elements_by_class_name(&#39;css-cl742e&#39;))
-                use_button = False
-            except Exception as ex:
-                log_exception(self.logger,
-                              additional_information=f&#39;Prod ID: {prod_id}&#39;)
-            try:
-                if len(product_variety) &lt; 1:
-                    product_variety = drv.find_elements_by_class_name(
-                        &#39;css-5jqxch&#39;)
-                    use_button = True
+                product_variety = drv.find_elements_by_css_selector(
+                    &#39;button[data-at=&#34;selected_swatch&#34;]&#39;)
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -5531,29 +5481,37 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                                       additional_information=f&#39;Prod ID: {prod_id}&#39;)
                     time.sleep(4)  # 8
                     item_name, item_size, item_price, item_ingredients = get_item_attributes(drv, product_name, prod_id,
-                                                                                             multi_variety=True, typ=typ,
-                                                                                             use_button=use_button)
-                    product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name,
-                                               &#34;item_name&#34;: item_name, &#34;item_size&#34;: item_size,
-                                               &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                                                                                             multi_variety=True, typ=typ)
+                    product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                               &#34;product_name&#34;: product_name,
+                                               &#34;item_name&#34;: item_name,
+                                               &#34;item_size&#34;: item_size,
+                                               &#34;item_price&#34;: item_price,
+                                               &#34;item_ingredients&#34;: item_ingredients
+                                               })
             else:
                 item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
                                                                                          product_name, prod_id)
-                product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name, &#34;item_name&#34;: item_name,
-                                           &#34;item_size&#34;: item_size, &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                           &#34;product_name&#34;: product_name,
+                                           &#34;item_name&#34;: item_name,
+                                           &#34;item_size&#34;: item_size,
+                                           &#34;item_price&#34;: item_price,
+                                           &#34;item_ingredients&#34;: item_ingredients
+                                           })
 
             return product_attributes
 
-        def get_first_review_date(drv: webdriver.Firefox) -&gt; str:
-            &#34;&#34;&#34;get_first_review_date [summary]
-
-            [extended_summary]
+        &#39;&#39;&#39;
+        def get_first_review_date(drv: webdriver.Chrome) -&gt; str:
+            &#34;&#34;&#34;get_first_review_date scrapes the first review data of a product.
 
             Args:
-                drv (webdriver.Chrome): [description]
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
 
             Returns:
-                str: [description]
+                str: First review date.
+
             &#34;&#34;&#34;
             # close popup windows
             close_popups(drv)
@@ -5593,20 +5551,19 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                               additional_information=f&#39;Prod ID: {prod_id}&#39;)
                 first_review_date = &#39;&#39;
             return first_review_date
+        &#39;&#39;&#39;
 
         # get all product info tabs such as how-to-use, about-brand, ingredients
         prod_tabs = []
-        prod_tabs = drv.find_elements_by_class_name(&#39;css-1wugx5m&#39;)
-        prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
+        prod_tabs = prod_tabs = drv.find_elements_by_css_selector(
+            &#39;div[aria-label=&#34;Product Information&#34;]&gt;button&gt;span&#39;)
 
         tab_names = []
         for t in prod_tabs:
             tab_names.append(t.text.lower())
 
-        # no. of votes
         try:
             votes = drv.find_elements_by_class_name(&#39;css-2rg6q7&#39;)[-1].text
-            # print(votes)
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -5748,7 +5705,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             pass
         # click no. of reviews
         try:
-            review_button = drv.find_element_by_class_name(&#39;css-1pjru6n&#39;)
+            review_button = drv.find_element_by_css_selector(
+                &#39;span[data-at=&#34;number_of_reviews&#34;]&#39;)
             self.scroll_to_element(drv, review_button)
             ActionChains(drv).move_to_element(
                 review_button).click(review_button).perform()
@@ -5757,12 +5715,12 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
 
         try:
-            first_review_date = get_first_review_date(drv)
+            first_review_date = &#39;&#39;
             # print(first_review_date)
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
-            first_review_date = &#34;&#34;
+            first_review_date = &#39;&#39;
             self.logger.info(str.encode(
                 f&#39;product: {product_name} (prod_id: {prod_id}) first_review_date scrape failed.&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
 
@@ -5782,8 +5740,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
         try:
             close_popups(drv)
             accept_alert(drv, 1)
-            rating_distribution = drv.find_element_by_class_name(
-                &#39;css-960eb6&#39;).text.split(&#39;\n&#39;)
+            rating_distribution = drv.find_element_by_css_selector(
+                &#39;table[data-comp=&#34;HistogramChart &#34;]&#39;).text.split(&#39;\n&#39;)
             # print(rating_distribution)
         except Exception as ex:
             log_exception(self.logger,
@@ -5815,24 +5773,24 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 
         return detail, item
 
-    def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
+    def get_reviews(self,  drv: webdriver.Chrome, prod_id: str, product_name: str, product_page: str,
                     last_scraped_review_date: str, no_of_reviews: int,
                     incremental: bool = True, reviews: list = []) -&gt; list:
-        &#34;&#34;&#34;get_reviews [summary]
-
-        [extended_summary]
+        &#34;&#34;&#34;get_reviews crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
-            drv (webdriver.Firefox): [description]
-            prod_id (str): [description]
-            product_name (str): [description]
-            last_scraped_review_date (str): [description]
-            no_of_reviews (int): [description]
-            incremental (bool, optional): [description]. Defaults to True.
-            reviews (list, optional): [description]. Defaults to [].
+            drv (webdriver.Chrome): drv (webdriver.Chrome): Selenium webdriver with opened product page.
+            prod_id (str): Id of the product from metdata.
+            product_name (str): Name of the product from metadata.
+            product_page (str): Url of the product page.
+            last_scraped_review_date (str): The last review date scraped as per database.
+            no_of_reviews (int): No.of reviews a product has.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
         Returns:
-            list: [description]
+            list: List of dictionaries containing all the scraped reviews of a product.
+
         &#34;&#34;&#34;
         # print(no_of_reviews)
         # drv.find_element_by_class_name(&#39;css-2rg6q7&#39;).click()
@@ -5904,7 +5862,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                 when crawling all reviews. By default it will get latest 1800 reviews.
                 then in subsequent incremental runs it will get al new reviews on weekly basis
                 &#39;&#39;&#39;
-                if n &gt;= 400:  # 200:
+                if n &gt;= 300:  # 200:
                     break
                 time.sleep(1)
                 # close any opened popups by escape
@@ -5968,8 +5926,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
         accept_alert(drv, 2)
         close_popups(drv)
 
-        product_reviews = drv.find_elements_by_class_name(
-            &#39;css-1kk8dps&#39;)[2:]
+        product_reviews = drv.find_elements_by_css_selector(
+            &#39;div[data-comp=&#34;Review &#34;]&#39;)
 
         # print(&#39;starting extraction&#39;)
         r = 0
@@ -5993,9 +5951,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 
             try:
                 review_date = convert_ago_to_date(
-                    rev.find_element_by_class_name(&#39;css-h2vfi1&#39;).text)
-                if pd.to_datetime(review_date, infer_datetime_format=True) &lt;= \
-                        pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
+                    rev.find_element_by_css_selector(&#39;span[data-at=&#34;time_posted&#34;]&#39;).text)
+                if pd.to_datetime(review_date, infer_datetime_format=True) &lt;= pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                     continue
             except Exception as ex:
                 log_exception(self.logger,
@@ -6019,8 +5976,8 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                 product_variant = &#39;&#39;
 
             try:
-                user_rating = rev.find_element_by_class_name(
-                    &#39;css-3z5ot7&#39;).get_attribute(&#39;aria-label&#39;)
+                user_rating = rev.find_element_by_css_selector(
+                    &#39;div[data-comp=&#34;StarRating &#34;]&#39;).get_attribute(&#39;aria-label&#39;)
             except Exception as ex:
                 log_exception(self.logger,
                               additional_information=f&#39;Prod ID: {prod_id}. Failed to extract user_rating.&#39;)
@@ -6056,11 +6013,17 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                               additional_information=f&#39;Prod ID: {prod_id}. Failed to extract helpful.&#39;)
                 helpful = &#39;&#39;
 
-            reviews.append({&#39;prod_id&#39;: prod_id, &#39;product_name&#39;: product_name,
-                            &#39;user_attribute&#39;: user_attribute, &#39;product_variant&#39;: product_variant,
-                            &#39;review_title&#39;: review_title, &#39;review_text&#39;: review_text,
-                            &#39;review_rating&#39;: user_rating, &#39;recommend&#39;: recommend,
-                            &#39;review_date&#39;: review_date,   &#39;helpful&#39;: helpful})
+            reviews.append({&#39;prod_id&#39;: prod_id,
+                            &#39;product_name&#39;: product_name,
+                            &#39;user_attribute&#39;: user_attribute,
+                            &#39;product_variant&#39;: product_variant,
+                            &#39;review_title&#39;: review_title,
+                            &#39;review_text&#39;: review_text,
+                            &#39;review_rating&#39;: user_rating,
+                            &#39;recommend&#39;: recommend,
+                            &#39;review_date&#39;: review_date,
+                            &#39;helpful&#39;: helpful
+                            })
         return reviews
 
     def crawl_page(self, indices: list, open_headless: bool, open_with_proxy_server: bool,
@@ -6069,35 +6032,38 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                                                  &#39;item_size&#39;, &#39;item_price&#39;,
                                                  &#39;item_ingredients&#39;]),
                    review_data: list = [], incremental: bool = True):
-        &#34;&#34;&#34;crawl_page
+        &#34;&#34;&#34;crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
-        [extended_summary]
+        The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
 
         Args:
-            indices (list): [description]
-            open_headless (bool): [description]
-            open_with_proxy_server (bool): [description]
-            randomize_proxy_usage (bool): [description]
-            detail_data (list, optional): [description]. Defaults to [].
-            item_df ([type], optional): [description]. Defaults to pd.DataFrame(columns=[&#39;prod_id&#39;, &#39;product_name&#39;, &#39;item_name&#39;,
-            &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
-            review_data (list, optional): [description]. Defaults to [].
-            incremental (bool, optional): [description]. Defaults to True.
+            indices (list): list of indices or range of indices of product urls to scrape.
+            open_headless (bool): Whether to open browser headless.
+            open_with_proxy_server (bool): Whether to use ip rotation service.
+            randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            detail_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            item_df ([type], optional): Empty intermediate dataframe to store data during parallel crawl.
+                                        Defaults to []. Defaults to pd.DataFrame(columns=[&#39;prod_id&#39;, &#39;product_name&#39;, &#39;item_name&#39;,
+                                                                                         &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
+            review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+
         &#34;&#34;&#34;
 
         def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
                                    review_data: list) -&gt; Tuple[list, pd.DataFrame, list]:
-            &#34;&#34;&#34;store_data_refresh_mem [summary]
+            &#34;&#34;&#34;store_data_refresh_mem method stores crawled data in regular interval to free up system memory.
 
-            [extended_summary]
+            Store data after five products are extracted every time to free up RAM.
 
             Args:
-                detail_data (list): [description]
-                item_df (pd.DataFrame): [description]
-                review_data (list): [description]
+                detail_data (list): List containing crawled detail data to store.
+                item_df (pd.DataFrame): Dataframe containing scraped item data to store.
+                review_data (list): List containing scraped Review data to store.
 
             Returns:
-                Tuple[list, pd.DataFrame, list]: [description]
+                Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
+
             &#34;&#34;&#34;
             pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                              f&#39;sph_prod_detail_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
@@ -6113,7 +6079,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                                              f&#39;sph_prod_review_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
                                              index=None)
             self.meta.to_csv(
-                self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;, index=None)
+                self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
             return [], item_df, []
 
         for prod in self.meta.index[self.meta.index.isin(indices)]:
@@ -6138,47 +6104,60 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             else:
                 drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
                                         path=self.detail_path)
-            # open product page
-            drv.get(product_page)
-            time.sleep(20)  # 30
-            accept_alert(drv, 10)
-            close_popups(drv)
+
+            try:
+                # open product page
+                drv.get(product_page)
+                time.sleep(20)  # 30
+                accept_alert(drv, 10)
+                close_popups(drv)
+                price = drv.find_element_by_css_selector(
+                    &#39;span[data-at=&#34;price&#34;]&#39;).text
+            except NoSuchElementException:
+                try:
+                    product_text = drv.find_element_by_class_name(
+                        &#39;css-1wag3se&#39;).text
+                    if &#39;productnotcarried&#39; in product_text.lower():
+                        self.logger.info(str.encode(f&#39;Product Name: {product_name}, Product ID: {prod_id} extraction failed.\
+                                                Product may not be available for sell currently.(Page: {product_page})&#39;,
+                                                    &#39;utf-8&#39;, &#39;ignore&#39;))
+                        self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
+                        self.meta.to_csv(
+                            self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
+                        drv.quit()
+                        continue
+                except Exception as ex:
+                    log_exception(
+                        self.logger, additional_information=f&#39;Prod ID: {prod_id}&#39;)
+                    try:
+                        drv.get(product_page)
+                        time.sleep(20)  # 30
+                        accept_alert(drv, 10)
+                        close_popups(drv)
+                        price = drv.find_element_by_css_selector(
+                            &#39;span[data-at=&#34;price&#34;]&#39;).text
+                    except Exception as ex:
+                        try:
+                            drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                                    path=self.detail_path)
+                            drv.get(product_page)
+                            time.sleep(20)  # 30
+                            accept_alert(drv, 10)
+                            close_popups(drv)
+                            price = drv.find_element_by_css_selector(
+                                &#39;span[data-at=&#34;price&#34;]&#39;).text
+                        except Exception as ex:
+                            log_exception(self.logger,
+                                          additional_information=f&#39;Prod ID: {prod_id}&#39;)
+                            drv.quit()
+                            self.logger.info(str.encode(
+                                f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link \
+                                    or loaded new style page. (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                            self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
+                            continue
 
             self.scroll_down_page(drv, speed=6, h2=0.6)
             time.sleep(5)
-
-            try:
-                product_text = drv.find_element_by_class_name(
-                    &#39;css-1wag3se&#39;).text
-                if &#39;productnotcarried&#39; in product_text.lower():
-                    self.logger.info(str.encode(f&#39;Product Name: {product_name}, Product ID: {prod_id} extraction failed.\
-                                            Product may not be available for sell currently.(Page: {product_page})&#39;,
-                                                &#39;utf-8&#39;, &#39;ignore&#39;))
-                    self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
-                    self.meta.to_csv(
-                        self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;, index=None)
-                    drv.quit()
-                    continue
-            except Exception as ex:
-                log_exception(
-                    self.logger, additional_information=f&#39;Prod ID: {prod_id}&#39;)
-
-            # check product page is valid and exists
-            try:
-                close_popups(drv)
-                accept_alert(drv, 2)
-                price = drv.find_element_by_class_name(&#39;css-1865ad6&#39;)
-                self.scroll_to_element(drv, price)
-                price = price.text
-            except Exception as ex:
-                log_exception(self.logger,
-                              additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                drv.quit()
-                self.logger.info(str.encode(
-                    f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
-                        (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
-                self.meta.loc[prod, &#39;detail_scraped&#39;] = &#39;NA&#39;
-                continue
 
             try:
                 chat_popup_button = WebDriverWait(drv, 3).until(
@@ -6213,30 +6192,26 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                                               Either product has no reviews or not\
                                               available for sell currently.(page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
                 no_of_reviews = 0
-                # self.meta.loc[prod, &#39;review_scraped&#39;] = &#34;NA&#34;
-                # self.meta.to_csv(
-                #     self.review_path/&#39;sph_review_progress_tracker.csv&#39;, index=None)
-                # drv.quit()
-                # # print(&#39;in except - continue&#39;)
-                # continue
 
             if no_of_reviews &gt; 0:
                 reviews = self.get_reviews(
-                    drv, prod_id, product_name, last_scraped_review_date, no_of_reviews, incremental)
+                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
                 if len(reviews) &gt; 0:
                     review_data.extend(reviews)
 
-            if not incremental:
-                self.logger.info(str.encode(
-                    f&#39;Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
-                    extracted_reviews: {len(reviews)}, page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                    if not incremental:
+                        self.logger.info(str.encode(
+                            f&#39;Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
+                            extracted_reviews: {len(reviews)}, page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                    else:
+                        self.logger.info(str.encode(
+                            f&#39;Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
+                                (no_of_new_extracted_reviews: {len(reviews)},\
+                                page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
             else:
-                self.logger.info(str.encode(
-                    f&#39;Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
-                        (no_of_new_extracted_reviews: {len(reviews)},\
-                         page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                reviews = []
 
-            if prod != 0 and prod % 5 == 0:
+            if prod != 0 and prod % 10 == 0:
                 detail_data, item_df, review_data = store_data_refresh_mem(
                     detail_data, item_df, review_data)
 
@@ -6253,26 +6228,33 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-        &#34;&#34;&#34;extract [summary]
+        &#34;&#34;&#34;Extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-        [extended_summary]
+        Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+        This method has four major functionality:
+        * 1. Run the spider
+        * 2. Store data in regular intervals to free up ram
+        * 3. Compile all crawled data into one file.
+        * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
         Args:
-            metadata (Union[pd.DataFrame, str, Path]): [description]
-            download (bool, optional): [description]. Defaults to True.
-            n_workers (int, optional): [description]. Defaults to 5.
-            fresh_start (bool, optional): [description]. Defaults to False.
-            auto_fresh_start (bool, optional): [description]. Defaults to False.
-            incremental (bool, optional): [description]. Defaults to True.
-            open_headless (bool, optional): [description]. Defaults to False.
-            open_with_proxy_server (bool, optional): [description]. Defaults to True.
-            randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-            start_idx (Optional[int], optional): [description]. Defaults to None.
-            end_idx (Optional[int], optional): [description]. Defaults to None.
-            list_of_index ([type], optional): [description]. Defaults to None.
-            compile_progress_files (bool, optional): [description]. Defaults to False.
-            clean (bool, optional): [description]. Defaults to True.
-            delete_progress (bool, optional): [description]. Defaults to False.
+            metadata (Union[pd.DataFrame, str, Path]): Dataframe containing product specific url, name and id of the products to be scraped.
+            download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+            n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+            fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+            auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+            incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+            open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+            randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+            Defaults to False.
+            start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+            end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+            list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+            compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+            clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+            delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
+
         &#34;&#34;&#34;
         def fresh():
             if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -6292,9 +6274,9 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                 self.logger.info(
                     &#39;Starting Fresh Deatil Review Image Extraction.&#39;)
             else:
-                if Path(self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;).exists():
+                if Path(self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;).exists():
                     self.meta = pd.read_csv(
-                        self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;)
+                        self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;)
                     if sum(self.meta.scraped == &#39;N&#39;) == 0:
                         if auto_fresh_start:
                             fresh()
@@ -6307,9 +6289,10 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                         self.logger.info(
                             &#39;Continuing Deatil Review Image Extraction From Last Run.&#39;)
                 else:
-                    fresh()
-                    self.logger.info(
-                        &#39;Deatil Review Image Progress Tracker does not exist. Starting Fresh Extraction.&#39;)
+                    if auto_fresh_start:
+                        fresh()
+                        self.logger.info(
+                            &#39;Deatil Review Image Progress Tracker does not exist. Starting Fresh Extraction.&#39;)
 
             # set list or range of product indices to crawl
             if list_of_index:
@@ -6414,10 +6397,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                         sph_product_item_all in path {self.detail_path}&#39;)
 
                 self.logger.info(&#39;Creating Combined Review File&#39;)
-                if datetime.now().day &lt; 15:
-                    meta_date = f&#39;{time.strftime(&#34;%Y-%m&#34;)}-01&#39;
-                else:
-                    meta_date = f&#39;{time.strftime(&#34;%Y-%m&#34;)}-15&#39;
+
                 rev_li = []
                 self.bad_rev_li = []
                 review_files = [f for f in self.current_progress_path.glob(
@@ -6433,8 +6413,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                 rev_df.drop_duplicates(inplace=True)
                 rev_df.reset_index(inplace=True, drop=True)
                 rev_df[&#39;meta_date&#39;] = pd.to_datetime(meta_date).date()
-                review_filename = f&#39;sph_product_review_all_{pd.to_datetime(meta_date).date()}&#39;
-                # , index=None)
+                review_filename = f&#39;sph_product_review_all_{meta_date}&#39;
                 rev_df.to_feather(self.review_path/review_filename)
 
                 self.logger.info(
@@ -6446,6 +6425,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                     detail_cleaner = Cleaner(path=self.path)
                     self.detail_clean_df = detail_cleaner.clean(
                         self.detail_path/detail_filename)
+
                     item_cleaner = Cleaner(path=self.path)
                     self.item_clean_df, self.ing_clean_df = item_cleaner.clean(
                         self.detail_path/item_filename)
@@ -6457,6 +6437,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                     file_creation_status = True
             else:
                 file_creation_status = False
+
         except Exception as ex:
             log_exception(
                 self.logger, additional_information=f&#39;Detail Item Review Combined File Creation Failed.&#39;)
@@ -6487,27 +6468,28 @@ Columns: [prod_id, product_name, item_name, item_size, item_price, item_ingredie
 Index: [], review_data: list = [], incremental: bool = True)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>crawl_page</p>
-<p>[extended_summary]</p>
+<div class="desc"><p>crawl_page opens each product url in a sepearate browser to scrape detail and review data together.</p>
+<p>The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>indices</code></strong> :&ensp;<code>list</code></dt>
-<dd>[description]</dd>
+<dd>list of indices or range of indices of product urls to scrape.</dd>
 <dt><strong><code>open_headless</code></strong> :&ensp;<code>bool</code></dt>
-<dd>[description]</dd>
+<dd>Whether to open browser headless.</dd>
 <dt><strong><code>open_with_proxy_server</code></strong> :&ensp;<code>bool</code></dt>
-<dd>[description]</dd>
+<dd>Whether to use ip rotation service.</dd>
 <dt><strong><code>randomize_proxy_usage</code></strong> :&ensp;<code>bool</code></dt>
-<dd>[description]</dd>
+<dd>Whether to use both proxy and native network in tandem to decrease proxy requests.</dd>
 <dt><strong><code>detail_data</code></strong> :&ensp;<code>list</code>, optional</dt>
-<dd>[description]. Defaults to [].</dd>
+<dd>Empty intermediate list to store data during parallel crawl. Defaults to [].</dd>
 <dt><strong><code>item_df</code></strong> :&ensp;<code>[type]</code>, optional</dt>
-<dd>[description]. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',</dd>
-<dt>'item_size', 'item_price', 'item_ingredients']).</dt>
+<dd>Empty intermediate dataframe to store data during parallel crawl.
+Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'item_name',
+'item_size', 'item_price', 'item_ingredients']).</dd>
 <dt><strong><code>review_data</code></strong> :&ensp;<code>list</code>, optional</dt>
-<dd>[description]. Defaults to [].</dd>
+<dd>Empty intermediate list to store data during parallel crawl. Defaults to [].</dd>
 <dt><strong><code>incremental</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to scrape reviews incrementally from last scraped review date. Defaults to True.</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -6519,35 +6501,38 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                                              &#39;item_size&#39;, &#39;item_price&#39;,
                                              &#39;item_ingredients&#39;]),
                review_data: list = [], incremental: bool = True):
-    &#34;&#34;&#34;crawl_page
+    &#34;&#34;&#34;crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
-    [extended_summary]
+    The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
 
     Args:
-        indices (list): [description]
-        open_headless (bool): [description]
-        open_with_proxy_server (bool): [description]
-        randomize_proxy_usage (bool): [description]
-        detail_data (list, optional): [description]. Defaults to [].
-        item_df ([type], optional): [description]. Defaults to pd.DataFrame(columns=[&#39;prod_id&#39;, &#39;product_name&#39;, &#39;item_name&#39;,
-        &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
-        review_data (list, optional): [description]. Defaults to [].
-        incremental (bool, optional): [description]. Defaults to True.
+        indices (list): list of indices or range of indices of product urls to scrape.
+        open_headless (bool): Whether to open browser headless.
+        open_with_proxy_server (bool): Whether to use ip rotation service.
+        randomize_proxy_usage (bool): Whether to use both proxy and native network in tandem to decrease proxy requests.
+        detail_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+        item_df ([type], optional): Empty intermediate dataframe to store data during parallel crawl.
+                                    Defaults to []. Defaults to pd.DataFrame(columns=[&#39;prod_id&#39;, &#39;product_name&#39;, &#39;item_name&#39;,
+                                                                                     &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
+        review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
+        incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+
     &#34;&#34;&#34;
 
     def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
                                review_data: list) -&gt; Tuple[list, pd.DataFrame, list]:
-        &#34;&#34;&#34;store_data_refresh_mem [summary]
+        &#34;&#34;&#34;store_data_refresh_mem method stores crawled data in regular interval to free up system memory.
 
-        [extended_summary]
+        Store data after five products are extracted every time to free up RAM.
 
         Args:
-            detail_data (list): [description]
-            item_df (pd.DataFrame): [description]
-            review_data (list): [description]
+            detail_data (list): List containing crawled detail data to store.
+            item_df (pd.DataFrame): Dataframe containing scraped item data to store.
+            review_data (list): List containing scraped Review data to store.
 
         Returns:
-            Tuple[list, pd.DataFrame, list]: [description]
+            Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
+
         &#34;&#34;&#34;
         pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                          f&#39;sph_prod_detail_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
@@ -6563,7 +6548,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                                          f&#39;sph_prod_review_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
                                          index=None)
         self.meta.to_csv(
-            self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;, index=None)
+            self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
         return [], item_df, []
 
     for prod in self.meta.index[self.meta.index.isin(indices)]:
@@ -6588,47 +6573,60 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
         else:
             drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
                                     path=self.detail_path)
-        # open product page
-        drv.get(product_page)
-        time.sleep(20)  # 30
-        accept_alert(drv, 10)
-        close_popups(drv)
+
+        try:
+            # open product page
+            drv.get(product_page)
+            time.sleep(20)  # 30
+            accept_alert(drv, 10)
+            close_popups(drv)
+            price = drv.find_element_by_css_selector(
+                &#39;span[data-at=&#34;price&#34;]&#39;).text
+        except NoSuchElementException:
+            try:
+                product_text = drv.find_element_by_class_name(
+                    &#39;css-1wag3se&#39;).text
+                if &#39;productnotcarried&#39; in product_text.lower():
+                    self.logger.info(str.encode(f&#39;Product Name: {product_name}, Product ID: {prod_id} extraction failed.\
+                                            Product may not be available for sell currently.(Page: {product_page})&#39;,
+                                                &#39;utf-8&#39;, &#39;ignore&#39;))
+                    self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
+                    self.meta.to_csv(
+                        self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
+                    drv.quit()
+                    continue
+            except Exception as ex:
+                log_exception(
+                    self.logger, additional_information=f&#39;Prod ID: {prod_id}&#39;)
+                try:
+                    drv.get(product_page)
+                    time.sleep(20)  # 30
+                    accept_alert(drv, 10)
+                    close_popups(drv)
+                    price = drv.find_element_by_css_selector(
+                        &#39;span[data-at=&#34;price&#34;]&#39;).text
+                except Exception as ex:
+                    try:
+                        drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+                                                path=self.detail_path)
+                        drv.get(product_page)
+                        time.sleep(20)  # 30
+                        accept_alert(drv, 10)
+                        close_popups(drv)
+                        price = drv.find_element_by_css_selector(
+                            &#39;span[data-at=&#34;price&#34;]&#39;).text
+                    except Exception as ex:
+                        log_exception(self.logger,
+                                      additional_information=f&#39;Prod ID: {prod_id}&#39;)
+                        drv.quit()
+                        self.logger.info(str.encode(
+                            f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link \
+                                or loaded new style page. (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                        self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
+                        continue
 
         self.scroll_down_page(drv, speed=6, h2=0.6)
         time.sleep(5)
-
-        try:
-            product_text = drv.find_element_by_class_name(
-                &#39;css-1wag3se&#39;).text
-            if &#39;productnotcarried&#39; in product_text.lower():
-                self.logger.info(str.encode(f&#39;Product Name: {product_name}, Product ID: {prod_id} extraction failed.\
-                                        Product may not be available for sell currently.(Page: {product_page})&#39;,
-                                            &#39;utf-8&#39;, &#39;ignore&#39;))
-                self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
-                self.meta.to_csv(
-                    self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;, index=None)
-                drv.quit()
-                continue
-        except Exception as ex:
-            log_exception(
-                self.logger, additional_information=f&#39;Prod ID: {prod_id}&#39;)
-
-        # check product page is valid and exists
-        try:
-            close_popups(drv)
-            accept_alert(drv, 2)
-            price = drv.find_element_by_class_name(&#39;css-1865ad6&#39;)
-            self.scroll_to_element(drv, price)
-            price = price.text
-        except Exception as ex:
-            log_exception(self.logger,
-                          additional_information=f&#39;Prod ID: {prod_id}&#39;)
-            drv.quit()
-            self.logger.info(str.encode(
-                f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
-                    (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
-            self.meta.loc[prod, &#39;detail_scraped&#39;] = &#39;NA&#39;
-            continue
 
         try:
             chat_popup_button = WebDriverWait(drv, 3).until(
@@ -6663,30 +6661,26 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                                           Either product has no reviews or not\
                                           available for sell currently.(page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
             no_of_reviews = 0
-            # self.meta.loc[prod, &#39;review_scraped&#39;] = &#34;NA&#34;
-            # self.meta.to_csv(
-            #     self.review_path/&#39;sph_review_progress_tracker.csv&#39;, index=None)
-            # drv.quit()
-            # # print(&#39;in except - continue&#39;)
-            # continue
 
         if no_of_reviews &gt; 0:
             reviews = self.get_reviews(
-                drv, prod_id, product_name, last_scraped_review_date, no_of_reviews, incremental)
+                drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
             if len(reviews) &gt; 0:
                 review_data.extend(reviews)
 
-        if not incremental:
-            self.logger.info(str.encode(
-                f&#39;Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
-                extracted_reviews: {len(reviews)}, page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                if not incremental:
+                    self.logger.info(str.encode(
+                        f&#39;Product_name: {product_name} prod_id:{prod_id} reviews extracted successfully.(total_reviews: {no_of_reviews}, \
+                        extracted_reviews: {len(reviews)}, page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+                else:
+                    self.logger.info(str.encode(
+                        f&#39;Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
+                            (no_of_new_extracted_reviews: {len(reviews)},\
+                            page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
         else:
-            self.logger.info(str.encode(
-                f&#39;Product_name: {product_name} prod_id:{prod_id} new reviews extracted successfully.\
-                    (no_of_new_extracted_reviews: {len(reviews)},\
-                     page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+            reviews = []
 
-        if prod != 0 and prod % 5 == 0:
+        if prod != 0 and prod % 10 == 0:
             detail_data, item_df, review_data = store_data_refresh_mem(
                 detail_data, item_df, review_data)
 
@@ -6703,40 +6697,46 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
 <span>def <span class="ident">extract</span></span>(<span>self, metadata: Union[pandas.core.frame.DataFrame, str, pathlib.Path], download: bool = True, n_workers: int = 5, fresh_start: bool = False, auto_fresh_start: bool = False, incremental: bool = True, open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True, start_idx: Union[int, NoneType] = None, end_idx: Union[int, NoneType] = None, list_of_index=None, compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>extract [summary]</p>
-<p>[extended_summary]</p>
+<div class="desc"><p>Extract method controls all properties of the spiders and runs multi-threaded web crawling.</p>
+<p>Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+This method has four major functionality:
+* 1. Run the spider
+* 2. Store data in regular intervals to free up ram
+* 3. Compile all crawled data into one file.
+* 4. Clean and push cleaned data to S3 storage for further algorithmic processing.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>metadata</code></strong> :&ensp;<code>Union[pd.DataFrame, str, Path]</code></dt>
-<dd>[description]</dd>
+<dd>Dataframe containing product specific url, name and id of the products to be scraped.</dd>
 <dt><strong><code>download</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to crawl data from or compile crawled data into one file. Defaults to True.</dd>
 <dt><strong><code>n_workers</code></strong> :&ensp;<code>int</code>, optional</dt>
-<dd>[description]. Defaults to 5.</dd>
+<dd>No. of parallel threads to run. Defaults to 5.</dd>
 <dt><strong><code>fresh_start</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to False.</dd>
+<dd>Whether to continue last crawl job or start new one. Defaults to False.</dd>
 <dt><strong><code>auto_fresh_start</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to False.</dd>
+<dd>Whether to automatically start a new crawl job if last job was finished. Defaults to False.</dd>
 <dt><strong><code>incremental</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to scrape reviews incrementally from last scraped review date. Defaults to True.</dd>
 <dt><strong><code>open_headless</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to False.</dd>
+<dd>Whether to open browser headless. Defaults to False.</dd>
 <dt><strong><code>open_with_proxy_server</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to use ip rotation service. Defaults to True.</dd>
 <dt><strong><code>randomize_proxy_usage</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to use both proxy and native network in tandem to decrease proxy requests.</dd>
+<dt>Defaults to False.</dt>
 <dt><strong><code>start_idx</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
-<dd>[description]. Defaults to None.</dd>
+<dd>Starting index of the links to crawl. Defaults to None.</dd>
 <dt><strong><code>end_idx</code></strong> :&ensp;<code>Optional[int]</code>, optional</dt>
-<dd>[description]. Defaults to None.</dd>
+<dd>Ending index of the links to crawl. Defaults to None.</dd>
 <dt><strong><code>list_of_index</code></strong> :&ensp;<code>[type]</code>, optional</dt>
-<dd>[description]. Defaults to None.</dd>
+<dd>List of indices or range of indices of product urls to scrape. Defaults to None.</dd>
 <dt><strong><code>compile_progress_files</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to False.</dd>
+<dd>Whether to combine crawled data into one file. Defaults to False.</dd>
 <dt><strong><code>clean</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to clean the compiled data. Defaults to True.</dd>
 <dt><strong><code>delete_progress</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to False.</dd>
+<dd>Whether to delete intermediate data after compilation into one file. Defaults to False.</dd>
 </dl></div>
 <details class="source">
 <summary>
@@ -6747,26 +6747,33 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
             open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
             start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
             compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-    &#34;&#34;&#34;extract [summary]
+    &#34;&#34;&#34;Extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
-    [extended_summary]
+    Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
+    This method has four major functionality:
+    * 1. Run the spider
+    * 2. Store data in regular intervals to free up ram
+    * 3. Compile all crawled data into one file.
+    * 4. Clean and push cleaned data to S3 storage for further algorithmic processing.
 
     Args:
-        metadata (Union[pd.DataFrame, str, Path]): [description]
-        download (bool, optional): [description]. Defaults to True.
-        n_workers (int, optional): [description]. Defaults to 5.
-        fresh_start (bool, optional): [description]. Defaults to False.
-        auto_fresh_start (bool, optional): [description]. Defaults to False.
-        incremental (bool, optional): [description]. Defaults to True.
-        open_headless (bool, optional): [description]. Defaults to False.
-        open_with_proxy_server (bool, optional): [description]. Defaults to True.
-        randomize_proxy_usage (bool, optional): [description]. Defaults to True.
-        start_idx (Optional[int], optional): [description]. Defaults to None.
-        end_idx (Optional[int], optional): [description]. Defaults to None.
-        list_of_index ([type], optional): [description]. Defaults to None.
-        compile_progress_files (bool, optional): [description]. Defaults to False.
-        clean (bool, optional): [description]. Defaults to True.
-        delete_progress (bool, optional): [description]. Defaults to False.
+        metadata (Union[pd.DataFrame, str, Path]): Dataframe containing product specific url, name and id of the products to be scraped.
+        download (bool, optional): Whether to crawl data from or compile crawled data into one file. Defaults to True.
+        n_workers (int, optional): No. of parallel threads to run. Defaults to 5.
+        fresh_start (bool, optional): Whether to continue last crawl job or start new one. Defaults to False.
+        auto_fresh_start (bool, optional): Whether to automatically start a new crawl job if last job was finished. Defaults to False.
+        incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+        open_headless (bool, optional):  Whether to open browser headless. Defaults to False.
+        open_with_proxy_server (bool, optional): Whether to use ip rotation service. Defaults to True.
+        randomize_proxy_usage (bool, optional): Whether to use both proxy and native network in tandem to decrease proxy requests.
+        Defaults to False.
+        start_idx (Optional[int], optional): Starting index of the links to crawl. Defaults to None.
+        end_idx (Optional[int], optional): Ending index of the links to crawl. Defaults to None.
+        list_of_index ([type], optional): List of indices or range of indices of product urls to scrape. Defaults to None.
+        compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
+        clean (bool, optional): Whether to clean the compiled data. Defaults to True.
+        delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
+
     &#34;&#34;&#34;
     def fresh():
         if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -6786,9 +6793,9 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
             self.logger.info(
                 &#39;Starting Fresh Deatil Review Image Extraction.&#39;)
         else:
-            if Path(self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;).exists():
+            if Path(self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;).exists():
                 self.meta = pd.read_csv(
-                    self.path/&#39;sph_detail_review_image_progress_tracker.csv&#39;)
+                    self.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;)
                 if sum(self.meta.scraped == &#39;N&#39;) == 0:
                     if auto_fresh_start:
                         fresh()
@@ -6801,9 +6808,10 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                     self.logger.info(
                         &#39;Continuing Deatil Review Image Extraction From Last Run.&#39;)
             else:
-                fresh()
-                self.logger.info(
-                    &#39;Deatil Review Image Progress Tracker does not exist. Starting Fresh Extraction.&#39;)
+                if auto_fresh_start:
+                    fresh()
+                    self.logger.info(
+                        &#39;Deatil Review Image Progress Tracker does not exist. Starting Fresh Extraction.&#39;)
 
         # set list or range of product indices to crawl
         if list_of_index:
@@ -6908,10 +6916,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                     sph_product_item_all in path {self.detail_path}&#39;)
 
             self.logger.info(&#39;Creating Combined Review File&#39;)
-            if datetime.now().day &lt; 15:
-                meta_date = f&#39;{time.strftime(&#34;%Y-%m&#34;)}-01&#39;
-            else:
-                meta_date = f&#39;{time.strftime(&#34;%Y-%m&#34;)}-15&#39;
+
             rev_li = []
             self.bad_rev_li = []
             review_files = [f for f in self.current_progress_path.glob(
@@ -6927,8 +6932,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
             rev_df.drop_duplicates(inplace=True)
             rev_df.reset_index(inplace=True, drop=True)
             rev_df[&#39;meta_date&#39;] = pd.to_datetime(meta_date).date()
-            review_filename = f&#39;sph_product_review_all_{pd.to_datetime(meta_date).date()}&#39;
-            # , index=None)
+            review_filename = f&#39;sph_product_review_all_{meta_date}&#39;
             rev_df.to_feather(self.review_path/review_filename)
 
             self.logger.info(
@@ -6940,6 +6944,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                 detail_cleaner = Cleaner(path=self.path)
                 self.detail_clean_df = detail_cleaner.clean(
                     self.detail_path/detail_filename)
+
                 item_cleaner = Cleaner(path=self.path)
                 self.item_clean_df, self.ing_clean_df = item_cleaner.clean(
                     self.detail_path/item_filename)
@@ -6951,6 +6956,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                 file_creation_status = True
         else:
             file_creation_status = False
+
     except Exception as ex:
         log_exception(
             self.logger, additional_information=f&#39;Detail Item Review Combined File Creation Failed.&#39;)
@@ -6965,59 +6971,61 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
 </details>
 </dd>
 <dt id="meiyume.sph.crawler.DetailReview.get_details"><code class="name flex">
-<span>def <span class="ident">get_details</span></span>(<span>self, drv: selenium.webdriver.firefox.webdriver.WebDriver, prod_id: str, product_name: str) ‑> Tuple[dict, pandas.core.frame.DataFrame]</span>
+<span>def <span class="ident">get_details</span></span>(<span>self, drv: selenium.webdriver.chrome.webdriver.WebDriver, prod_id: str, product_name: str) ‑> Tuple[dict, pandas.core.frame.DataFrame]</span>
 </code></dt>
 <dd>
-<div class="desc"><p>get_detail [summary]</p>
-<p>[extended_summary]</p>
+<div class="desc"><p>get_detail scrapes individual product pages for price, ingredients, color etc.</p>
+<p>Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
+size specific prices, color, product claims and other information pertaining to one individual product.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Firefox</code></dt>
-<dd>[description]</dd>
+<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Chrome</code></dt>
+<dd>Selenium webdriver with opened product page.</dd>
 <dt><strong><code>prod_id</code></strong> :&ensp;<code>str</code></dt>
-<dd>[description]</dd>
+<dd>Id of the product from metdata.</dd>
 <dt><strong><code>product_name</code></strong> :&ensp;<code>str</code></dt>
-<dd>[description]</dd>
+<dd>Name of the product from metadata.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>Tuple[dict, pd.DataFrame]</code></dt>
-<dd>[description]</dd>
+<dd>Dictionary containing details of a product and dataframe containing item
+attributes of a product.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
-    &#34;&#34;&#34;get_detail [summary]
+<pre><code class="python">def get_details(self, drv: webdriver.Chrome, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
+    &#34;&#34;&#34;get_detail scrapes individual product pages for price, ingredients, color etc.
 
-    [extended_summary]
+    Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
+    size specific prices, color, product claims and other information pertaining to one individual product.
 
     Args:
-        drv (webdriver.Firefox): [description]
-        prod_id (str): [description]
-        product_name (str): [description]
+        drv (webdriver.Chrome): Selenium webdriver with opened product page.
+        prod_id (str): Id of the product from metdata.
+        product_name (str): Name of the product from metadata.
 
     Returns:
-        Tuple[dict, pd.DataFrame]: [description]
+        Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
+                                   attributes of a product.
     &#34;&#34;&#34;
 
-    def get_item_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str, use_button: bool = False,
+    def get_item_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str,
                             multi_variety: bool = False, typ=None, ) -&gt; Tuple[str, str, str, str]:
-        &#34;&#34;&#34;get_item_attributes [summary]
-
-        [extended_summary]
+        &#34;&#34;&#34;get_item_attributes extracts product type specific information.
 
         Args:
-            drv (webdriver.Chrome): [description]
-            product_name (str): [description]
-            prod_id (str): [description]
-            use_button (bool, optional): [description]. Defaults to False.
-            multi_variety (bool, optional): [description]. Defaults to False.
-            typ ([type], optional): [description]. Defaults to None.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
+            product_name (str): Name of the product from metadata.
+            prod_id (str): Id of the product from metdata.
+            multi_variety (bool, optional): Whether product has multiple colors/sizes. Defaults to False.
+            typ ([type], optional): Webelement corresponding to a particular product type. Defaults to None.
 
         Returns:
-            Tuple[str, str, str, str]: [description]
+            Tuple[str, str, str, str]: item_name, item_size, item_price, item_ingredient
+
         &#34;&#34;&#34;
         # drv # type: webdriver.Chrome
         # close popup windows
@@ -7025,7 +7033,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
         accept_alert(drv, 1)
 
         try:
-            item_price = drv.find_element_by_class_name(&#39;css-1865ad6&#39;).text
+            item_price = drv.find_element_by_css_selector(
+                &#39;span[data-at=&#34;price&#34;]&#39;).text
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -7034,11 +7043,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
 
         if multi_variety:
             try:
-                if use_button:
-                    item_name = typ.find_element_by_tag_name(
-                        &#39;button&#39;).get_attribute(&#39;aria-label&#39;)
-                else:
-                    item_name = typ.get_attribute(&#39;aria-label&#39;)
+                item_name = typ.get_attribute(&#39;aria-label&#39;)
                 # print(item_name)
             except Exception as ex:
                 log_exception(self.logger,
@@ -7050,7 +7055,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
             item_name = &#34;&#34;
 
         try:
-            item_size = drv.find_element_by_class_name(&#39;css-128n72s&#39;).text
+            item_size = drv.find_element_by_css_selector(
+                &#39;div[data-at=&#34;sku_size&#34;]&#39;).text
             # print(item_size)
         except Exception as ex:
             log_exception(self.logger,
@@ -7064,9 +7070,11 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
         self.scroll_to_element(drv, first_tab)
         ActionChains(drv).move_to_element(
             first_tab).click(first_tab).perform()
+
         prod_tabs = []
-        prod_tabs = drv.find_elements_by_class_name(&#39;css-1wugx5m&#39;)
-        prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
+        prod_tabs = drv.find_elements_by_css_selector(
+            &#39;div[aria-label=&#34;Product Information&#34;]&gt;button&gt;span&#39;)
+        # prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
 
         tab_names = []
         for t in prod_tabs:
@@ -7076,57 +7084,14 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
         if &#39;ingredients&#39; in tab_names:
             close_popups(drv)
             accept_alert(drv, 1)
-            if len(tab_names) == 5:
-                try:
-                    tab_num = 2
-                    ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                    self.scroll_to_element(drv, ing_button)
-                    ActionChains(drv).move_to_element(
-                        ing_button).click(ing_button).perform()
-                    item_ing = drv.find_element_by_xpath(
-                        f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                except Exception as ex:
-                    log_exception(self.logger,
-                                  additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                    print(&#39;cant get ingredient but tab exists&#39;)
-                    item_ing = &#34;&#34;
-                    self.logger.info(str.encode(
-                        f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed&#39;,
-                        &#39;utf-8&#39;, &#39;ignore&#39;))
-            elif len(tab_names) == 4:
-                try:
-                    tab_num = 1
-                    ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                    self.scroll_to_element(drv, ing_button)
-                    ActionChains(drv).move_to_element(
-                        ing_button).click(ing_button).perform()
-                    item_ing = drv.find_element_by_xpath(
-                        f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                except Exception as ex:
-                    log_exception(self.logger,
-                                  additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                    print(&#39;cant get ingredient but tab exists&#39;)
-                    item_ing = &#34;&#34;
-                    self.logger.info(str.encode(
-                        f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed.&#39;,
-                        &#39;utf-8&#39;, &#39;ignore&#39;))
-            elif len(tab_names) &lt; 4:
-                try:
-                    tab_num = 0
-                    ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
-                    self.scroll_to_element(drv, ing_button)
-                    ActionChains(drv).move_to_element(
-                        ing_button).click(ing_button).perform()
-                    item_ing = drv.find_element_by_xpath(
-                        f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
-                except Exception as ex:
-                    log_exception(self.logger,
-                                  additional_information=f&#39;Prod ID: {prod_id}&#39;)
-                    print(&#39;cant get ingredient but tab exists&#39;)
-                    item_ing = &#34;&#34;
-                    self.logger.info(str.encode(
-                        f&#39;product: {product_name} (prod_id: {prod_id}) item_ingredients extraction failed.&#39;,
-                        &#39;utf-8&#39;, &#39;ignore&#39;))
+
+            tab_num = tab_names.index(&#39;ingredients&#39;)
+            ing_button = drv.find_element_by_id(f&#39;tab{tab_num}&#39;)
+            self.scroll_to_element(drv, ing_button)
+            ActionChains(drv).move_to_element(
+                ing_button).click(ing_button).perform()
+            item_ing = drv.find_element_by_xpath(
+                f&#39;//*[@id=&#34;tabpanel{tab_num}&#34;]/div&#39;).text
         else:
             item_ing = &#34;&#34;
             self.logger.info(str.encode(
@@ -7134,18 +7099,18 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
         # print(item_ing)
         return item_name, item_size, item_price, item_ing
 
-    def get_product_attributes(drv: webdriver.Firefox, product_name: str, prod_id: str) -&gt; list:
-        &#34;&#34;&#34;get_product_attributes [summary]
-
-        [extended_summary]
+    def get_product_attributes(drv: webdriver.Chrome, product_name: str, prod_id: str) -&gt; list:
+        &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores
+        in a list which is returned to get_detail method for storing in a product specific dataframe.
 
         Args:
-            drv (webdriver.Chrome): [description]
-            product_name (str): [description]
-            prod_id (str): [description]
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
+            product_name (str): Name of the product from metadata.
+            prod_id (str): Id of the product from metdata.
 
         Returns:
-            list: [description]
+            list: List containing all product item attributes of multiple varieties with name and id.
+
         &#34;&#34;&#34;
         # get all the variation of product
         # close popup windows
@@ -7154,19 +7119,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
 
         product_variety = []
         try:
-            product_variety = drv.find_elements_by_class_name(
-                &#39;css-1j1jwa4&#39;)
-            product_variety.extend(
-                drv.find_elements_by_class_name(&#39;css-cl742e&#39;))
-            use_button = False
-        except Exception as ex:
-            log_exception(self.logger,
-                          additional_information=f&#39;Prod ID: {prod_id}&#39;)
-        try:
-            if len(product_variety) &lt; 1:
-                product_variety = drv.find_elements_by_class_name(
-                    &#39;css-5jqxch&#39;)
-                use_button = True
+            product_variety = drv.find_elements_by_css_selector(
+                &#39;button[data-at=&#34;selected_swatch&#34;]&#39;)
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -7186,29 +7140,37 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                                   additional_information=f&#39;Prod ID: {prod_id}&#39;)
                 time.sleep(4)  # 8
                 item_name, item_size, item_price, item_ingredients = get_item_attributes(drv, product_name, prod_id,
-                                                                                         multi_variety=True, typ=typ,
-                                                                                         use_button=use_button)
-                product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name,
-                                           &#34;item_name&#34;: item_name, &#34;item_size&#34;: item_size,
-                                           &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+                                                                                         multi_variety=True, typ=typ)
+                product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                           &#34;product_name&#34;: product_name,
+                                           &#34;item_name&#34;: item_name,
+                                           &#34;item_size&#34;: item_size,
+                                           &#34;item_price&#34;: item_price,
+                                           &#34;item_ingredients&#34;: item_ingredients
+                                           })
         else:
             item_name, item_size, item_price, item_ingredients = get_item_attributes(drv,
                                                                                      product_name, prod_id)
-            product_attributes.append({&#34;prod_id&#34;: prod_id, &#34;product_name&#34;: product_name, &#34;item_name&#34;: item_name,
-                                       &#34;item_size&#34;: item_size, &#34;item_price&#34;: item_price, &#34;item_ingredients&#34;: item_ingredients})
+            product_attributes.append({&#34;prod_id&#34;: prod_id,
+                                       &#34;product_name&#34;: product_name,
+                                       &#34;item_name&#34;: item_name,
+                                       &#34;item_size&#34;: item_size,
+                                       &#34;item_price&#34;: item_price,
+                                       &#34;item_ingredients&#34;: item_ingredients
+                                       })
 
         return product_attributes
 
-    def get_first_review_date(drv: webdriver.Firefox) -&gt; str:
-        &#34;&#34;&#34;get_first_review_date [summary]
-
-        [extended_summary]
+    &#39;&#39;&#39;
+    def get_first_review_date(drv: webdriver.Chrome) -&gt; str:
+        &#34;&#34;&#34;get_first_review_date scrapes the first review data of a product.
 
         Args:
-            drv (webdriver.Chrome): [description]
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
 
         Returns:
-            str: [description]
+            str: First review date.
+
         &#34;&#34;&#34;
         # close popup windows
         close_popups(drv)
@@ -7248,20 +7210,19 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                           additional_information=f&#39;Prod ID: {prod_id}&#39;)
             first_review_date = &#39;&#39;
         return first_review_date
+    &#39;&#39;&#39;
 
     # get all product info tabs such as how-to-use, about-brand, ingredients
     prod_tabs = []
-    prod_tabs = drv.find_elements_by_class_name(&#39;css-1wugx5m&#39;)
-    prod_tabs.extend(drv.find_elements_by_class_name(&#39;css-12vae0p&#39;))
+    prod_tabs = prod_tabs = drv.find_elements_by_css_selector(
+        &#39;div[aria-label=&#34;Product Information&#34;]&gt;button&gt;span&#39;)
 
     tab_names = []
     for t in prod_tabs:
         tab_names.append(t.text.lower())
 
-    # no. of votes
     try:
         votes = drv.find_elements_by_class_name(&#39;css-2rg6q7&#39;)[-1].text
-        # print(votes)
     except Exception as ex:
         log_exception(self.logger,
                       additional_information=f&#39;Prod ID: {prod_id}&#39;)
@@ -7403,7 +7364,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
         pass
     # click no. of reviews
     try:
-        review_button = drv.find_element_by_class_name(&#39;css-1pjru6n&#39;)
+        review_button = drv.find_element_by_css_selector(
+            &#39;span[data-at=&#34;number_of_reviews&#34;]&#39;)
         self.scroll_to_element(drv, review_button)
         ActionChains(drv).move_to_element(
             review_button).click(review_button).perform()
@@ -7412,12 +7374,12 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                       additional_information=f&#39;Prod ID: {prod_id}&#39;)
 
     try:
-        first_review_date = get_first_review_date(drv)
+        first_review_date = &#39;&#39;
         # print(first_review_date)
     except Exception as ex:
         log_exception(self.logger,
                       additional_information=f&#39;Prod ID: {prod_id}&#39;)
-        first_review_date = &#34;&#34;
+        first_review_date = &#39;&#39;
         self.logger.info(str.encode(
             f&#39;product: {product_name} (prod_id: {prod_id}) first_review_date scrape failed.&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
 
@@ -7437,8 +7399,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
     try:
         close_popups(drv)
         accept_alert(drv, 1)
-        rating_distribution = drv.find_element_by_class_name(
-            &#39;css-960eb6&#39;).text.split(&#39;\n&#39;)
+        rating_distribution = drv.find_element_by_css_selector(
+            &#39;table[data-comp=&#34;HistogramChart &#34;]&#39;).text.split(&#39;\n&#39;)
         # print(rating_distribution)
     except Exception as ex:
         log_exception(self.logger,
@@ -7472,55 +7434,56 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
 </details>
 </dd>
 <dt id="meiyume.sph.crawler.DetailReview.get_reviews"><code class="name flex">
-<span>def <span class="ident">get_reviews</span></span>(<span>self, drv: selenium.webdriver.firefox.webdriver.WebDriver, prod_id: str, product_name: str, last_scraped_review_date: str, no_of_reviews: int, incremental: bool = True, reviews: list = []) ‑> list</span>
+<span>def <span class="ident">get_reviews</span></span>(<span>self, drv: selenium.webdriver.chrome.webdriver.WebDriver, prod_id: str, product_name: str, product_page: str, last_scraped_review_date: str, no_of_reviews: int, incremental: bool = True, reviews: list = []) ‑> list</span>
 </code></dt>
 <dd>
-<div class="desc"><p>get_reviews [summary]</p>
-<p>[extended_summary]</p>
+<div class="desc"><p>get_reviews crawls individual product pages for review text, title, date user attributes etc.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Firefox</code></dt>
-<dd>[description]</dd>
+<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Chrome</code></dt>
+<dd>drv (webdriver.Chrome): Selenium webdriver with opened product page.</dd>
 <dt><strong><code>prod_id</code></strong> :&ensp;<code>str</code></dt>
-<dd>[description]</dd>
+<dd>Id of the product from metdata.</dd>
 <dt><strong><code>product_name</code></strong> :&ensp;<code>str</code></dt>
-<dd>[description]</dd>
+<dd>Name of the product from metadata.</dd>
+<dt><strong><code>product_page</code></strong> :&ensp;<code>str</code></dt>
+<dd>Url of the product page.</dd>
 <dt><strong><code>last_scraped_review_date</code></strong> :&ensp;<code>str</code></dt>
-<dd>[description]</dd>
+<dd>The last review date scraped as per database.</dd>
 <dt><strong><code>no_of_reviews</code></strong> :&ensp;<code>int</code></dt>
-<dd>[description]</dd>
+<dd>No.of reviews a product has.</dd>
 <dt><strong><code>incremental</code></strong> :&ensp;<code>bool</code>, optional</dt>
-<dd>[description]. Defaults to True.</dd>
+<dd>Whether to scrape reviews incrementally from last scraped review date. Defaults to True.</dd>
 <dt><strong><code>reviews</code></strong> :&ensp;<code>list</code>, optional</dt>
-<dd>[description]. Defaults to [].</dd>
+<dd>Empty intermediate list to store data during parallel crawl. Defaults to []</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>list</code></dt>
-<dd>[description]</dd>
+<dd>List of dictionaries containing all the scraped reviews of a product.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
+<pre><code class="python">def get_reviews(self,  drv: webdriver.Chrome, prod_id: str, product_name: str, product_page: str,
                 last_scraped_review_date: str, no_of_reviews: int,
                 incremental: bool = True, reviews: list = []) -&gt; list:
-    &#34;&#34;&#34;get_reviews [summary]
-
-    [extended_summary]
+    &#34;&#34;&#34;get_reviews crawls individual product pages for review text, title, date user attributes etc.
 
     Args:
-        drv (webdriver.Firefox): [description]
-        prod_id (str): [description]
-        product_name (str): [description]
-        last_scraped_review_date (str): [description]
-        no_of_reviews (int): [description]
-        incremental (bool, optional): [description]. Defaults to True.
-        reviews (list, optional): [description]. Defaults to [].
+        drv (webdriver.Chrome): drv (webdriver.Chrome): Selenium webdriver with opened product page.
+        prod_id (str): Id of the product from metdata.
+        product_name (str): Name of the product from metadata.
+        product_page (str): Url of the product page.
+        last_scraped_review_date (str): The last review date scraped as per database.
+        no_of_reviews (int): No.of reviews a product has.
+        incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+        reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
     Returns:
-        list: [description]
+        list: List of dictionaries containing all the scraped reviews of a product.
+
     &#34;&#34;&#34;
     # print(no_of_reviews)
     # drv.find_element_by_class_name(&#39;css-2rg6q7&#39;).click()
@@ -7592,7 +7555,7 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
             when crawling all reviews. By default it will get latest 1800 reviews.
             then in subsequent incremental runs it will get al new reviews on weekly basis
             &#39;&#39;&#39;
-            if n &gt;= 400:  # 200:
+            if n &gt;= 300:  # 200:
                 break
             time.sleep(1)
             # close any opened popups by escape
@@ -7656,8 +7619,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
     accept_alert(drv, 2)
     close_popups(drv)
 
-    product_reviews = drv.find_elements_by_class_name(
-        &#39;css-1kk8dps&#39;)[2:]
+    product_reviews = drv.find_elements_by_css_selector(
+        &#39;div[data-comp=&#34;Review &#34;]&#39;)
 
     # print(&#39;starting extraction&#39;)
     r = 0
@@ -7681,9 +7644,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
 
         try:
             review_date = convert_ago_to_date(
-                rev.find_element_by_class_name(&#39;css-h2vfi1&#39;).text)
-            if pd.to_datetime(review_date, infer_datetime_format=True) &lt;= \
-                    pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
+                rev.find_element_by_css_selector(&#39;span[data-at=&#34;time_posted&#34;]&#39;).text)
+            if pd.to_datetime(review_date, infer_datetime_format=True) &lt;= pd.to_datetime(last_scraped_review_date, infer_datetime_format=True):
                 continue
         except Exception as ex:
             log_exception(self.logger,
@@ -7707,8 +7669,8 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
             product_variant = &#39;&#39;
 
         try:
-            user_rating = rev.find_element_by_class_name(
-                &#39;css-3z5ot7&#39;).get_attribute(&#39;aria-label&#39;)
+            user_rating = rev.find_element_by_css_selector(
+                &#39;div[data-comp=&#34;StarRating &#34;]&#39;).get_attribute(&#39;aria-label&#39;)
         except Exception as ex:
             log_exception(self.logger,
                           additional_information=f&#39;Prod ID: {prod_id}. Failed to extract user_rating.&#39;)
@@ -7744,11 +7706,17 @@ Index: [], review_data: list = [], incremental: bool = True)</span>
                           additional_information=f&#39;Prod ID: {prod_id}. Failed to extract helpful.&#39;)
             helpful = &#39;&#39;
 
-        reviews.append({&#39;prod_id&#39;: prod_id, &#39;product_name&#39;: product_name,
-                        &#39;user_attribute&#39;: user_attribute, &#39;product_variant&#39;: product_variant,
-                        &#39;review_title&#39;: review_title, &#39;review_text&#39;: review_text,
-                        &#39;review_rating&#39;: user_rating, &#39;recommend&#39;: recommend,
-                        &#39;review_date&#39;: review_date,   &#39;helpful&#39;: helpful})
+        reviews.append({&#39;prod_id&#39;: prod_id,
+                        &#39;product_name&#39;: product_name,
+                        &#39;user_attribute&#39;: user_attribute,
+                        &#39;product_variant&#39;: product_variant,
+                        &#39;review_title&#39;: review_title,
+                        &#39;review_text&#39;: review_text,
+                        &#39;review_rating&#39;: user_rating,
+                        &#39;recommend&#39;: recommend,
+                        &#39;review_date&#39;: review_date,
+                        &#39;helpful&#39;: helpful
+                        })
     return reviews</code></pre>
 </details>
 </dd>
@@ -8627,10 +8595,9 @@ or provided directory.</p>
             product_type = self.product_type_urls.loc[pt, &#39;product_type&#39;]
             product_type_link = self.product_type_urls.loc[pt, &#39;url&#39;]
 
-            self.progress_tracker.loc[pt, &#39;product_type&#39;] = product_type
             # print(product_type_link)
             if &#39;best-selling&#39; in product_type.lower() or &#39;new&#39; in product_type.lower():
-                self.progress_tracker.loc[pt, &#39;scraped&#39;] = &#39;NA&#39;
+                self.product_type_urls.loc[pt, &#39;scraped&#39;] = &#39;NA&#39;
                 continue
 
             if randomize_proxy_usage:
@@ -8717,8 +8684,8 @@ or provided directory.</p>
                 # get a list of all available pages
                 one_page = False
                 # get next page button
-                next_page_button = drv.find_element_by_css_selector(
-                    &#39;div&gt;nav&gt;ul&gt;button[aria-label=&#34;Next&#34;]&#39;)
+                next_page_button = drv.find_element_by_class_name(
+                    &#39;css-1lkjxdl&#39;)
                 pages = []
                 for page in drv.find_elements_by_class_name(&#39;css-1lk9n5p&#39;):
                     pages.append(page.text)
@@ -8856,9 +8823,9 @@ or provided directory.</p>
                     self.current_progress_path/f&#39;sph_prod_meta_extract_progress_{product_type}_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}&#39;)
                 self.logger.info(
                     f&#39;Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})&#39;)
-                self.progress_tracker.loc[pt, &#39;scraped&#39;] = &#39;Y&#39;
-                self.progress_tracker.to_feather(
-                    self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
+                self.product_type_urls.loc[pt, &#39;scraped&#39;] = &#39;Y&#39;
+                self.product_type_urls.to_feather(
+                    self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;)
                 product_meta_data = []
         self.logger.info(&#39;Metadata Extraction Complete&#39;)
         print(&#39;Metadata Extraction Complete&#39;)
@@ -8898,10 +8865,11 @@ or provided directory.</p>
             &#34;&#34;&#34;
             self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
                                                                 open_with_proxy_server=open_with_proxy_server)
-            # progress tracker: captures scraped and error desc
-            self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
-                &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
-            self.progress_tracker.scraped = &#39;N&#39;
+            # # progress tracker: captures scraped and error desc
+            # self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
+            #     &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
+            # self.progress_tracker.scraped = &#39;N&#39;
+            self.product_type_urls.scraped = &#39;N&#39;
 
         if fresh_start:
             self.logger.info(&#39;Starting Fresh Extraction.&#39;)
@@ -8910,20 +8878,10 @@ or provided directory.</p>
             if Path(self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;).exists():
                 self.product_type_urls = pd.read_feather(
                     self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;)
-                if Path(self.metadata_path/&#39;sph_metadata_progress_tracker&#39;).exists():
-                    self.progress_tracker = pd.read_feather(
-                        self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
-                else:
-                    self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
-                        &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
-                    self.progress_tracker.scraped = &#39;N&#39;
-                    self.progress_tracker.to_feather(
-                        self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
-                if sum(self.progress_tracker.scraped == &#39;N&#39;) &gt; 0:
+                if sum(self.product_type_urls.scraped == &#39;N&#39;) &gt; 0:
                     self.logger.info(
                         &#39;Continuing Metadata Extraction From Last Run.&#39;)
-                    self.product_type_urls = self.product_type_urls[self.product_type_urls.index.isin(
-                        self.progress_tracker.index[self.progress_tracker.scraped == &#39;N&#39;].values.tolist())]
+                    self.product_type_urls = self.product_type_urls[self.product_type_urls.scraped == &#39;N&#39;]
                 else:
                     if auto_fresh_start:
                         self.logger.info(
@@ -9152,10 +9110,11 @@ Defaults to True.</dd>
         &#34;&#34;&#34;
         self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
                                                             open_with_proxy_server=open_with_proxy_server)
-        # progress tracker: captures scraped and error desc
-        self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
-            &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
-        self.progress_tracker.scraped = &#39;N&#39;
+        # # progress tracker: captures scraped and error desc
+        # self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
+        #     &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
+        # self.progress_tracker.scraped = &#39;N&#39;
+        self.product_type_urls.scraped = &#39;N&#39;
 
     if fresh_start:
         self.logger.info(&#39;Starting Fresh Extraction.&#39;)
@@ -9164,20 +9123,10 @@ Defaults to True.</dd>
         if Path(self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;).exists():
             self.product_type_urls = pd.read_feather(
                 self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;)
-            if Path(self.metadata_path/&#39;sph_metadata_progress_tracker&#39;).exists():
-                self.progress_tracker = pd.read_feather(
-                    self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
-            else:
-                self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
-                    &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
-                self.progress_tracker.scraped = &#39;N&#39;
-                self.progress_tracker.to_feather(
-                    self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
-            if sum(self.progress_tracker.scraped == &#39;N&#39;) &gt; 0:
+            if sum(self.product_type_urls.scraped == &#39;N&#39;) &gt; 0:
                 self.logger.info(
                     &#39;Continuing Metadata Extraction From Last Run.&#39;)
-                self.product_type_urls = self.product_type_urls[self.product_type_urls.index.isin(
-                    self.progress_tracker.index[self.progress_tracker.scraped == &#39;N&#39;].values.tolist())]
+                self.product_type_urls = self.product_type_urls[self.product_type_urls.scraped == &#39;N&#39;]
             else:
                 if auto_fresh_start:
                     self.logger.info(
@@ -9318,10 +9267,9 @@ other specific information.</p>
         product_type = self.product_type_urls.loc[pt, &#39;product_type&#39;]
         product_type_link = self.product_type_urls.loc[pt, &#39;url&#39;]
 
-        self.progress_tracker.loc[pt, &#39;product_type&#39;] = product_type
         # print(product_type_link)
         if &#39;best-selling&#39; in product_type.lower() or &#39;new&#39; in product_type.lower():
-            self.progress_tracker.loc[pt, &#39;scraped&#39;] = &#39;NA&#39;
+            self.product_type_urls.loc[pt, &#39;scraped&#39;] = &#39;NA&#39;
             continue
 
         if randomize_proxy_usage:
@@ -9408,8 +9356,8 @@ other specific information.</p>
             # get a list of all available pages
             one_page = False
             # get next page button
-            next_page_button = drv.find_element_by_css_selector(
-                &#39;div&gt;nav&gt;ul&gt;button[aria-label=&#34;Next&#34;]&#39;)
+            next_page_button = drv.find_element_by_class_name(
+                &#39;css-1lkjxdl&#39;)
             pages = []
             for page in drv.find_elements_by_class_name(&#39;css-1lk9n5p&#39;):
                 pages.append(page.text)
@@ -9547,9 +9495,9 @@ other specific information.</p>
                 self.current_progress_path/f&#39;sph_prod_meta_extract_progress_{product_type}_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}&#39;)
             self.logger.info(
                 f&#39;Completed till IndexPosition: {pt} - ProductType: {product_type}. (URL:{product_type_link})&#39;)
-            self.progress_tracker.loc[pt, &#39;scraped&#39;] = &#39;Y&#39;
-            self.progress_tracker.to_feather(
-                self.metadata_path/&#39;sph_metadata_progress_tracker&#39;)
+            self.product_type_urls.loc[pt, &#39;scraped&#39;] = &#39;Y&#39;
+            self.product_type_urls.to_feather(
+                self.metadata_path/&#39;sph_product_type_urls_to_extract&#39;)
             product_meta_data = []
     self.logger.info(&#39;Metadata Extraction Complete&#39;)
     print(&#39;Metadata Extraction Complete&#39;)</code></pre>

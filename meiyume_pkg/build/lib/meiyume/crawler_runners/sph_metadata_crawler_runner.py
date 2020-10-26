@@ -58,7 +58,7 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
 
     progess_tracker = exclude_scraped_pages_from_tracker(
         metadata_crawler, reset_na=True)
-    n_workers = 3
+    n_workers = 4
     trials = 5
     while progess_tracker.scraped[progess_tracker.scraped == 'N'].count() != 0:
         metadata_crawler.extract(download=True, fresh_start=False, auto_fresh_start=False,

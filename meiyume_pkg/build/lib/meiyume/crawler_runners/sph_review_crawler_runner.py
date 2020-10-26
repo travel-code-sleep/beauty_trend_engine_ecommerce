@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 from meiyume.sph.crawler import Review
-from meiyume.utils import RedShiftReader, chunks, ranges
+from meiyume.utils import RedShiftReader, ranges
 
 warnings.simplefilter(action='ignore')
 db = RedShiftReader()
@@ -17,15 +17,14 @@ open_with_proxy_server = True
 
 
 def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -> pd.DataFrame:
-    """get_metadata_with_last_scraped_review_date [summary]
-
-    [extended_summary]
+    """get_metadata_with_last_scraped_review_date queries redshift for last scraped review date of products available in review table.
 
     Args:
-        meta_df (pd.DataFrame): [description]
+        meta_df (pd.DataFrame): Metadata containing product page url to scrape.
 
     Returns:
-        pd.DataFrame: [description]
+        pd.DataFrame: metadata with last scraped review date as a new column.
+
     """
     df = db.query_database("with cte as (select row_number() over (partition by prod_id\
                                  order by review_date desc) as rn,\

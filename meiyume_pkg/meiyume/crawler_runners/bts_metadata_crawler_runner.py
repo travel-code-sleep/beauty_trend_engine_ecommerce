@@ -1,4 +1,4 @@
-"""This script runs spider to grab sephora metadata."""
+"""This script runs spider to grab Boots metadata."""
 import gc
 import os
 import time
@@ -78,7 +78,7 @@ def run_metdata_crawler(metadata_crawler: Metadata) -> None:
         if trials == 0:
             break
     metadata_crawler.extract(download=False, fresh_start=False, auto_fresh_start=False,
-                             compile_progress_files=True, clean=True, delete_progress=False)
+                             compile_progress_files=True, clean=True, delete_progress=True)
     metadata_crawler.terminate_logging()
     del metadata_crawler
     gc.collect()

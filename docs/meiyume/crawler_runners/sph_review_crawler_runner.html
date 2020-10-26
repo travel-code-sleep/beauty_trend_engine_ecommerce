@@ -37,7 +37,7 @@ from pathlib import Path
 
 import pandas as pd
 from meiyume.sph.crawler import Review
-from meiyume.utils import RedShiftReader, chunks, ranges
+from meiyume.utils import RedShiftReader, ranges
 
 warnings.simplefilter(action=&#39;ignore&#39;)
 db = RedShiftReader()
@@ -46,15 +46,14 @@ open_with_proxy_server = True
 
 
 def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -&gt; pd.DataFrame:
-    &#34;&#34;&#34;get_metadata_with_last_scraped_review_date [summary]
-
-    [extended_summary]
+    &#34;&#34;&#34;get_metadata_with_last_scraped_review_date queries redshift for last scraped review date of products available in review table.
 
     Args:
-        meta_df (pd.DataFrame): [description]
+        meta_df (pd.DataFrame): Metadata containing product page url to scrape.
 
     Returns:
-        pd.DataFrame: [description]
+        pd.DataFrame: metadata with last scraped review date as a new column.
+
     &#34;&#34;&#34;
     df = db.query_database(&#34;with cte as (select row_number() over (partition by prod_id\
                                  order by review_date desc) as rn,\
@@ -249,32 +248,30 @@ if __name__ == &#34;__main__&#34;:
 <span>def <span class="ident">get_metadata_with_last_scraped_review_date</span></span>(<span>meta_df: pandas.core.frame.DataFrame) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
-<div class="desc"><p>get_metadata_with_last_scraped_review_date [summary]</p>
-<p>[extended_summary]</p>
+<div class="desc"><p>get_metadata_with_last_scraped_review_date queries redshift for last scraped review date of products available in review table.</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>meta_df</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
-<dd>[description]</dd>
+<dd>Metadata containing product page url to scrape.</dd>
 </dl>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>pd.DataFrame</code></dt>
-<dd>[description]</dd>
+<dd>metadata with last scraped review date as a new column.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -&gt; pd.DataFrame:
-    &#34;&#34;&#34;get_metadata_with_last_scraped_review_date [summary]
-
-    [extended_summary]
+    &#34;&#34;&#34;get_metadata_with_last_scraped_review_date queries redshift for last scraped review date of products available in review table.
 
     Args:
-        meta_df (pd.DataFrame): [description]
+        meta_df (pd.DataFrame): Metadata containing product page url to scrape.
 
     Returns:
-        pd.DataFrame: [description]
+        pd.DataFrame: metadata with last scraped review date as a new column.
+
     &#34;&#34;&#34;
     df = db.query_database(&#34;with cte as (select row_number() over (partition by prod_id\
                                  order by review_date desc) as rn,\

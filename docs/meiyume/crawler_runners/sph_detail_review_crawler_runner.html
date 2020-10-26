@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.1" />
-<title>meiyume.crawler_runners.bts_detail_review_crawler_runner API documentation</title>
-<meta name="description" content="This script runs spider to grab Boots detail and review data." />
+<title>meiyume.crawler_runners.sph_detail_review_crawler_runner API documentation</title>
+<meta name="description" content="This script runs spider to grab Sephora detail and review data." />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
 <link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
@@ -19,15 +19,15 @@
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>meiyume.crawler_runners.bts_detail_review_crawler_runner</code></h1>
+<h1 class="title">Module <code>meiyume.crawler_runners.sph_detail_review_crawler_runner</code></h1>
 </header>
 <section id="section-intro">
-<p>This script runs spider to grab Boots detail and review data.</p>
+<p>This script runs spider to grab Sephora detail and review data.</p>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">&#34;&#34;&#34; This script runs spider to grab Boots detail and review data.&#34;&#34;&#34;
+<pre><code class="python">&#34;&#34;&#34; This script runs spider to grab Sephora detail and review data.&#34;&#34;&#34;
 import gc
 import os
 import sys
@@ -36,7 +36,7 @@ import warnings
 from pathlib import Path
 
 import pandas as pd
-from meiyume.bts.crawler import DetailReview
+from meiyume.sph.crawler import DetailReview
 from meiyume.utils import RedShiftReader, chunks, ranges
 from meiyume.algorithms import SexyMetaDetail, SexyIngredient
 
@@ -61,7 +61,7 @@ def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -&gt; pd.D
                                     prod_id,\
                                     review_date\
                                from r_bte_product_review_f\
-                               where prod_id like &#39;bts%&#39;)\
+                               where prod_id like &#39;sph%&#39;)\
                                 select prod_id, review_date\
                                   from cte\
                                  where rn=1&#34;)
@@ -75,20 +75,20 @@ def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -&gt; pd.D
     return meta_df
 
 
-def exclude_scraped_products_from_tracker(bts_crawler: DetailReview, reset_na: bool = False) -&gt; pd.DataFrame:
+def exclude_scraped_products_from_tracker(sph_crawler: DetailReview, reset_na: bool = False) -&gt; pd.DataFrame:
     &#34;&#34;&#34;exclude_scraped_products_from_tracker [summary]
 
     [extended_summary]
 
     Args:
-        bts_crawler (DetailReview): [description]
+        sph_crawler (DetailReview): [description]
         reset_na (bool, optional): [description]. Defaults to False.
 
     Returns:
         pd.DataFrame: [description]
     &#34;&#34;&#34;
     progress_tracker = pd.read_csv(
-        bts_crawler.path/&#39;boots/bts_detail_review_image_progress_tracker.csv&#39;)
+        sph_crawler.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;)
 
     if reset_na:
         progress_tracker.scraped[progress_tracker.scraped == &#39;NA&#39;] = &#39;N&#39;
@@ -98,18 +98,18 @@ def exclude_scraped_products_from_tracker(bts_crawler: DetailReview, reset_na: b
     progress_tracker = progress_tracker[progress_tracker.scraped != &#39;Y&#39;]
     progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
     progress_tracker.to_csv(
-        bts_crawler.path/&#39;boots/bts_detail_review_image_progress_tracker.csv&#39;, index=None)
+        sph_crawler.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
     return progress_tracker
 
 
-def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
-    &#34;&#34;&#34;run_bts_crawler [summary]
+def run_sph_crawler(meta_df: pd.DataFrame, sph_crawler: DetailReview):
+    &#34;&#34;&#34;run_sph_crawler [summary]
 
     [extended_summary]
 
     Args:
         meta_df (pd.DataFrame): [description]
-        bts_crawler (DetailReview): [description]
+        sph_crawler (DetailReview): [description]
     &#34;&#34;&#34;
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
@@ -119,26 +119,26 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
         else:
             fresh_start = False
             auto_fresh_start = False
-        bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=4,
+        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=6,
                             fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                             start_idx=i[0], end_idx=i[-1],  # list_of_index=i,
                             open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
-        bts_crawler.terminate_logging()
-        del bts_crawler
+        sph_crawler.terminate_logging()
+        del sph_crawler
         gc.collect()
 
         time.sleep(5)
-        bts_crawler = DetailReview(
+        sph_crawler = DetailReview(
             path=&#34;D:/Amit/Meiyume/meiyume_data/spider_runner&#34;)
 
     progress_tracker = exclude_scraped_products_from_tracker(
-        bts_crawler, reset_na=True)
+        sph_crawler, reset_na=True)
     n_workers = 4
     trials = 4
     while progress_tracker.scraped[progress_tracker.scraped == &#39;N&#39;].count() != 0:
-        bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
+        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
                             fresh_start=False, auto_fresh_start=False,
                             open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
@@ -148,30 +148,30 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
         else:
             reset_na = False
         progress_tracker = exclude_scraped_products_from_tracker(
-            bts_crawler, reset_na=reset_na)
+            sph_crawler, reset_na=reset_na)
 
         trials -= 1
         if trials == 0:
             break
 
-    bts_crawler.extract(metadata=None, download=False, fresh_start=False, auto_fresh_start=False,
+    sph_crawler.extract(metadata=None, download=False, fresh_start=False, auto_fresh_start=False,
                         compile_progress_files=True,  clean=True, delete_progress=True)
 
-    bts_crawler.terminate_logging()
-    del bts_crawler
+    sph_crawler.terminate_logging()
+    del sph_crawler
     gc.collect()
 
 
 if __name__ == &#34;__main__&#34;:
-    bts_crawler = DetailReview(
+    sph_crawler = DetailReview(
         path=Path(&#39;D:\\Amit\\Meiyume\\meiyume_data\\spider_runner&#39;))
 
-    gecko_log_path = bts_crawler.review_path/&#39;service/geckodriver.log&#39;
+    gecko_log_path = sph_crawler.review_path/&#39;service/geckodriver.log&#39;
     if gecko_log_path.exists():
         gecko_log_path.unlink()
 
-    files = list(bts_crawler.review_crawler_trigger_path.glob(
-        &#39;no_cat_cleaned_bts_product_metadata_all*&#39;))
+    files = list(sph_crawler.review_crawler_trigger_path.glob(
+        &#39;no_cat_cleaned_sph_product_metadata_all*&#39;))
 
     if len(files) &gt; 0:
         meta_df = pd.read_feather(files[-1])[
@@ -179,18 +179,18 @@ if __name__ == &#34;__main__&#34;:
 
         meta_df = get_metadata_with_last_scraped_review_date(meta_df)
 
-        run_bts_crawler(meta_df=meta_df, bts_crawler=bts_crawler)
+        run_sph_crawler(meta_df=meta_df, sph_crawler=sph_crawler)
 
         meta_ranker = SexyMetaDetail(
             path=&#39;D:/Amit/Meiyume/meiyume_data/spider_runner&#39;)
-        meta_detail = meta_ranker.make(source=&#39;bts&#39;)
+        meta_detail = meta_ranker.make(source=&#39;sph&#39;)
 
         del meta_detail
         gc.collect()
 
         sexy_ing = SexyIngredient(
             path=&#39;D:/Amit/Meiyume/meiyume_data/spider_runner&#39;)
-        ing = sexy_ing.make(source=&#39;bts&#39;)
+        ing = sexy_ing.make(source=&#39;sph&#39;)
 
         del ing
         gc.collect()
@@ -211,15 +211,15 @@ if __name__ == &#34;__main__&#34;:
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="meiyume.crawler_runners.bts_detail_review_crawler_runner.exclude_scraped_products_from_tracker"><code class="name flex">
-<span>def <span class="ident">exclude_scraped_products_from_tracker</span></span>(<span>bts_crawler: <a title="meiyume.bts.crawler.DetailReview" href="../bts/crawler.html#meiyume.bts.crawler.DetailReview">DetailReview</a>, reset_na: bool = False) ‑> pandas.core.frame.DataFrame</span>
+<dt id="meiyume.crawler_runners.sph_detail_review_crawler_runner.exclude_scraped_products_from_tracker"><code class="name flex">
+<span>def <span class="ident">exclude_scraped_products_from_tracker</span></span>(<span>sph_crawler: <a title="meiyume.sph.crawler.DetailReview" href="../sph/crawler.html#meiyume.sph.crawler.DetailReview">DetailReview</a>, reset_na: bool = False) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
 <div class="desc"><p>exclude_scraped_products_from_tracker [summary]</p>
 <p>[extended_summary]</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>bts_crawler</code></strong> :&ensp;<code>DetailReview</code></dt>
+<dt><strong><code>sph_crawler</code></strong> :&ensp;<code>DetailReview</code></dt>
 <dd>[description]</dd>
 <dt><strong><code>reset_na</code></strong> :&ensp;<code>bool</code>, optional</dt>
 <dd>[description]. Defaults to False.</dd>
@@ -233,20 +233,20 @@ if __name__ == &#34;__main__&#34;:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def exclude_scraped_products_from_tracker(bts_crawler: DetailReview, reset_na: bool = False) -&gt; pd.DataFrame:
+<pre><code class="python">def exclude_scraped_products_from_tracker(sph_crawler: DetailReview, reset_na: bool = False) -&gt; pd.DataFrame:
     &#34;&#34;&#34;exclude_scraped_products_from_tracker [summary]
 
     [extended_summary]
 
     Args:
-        bts_crawler (DetailReview): [description]
+        sph_crawler (DetailReview): [description]
         reset_na (bool, optional): [description]. Defaults to False.
 
     Returns:
         pd.DataFrame: [description]
     &#34;&#34;&#34;
     progress_tracker = pd.read_csv(
-        bts_crawler.path/&#39;boots/bts_detail_review_image_progress_tracker.csv&#39;)
+        sph_crawler.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;)
 
     if reset_na:
         progress_tracker.scraped[progress_tracker.scraped == &#39;NA&#39;] = &#39;N&#39;
@@ -256,11 +256,11 @@ if __name__ == &#34;__main__&#34;:
     progress_tracker = progress_tracker[progress_tracker.scraped != &#39;Y&#39;]
     progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
     progress_tracker.to_csv(
-        bts_crawler.path/&#39;boots/bts_detail_review_image_progress_tracker.csv&#39;, index=None)
+        sph_crawler.path/&#39;sephora/sph_detail_review_image_progress_tracker.csv&#39;, index=None)
     return progress_tracker</code></pre>
 </details>
 </dd>
-<dt id="meiyume.crawler_runners.bts_detail_review_crawler_runner.get_metadata_with_last_scraped_review_date"><code class="name flex">
+<dt id="meiyume.crawler_runners.sph_detail_review_crawler_runner.get_metadata_with_last_scraped_review_date"><code class="name flex">
 <span>def <span class="ident">get_metadata_with_last_scraped_review_date</span></span>(<span>meta_df: pandas.core.frame.DataFrame) ‑> pandas.core.frame.DataFrame</span>
 </code></dt>
 <dd>
@@ -294,7 +294,7 @@ if __name__ == &#34;__main__&#34;:
                                     prod_id,\
                                     review_date\
                                from r_bte_product_review_f\
-                               where prod_id like &#39;bts%&#39;)\
+                               where prod_id like &#39;sph%&#39;)\
                                 select prod_id, review_date\
                                   from cte\
                                  where rn=1&#34;)
@@ -308,31 +308,31 @@ if __name__ == &#34;__main__&#34;:
     return meta_df</code></pre>
 </details>
 </dd>
-<dt id="meiyume.crawler_runners.bts_detail_review_crawler_runner.run_bts_crawler"><code class="name flex">
-<span>def <span class="ident">run_bts_crawler</span></span>(<span>meta_df: pandas.core.frame.DataFrame, bts_crawler: <a title="meiyume.bts.crawler.DetailReview" href="../bts/crawler.html#meiyume.bts.crawler.DetailReview">DetailReview</a>)</span>
+<dt id="meiyume.crawler_runners.sph_detail_review_crawler_runner.run_sph_crawler"><code class="name flex">
+<span>def <span class="ident">run_sph_crawler</span></span>(<span>meta_df: pandas.core.frame.DataFrame, sph_crawler: <a title="meiyume.sph.crawler.DetailReview" href="../sph/crawler.html#meiyume.sph.crawler.DetailReview">DetailReview</a>)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>run_bts_crawler [summary]</p>
+<div class="desc"><p>run_sph_crawler [summary]</p>
 <p>[extended_summary]</p>
 <h2 id="args">Args</h2>
 <dl>
 <dt><strong><code>meta_df</code></strong> :&ensp;<code>pd.DataFrame</code></dt>
 <dd>[description]</dd>
-<dt><strong><code>bts_crawler</code></strong> :&ensp;<code>DetailReview</code></dt>
+<dt><strong><code>sph_crawler</code></strong> :&ensp;<code>DetailReview</code></dt>
 <dd>[description]</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
-    &#34;&#34;&#34;run_bts_crawler [summary]
+<pre><code class="python">def run_sph_crawler(meta_df: pd.DataFrame, sph_crawler: DetailReview):
+    &#34;&#34;&#34;run_sph_crawler [summary]
 
     [extended_summary]
 
     Args:
         meta_df (pd.DataFrame): [description]
-        bts_crawler (DetailReview): [description]
+        sph_crawler (DetailReview): [description]
     &#34;&#34;&#34;
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
@@ -342,26 +342,26 @@ if __name__ == &#34;__main__&#34;:
         else:
             fresh_start = False
             auto_fresh_start = False
-        bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=4,
+        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=6,
                             fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                             start_idx=i[0], end_idx=i[-1],  # list_of_index=i,
                             open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
-        bts_crawler.terminate_logging()
-        del bts_crawler
+        sph_crawler.terminate_logging()
+        del sph_crawler
         gc.collect()
 
         time.sleep(5)
-        bts_crawler = DetailReview(
+        sph_crawler = DetailReview(
             path=&#34;D:/Amit/Meiyume/meiyume_data/spider_runner&#34;)
 
     progress_tracker = exclude_scraped_products_from_tracker(
-        bts_crawler, reset_na=True)
+        sph_crawler, reset_na=True)
     n_workers = 4
     trials = 4
     while progress_tracker.scraped[progress_tracker.scraped == &#39;N&#39;].count() != 0:
-        bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
+        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
                             fresh_start=False, auto_fresh_start=False,
                             open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
@@ -371,17 +371,17 @@ if __name__ == &#34;__main__&#34;:
         else:
             reset_na = False
         progress_tracker = exclude_scraped_products_from_tracker(
-            bts_crawler, reset_na=reset_na)
+            sph_crawler, reset_na=reset_na)
 
         trials -= 1
         if trials == 0:
             break
 
-    bts_crawler.extract(metadata=None, download=False, fresh_start=False, auto_fresh_start=False,
+    sph_crawler.extract(metadata=None, download=False, fresh_start=False, auto_fresh_start=False,
                         compile_progress_files=True,  clean=True, delete_progress=True)
 
-    bts_crawler.terminate_logging()
-    del bts_crawler
+    sph_crawler.terminate_logging()
+    del sph_crawler
     gc.collect()</code></pre>
 </details>
 </dd>
@@ -403,9 +403,9 @@ if __name__ == &#34;__main__&#34;:
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="meiyume.crawler_runners.bts_detail_review_crawler_runner.exclude_scraped_products_from_tracker" href="#meiyume.crawler_runners.bts_detail_review_crawler_runner.exclude_scraped_products_from_tracker">exclude_scraped_products_from_tracker</a></code></li>
-<li><code><a title="meiyume.crawler_runners.bts_detail_review_crawler_runner.get_metadata_with_last_scraped_review_date" href="#meiyume.crawler_runners.bts_detail_review_crawler_runner.get_metadata_with_last_scraped_review_date">get_metadata_with_last_scraped_review_date</a></code></li>
-<li><code><a title="meiyume.crawler_runners.bts_detail_review_crawler_runner.run_bts_crawler" href="#meiyume.crawler_runners.bts_detail_review_crawler_runner.run_bts_crawler">run_bts_crawler</a></code></li>
+<li><code><a title="meiyume.crawler_runners.sph_detail_review_crawler_runner.exclude_scraped_products_from_tracker" href="#meiyume.crawler_runners.sph_detail_review_crawler_runner.exclude_scraped_products_from_tracker">exclude_scraped_products_from_tracker</a></code></li>
+<li><code><a title="meiyume.crawler_runners.sph_detail_review_crawler_runner.get_metadata_with_last_scraped_review_date" href="#meiyume.crawler_runners.sph_detail_review_crawler_runner.get_metadata_with_last_scraped_review_date">get_metadata_with_last_scraped_review_date</a></code></li>
+<li><code><a title="meiyume.crawler_runners.sph_detail_review_crawler_runner.run_sph_crawler" href="#meiyume.crawler_runners.sph_detail_review_crawler_runner.run_sph_crawler">run_sph_crawler</a></code></li>
 </ul>
 </li>
 </ul>

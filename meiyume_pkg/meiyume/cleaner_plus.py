@@ -304,9 +304,10 @@ class Cleaner():
                                                                      Cleaner.make_price(y)))
             self.meta.drop('price', axis=1, inplace=True)
 
-            self.meta.low_p[self.meta.low_p.apply(len) > 7], self.meta.mrp[self.meta.low_p.apply(len) > 7] =\
-                zip(*self.meta.low_p[self.meta.low_p.apply(len)
-                                     > 7].apply(fix_multi_low_price))
+            if self.meta.low_p[self.meta.low_p.apply(len) > 7].count() != 0:
+                self.meta.low_p[self.meta.low_p.apply(len) > 7], self.meta.mrp[self.meta.low_p.apply(len) > 7] =\
+                    zip(*self.meta.low_p[self.meta.low_p.apply(len)
+                                         > 7].apply(fix_multi_low_price))
 
         # create product id
         self.meta['prod_id'] = self.meta.product_page.apply(

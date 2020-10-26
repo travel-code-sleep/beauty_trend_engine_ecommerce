@@ -333,9 +333,10 @@ class Cleaner():
                                                                      Cleaner.make_price(y)))
             self.meta.drop(&#39;price&#39;, axis=1, inplace=True)
 
-            self.meta.low_p[self.meta.low_p.apply(len) &gt; 7], self.meta.mrp[self.meta.low_p.apply(len) &gt; 7] =\
-                zip(*self.meta.low_p[self.meta.low_p.apply(len)
-                                     &gt; 7].apply(fix_multi_low_price))
+            if self.meta.low_p[self.meta.low_p.apply(len) &gt; 7].count() != 0:
+                self.meta.low_p[self.meta.low_p.apply(len) &gt; 7], self.meta.mrp[self.meta.low_p.apply(len) &gt; 7] =\
+                    zip(*self.meta.low_p[self.meta.low_p.apply(len)
+                                         &gt; 7].apply(fix_multi_low_price))
 
         # create product id
         self.meta[&#39;prod_id&#39;] = self.meta.product_page.apply(
@@ -1206,9 +1207,10 @@ and uncleaned data will be read. Defaults to current directory(Path.cwd()).</dd>
                                                                      Cleaner.make_price(y)))
             self.meta.drop(&#39;price&#39;, axis=1, inplace=True)
 
-            self.meta.low_p[self.meta.low_p.apply(len) &gt; 7], self.meta.mrp[self.meta.low_p.apply(len) &gt; 7] =\
-                zip(*self.meta.low_p[self.meta.low_p.apply(len)
-                                     &gt; 7].apply(fix_multi_low_price))
+            if self.meta.low_p[self.meta.low_p.apply(len) &gt; 7].count() != 0:
+                self.meta.low_p[self.meta.low_p.apply(len) &gt; 7], self.meta.mrp[self.meta.low_p.apply(len) &gt; 7] =\
+                    zip(*self.meta.low_p[self.meta.low_p.apply(len)
+                                         &gt; 7].apply(fix_multi_low_price))
 
         # create product id
         self.meta[&#39;prod_id&#39;] = self.meta.product_page.apply(
@@ -2570,9 +2572,10 @@ and is pushed to S3 storage directly for Redshit ingestion.</p>
                                                                  Cleaner.make_price(y)))
         self.meta.drop(&#39;price&#39;, axis=1, inplace=True)
 
-        self.meta.low_p[self.meta.low_p.apply(len) &gt; 7], self.meta.mrp[self.meta.low_p.apply(len) &gt; 7] =\
-            zip(*self.meta.low_p[self.meta.low_p.apply(len)
-                                 &gt; 7].apply(fix_multi_low_price))
+        if self.meta.low_p[self.meta.low_p.apply(len) &gt; 7].count() != 0:
+            self.meta.low_p[self.meta.low_p.apply(len) &gt; 7], self.meta.mrp[self.meta.low_p.apply(len) &gt; 7] =\
+                zip(*self.meta.low_p[self.meta.low_p.apply(len)
+                                     &gt; 7].apply(fix_multi_low_price))
 
     # create product id
     self.meta[&#39;prod_id&#39;] = self.meta.product_page.apply(

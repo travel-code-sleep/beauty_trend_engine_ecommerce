@@ -1,4 +1,4 @@
-"""This script runs spider to grab sephora metadata."""
+"""This script runs spider to grab Sephora detail data."""
 import gc
 import os
 import sys

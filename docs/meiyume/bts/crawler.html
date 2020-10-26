@@ -127,106 +127,107 @@ class Metadata(Boots):
                 &#34;bts_prod_metadata_extraction&#34;, path=self.crawl_log_path)
             self.logger, _ = self.prod_meta_log.start_log()
 
-    def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -&gt; pd.DataFrame:
-        &#34;&#34;&#34;get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
+    # def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -&gt; pd.DataFrame:
+    #     &#34;&#34;&#34;get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
 
-        Extracts the links of pages containing the list of all products structured into
-        category/subcategory/product type to effectively stored in relational database.
-        Defines the structure of data extraction that helps store unstructured data in a structured manner.
+    #     Extracts the links of pages containing the list of all products structured into
+    #     category/subcategory/product type to effectively stored in relational database.
+    #     Defines the structure of data extraction that helps store unstructured data in a structured manner.
 
-        Args:
-            open_headless (bool): Whether to open browser headless.
-            open_with_proxy_server (bool): Whether to use proxy server.
+    #     Args:
+    #         open_headless (bool): Whether to open browser headless.
+    #         open_with_proxy_server (bool): Whether to use proxy server.
 
-        Returns:
-            pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
-        &#34;&#34;&#34;
-        # create webdriver instance
-        drv = self.open_browser(
-            open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
+    #     Returns:
+    #         pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
+    #     &#34;&#34;&#34;
+    #     # create webdriver instance
+    #     drv = self.open_browser(
+    #         open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
 
-        drv.get(self.base_url)
-        time.sleep(15)
-        # click and close welcome forms
-        accept_alert(drv, 10)
-        close_popups(drv)
+    #     drv.get(self.base_url)
+    #     time.sleep(15)
+    #     # click and close welcome forms
+    #     accept_alert(drv, 10)
+    #     close_popups(drv)
 
-        try:
-            country_popup = WebDriverWait(drv, 3).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)))
-            pop_close_button = drv.find_element_by_css_selector(
-                &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)
-            Browser().scroll_to_element(drv, pop_close_button)
-            ActionChains(drv).move_to_element(
-                pop_close_button).click(pop_close_button).perform()
-        except Exception as ex:
-            pass
+    #     try:
+    #         country_popup = WebDriverWait(drv, 3).until(
+    #             EC.presence_of_element_located((By.CSS_SELECTOR, &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)))
+    #         pop_close_button = drv.find_element_by_css_selector(
+    #             &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)
+    #         Browser().scroll_to_element(drv, pop_close_button)
+    #         ActionChains(drv).move_to_element(
+    #             pop_close_button).click(pop_close_button).perform()
+    #     except Exception as ex:
+    #         pass
 
-        allowed_categories = [&#39;beauty&#39;, &#39;fragrance&#39;,
-                              &#39;toiletries&#39;, &#39;mens&#39;, &#39;wellness&#39;]
-        exclude_categories = [&#39;health-pharmacy&#39;, &#39;advice&#39;, &#39;luxury-beauty-premium-beauty-book-an-appointment&#39;,
-                              &#39;health-value-packs-and-bundles&#39;, &#39;all-luxury-skincare&#39;, &#39;wellness-supplements&#39;, &#39;travel-essentials&#39;,
-                              &#39;opticians&#39;, &#39;feminine-hygiene&#39;, &#39;travel-health&#39;, &#39;sunglasses&#39;, &#39;inspiration&#39;, &#39;food-and-drink&#39;,
-                              &#39;nutrition&#39;, &#39;vitaminsandsupplements&#39;, &#39;condoms-sexual-health&#39;, &#39;mens-health-information&#39;,
-                              &#39;weightloss&#39;, &#39;menshealth&#39;, &#39;recommended&#39;, &#39;offers&#39;, &#39;all-&#39;, &#39;male-incontinence&#39;, &#39;sustainable-living&#39;,
-                              &#39;bootsdental&#39;, &#39;back-to-school-and-nursery&#39;, &#39;luxury-beauty-skincare&#39;, &#39;mens-gift-sets&#39;,
-                              &#39;all-face&#39;, &#39;all-eyes&#39;, &#39;all-lips&#39;, &#39;gift/him/mens-aftershave&#39;, &#39;gift/her/luxury-beauty-gift&#39;,
-                              &#39;christmas/christmas-3-for-2&#39;, &#39;christmas/gifts-for-her&#39;, &#39;christmas/gifts-for-him&#39;,
-                              &#39;christmas/advent-calendars&#39;, &#39;beauty-expert-skincare-expert-skincare-shop-all&#39;,
-                              &#39;black-afro-and-textured-hair-straight-hair&#39;, &#39;black-afro-and-textured-hair-wavy&#39;,
-                              &#39;black-afro-and-textured-hair-straight-hair&#39;,
-                              ]
-        # Extracting the category-sub category structure
-        cat_urls = []
-        for i in drv.find_elements_by_css_selector(&#39;a[id*=&#34;subcategoryLink&#34;]&#39;):
-            cat_urls.append(i.get_attribute(&#39;href&#39;))
+    #     allowed_categories = [&#39;beauty&#39;, &#39;fragrance&#39;,
+    #                           &#39;toiletries&#39;, &#39;mens&#39;, &#39;wellness&#39;]
+    #     exclude_categories = [&#39;health-pharmacy&#39;, &#39;advice&#39;, &#39;luxury-beauty-premium-beauty-book-an-appointment&#39;,
+    #                           &#39;health-value-packs-and-bundles&#39;, &#39;all-luxury-skincare&#39;, &#39;wellness-supplements&#39;, &#39;travel-essentials&#39;,
+    #                           &#39;opticians&#39;, &#39;feminine-hygiene&#39;, &#39;travel-health&#39;, &#39;sunglasses&#39;, &#39;inspiration&#39;, &#39;food-and-drink&#39;,
+    #                           &#39;nutrition&#39;, &#39;vitaminsandsupplements&#39;, &#39;condoms-sexual-health&#39;, &#39;mens-health-information&#39;,
+    #                           &#39;weightloss&#39;, &#39;menshealth&#39;, &#39;recommended&#39;, &#39;offers&#39;, &#39;all-&#39;, &#39;male-incontinence&#39;, &#39;sustainable-living&#39;,
+    #                           &#39;bootsdental&#39;, &#39;back-to-school-and-nursery&#39;, &#39;luxury-beauty-skincare&#39;, &#39;mens-gift-sets&#39;,
+    #                           &#39;all-face&#39;, &#39;all-eyes&#39;, &#39;all-lips&#39;, &#39;gift/him/mens-aftershave&#39;, &#39;gift/her/luxury-beauty-gift&#39;,
+    #                           &#39;christmas/christmas-3-for-2&#39;, &#39;christmas/gifts-for-her&#39;, &#39;christmas/gifts-for-him&#39;,
+    #                           &#39;christmas/advent-calendars&#39;, &#39;beauty-expert-skincare-expert-skincare-shop-all&#39;,
+    #                           &#39;black-afro-and-textured-hair-straight-hair&#39;, &#39;black-afro-and-textured-hair-wavy&#39;,
+    #                           &#39;black-afro-and-textured-hair-straight-hair&#39;,
+    #                           ]
+    #     # Extracting the category-sub category structure
+    #     cat_urls = []
+    #     for i in drv.find_elements_by_css_selector(&#39;a[class*=&#34;menuLink&#34;]&#39;):
+    #         cat_urls.append(i.get_attribute(&#39;href&#39;))
 
-        cat_urls = [u for u in cat_urls if any(
-            cat in str(u) for cat in allowed_categories)]
-        cat_urls = [u for u in cat_urls if all(
-            cat not in str(u) for cat in exclude_categories)]
+    #     cat_urls = [u for u in cat_urls if &#39;www.boots.com&#39; in u]
+    #     cat_urls = [u for u in cat_urls if any(
+    #         cat in str(u) for cat in allowed_categories)]
+    #     cat_urls = [u for u in cat_urls if all(
+    #         cat not in str(u) for cat in exclude_categories)]
 
-        prod_type_urls = []
+    #     prod_type_urls = []
 
-        for url in cat_urls:
-            drv.get(url)
+    #     for url in cat_urls:
+    #         drv.get(url)
 
-            time.sleep(6)
-            accept_alert(drv, 10)
-            close_popups(drv)
+    #         time.sleep(6)
+    #         accept_alert(drv, 10)
+    #         close_popups(drv)
 
-            subcats = drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;)
-            if len(subcats) &gt; 0:
-                for i in drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;):
-                    prod_type_urls.append(i.get_attribute(&#39;href&#39;))
-            else:
-                prod_type_urls.append(url)
+    #         subcats = drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;)
+    #         if len(subcats) &gt; 0:
+    #             for i in drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;):
+    #                 prod_type_urls.append(i.get_attribute(&#39;href&#39;))
+    #         else:
+    #             prod_type_urls.append(url)
 
-        prod_type_urls = [u for u in prod_type_urls if any(
-            cat in str(u) for cat in allowed_categories)]
-        prod_type_urls = [u for u in prod_type_urls if all(
-            cat not in str(u) for cat in exclude_categories)]
+    #     prod_type_urls = [u for u in prod_type_urls if any(
+    #         cat in str(u) for cat in allowed_categories)]
+    #     prod_type_urls = [u for u in prod_type_urls if all(
+    #         cat not in str(u) for cat in exclude_categories)]
 
-        drv.quit()
+    #     drv.quit()
 
-        df = pd.DataFrame(prod_type_urls, columns=[&#39;url&#39;])
-        df[&#39;dept&#39;], df[&#39;category_raw&#39;], df[&#39;subcategory_raw&#39;], df[&#39;product_type&#39;] = zip(
-            *df.url.str.split(&#39;/&#39;, expand=True).loc[:, 3:].values)
+    #     df = pd.DataFrame(prod_type_urls, columns=[&#39;url&#39;])
+    #     df[&#39;dept&#39;], df[&#39;category_raw&#39;], df[&#39;subcategory_raw&#39;], df[&#39;product_type&#39;] = zip(
+    #         *df.url.str.split(&#39;/&#39;, expand=True).loc[:, 3:].values)
 
-        def set_cat_subcat_ptype(x):
-            if x.product_type is None:
-                return x.dept, x.category_raw, x.subcategory_raw
-            else:
-                return x.category_raw, x.subcategory_raw, x.product_type
+    #     def set_cat_subcat_ptype(x):
+    #         if x.product_type is None:
+    #             return x.dept, x.category_raw, x.subcategory_raw
+    #         else:
+    #             return x.category_raw, x.subcategory_raw, x.product_type
 
-        df.category_raw, df.subcategory_raw, df.product_type = zip(
-            *df.apply(set_cat_subcat_ptype, axis=1))
-        df.drop(columns=[&#39;dept&#39;], inplace=True)
-        df.drop_duplicates(subset=&#39;url&#39;, inplace=True)
-        df.reset_index(inplace=True, drop=True)
-        df[&#39;scraped&#39;] = &#39;N&#39;
-        df.to_feather(self.metadata_path/f&#39;bts_product_type_urls_to_extract&#39;)
-        return df
+    #     df.category_raw, df.subcategory_raw, df.product_type = zip(
+    #         *df.apply(set_cat_subcat_ptype, axis=1))
+    #     df.drop(columns=[&#39;dept&#39;], inplace=True)
+    #     df.drop_duplicates(subset=&#39;url&#39;, inplace=True)
+    #     df.reset_index(inplace=True, drop=True)
+    #     df[&#39;scraped&#39;] = &#39;N&#39;
+    #     df.to_feather(self.metadata_path/f&#39;bts_product_type_urls_to_extract&#39;)
+    #     return df
 
     def get_metadata(self, indices: Union[list, range],
                      open_headless: bool, open_with_proxy_server: bool,
@@ -438,8 +439,9 @@ class Metadata(Boots):
         def fresh():
             &#34;&#34;&#34;[summary]
             &#34;&#34;&#34;
-            self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
-                                                                open_with_proxy_server=open_with_proxy_server)
+            self.product_type_urls = pd.read_feather(
+                self.metadata_path/&#39;bts_product_type_urls_to_extract&#39;)  # self.get_product_type_urls(open_headless=open_headless,
+            #                          open_with_proxy_server=open_with_proxy_server)
             # progress tracker: captures scraped and error desc
             self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
                 &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
@@ -567,18 +569,24 @@ class DetailReview(Boots):
 
     Args:
         Boots (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
+
     &#34;&#34;&#34;
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
         &#34;&#34;&#34;__init__ DetailReview class instace initializer.
 
-        This method sets all the folder paths required for Metadata crawler to work.
+        This method sets all the folder paths required for DetailReview crawler to work.
         If the paths does not exist the paths get automatically created depending on current directory
         or provided directory.
 
+        Initializer Tasks:
+        1. Set folder paths for data reading and storing.
+        2. Move old scraped and cleaned data files to archive folders before starting new extraction.
+        3. Create data scraping log files in log path to monitor/correct failed data extraction from website.
+
         Args:
             log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
-            path (Path, optional): Folder path where the Metadata will be extracted.
+            path (Path, optional): Folder path where the Detail and Review data will be extracted.
                                    Defaults to current directory(Path.cwd()).
 
         &#34;&#34;&#34;
@@ -612,17 +620,17 @@ class DetailReview(Boots):
                         str(self.old_review_clean_files_path))
         if log:
             self.prod_detail_review_image_log = Logger(
-                &#34;bts_prod_review_image_extraction&#34;, path=self.crawl_log_path)
+                &#34;bts_prod_detail_review_image_extraction&#34;, path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_review_image_log.start_log()
 
-    def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
+    def get_details(self, drv: webdriver.Chrome, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
         &#34;&#34;&#34;get_detail scrapes individual product pages for price, ingredients, color etc.
 
         Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
         size specific prices, color, product claims and other information pertaining to one individual product.
 
         Args:
-            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
             prod_id (str): Id of the product from metdata.
             product_name (str): Name of the product from metadata.
 
@@ -630,17 +638,18 @@ class DetailReview(Boots):
             Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
                                        attributes of a product.
         &#34;&#34;&#34;
-        def get_product_attributes(drv: webdriver.Firefox, prod_id: str, product_name: str):
+        def get_product_attributes(drv: webdriver.Chrome, prod_id: str, product_name: str):
             &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores
             in a list which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
                 prod_id (str): Id of the product from metdata.
                 product_name (str): Name of the product from metadata.
 
             Returns:
                 list: List containing all product item attributes of multiple varieties with name and id.
+
             &#34;&#34;&#34;
             # get all the variation of product
             product_attributes = []
@@ -772,13 +781,13 @@ class DetailReview(Boots):
 
         return detail, item
 
-    def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
+    def get_reviews(self,  drv: webdriver.Chrome, prod_id: str, product_name: str,
                     last_scraped_review_date: str, no_of_reviews: int,
                     incremental: bool = True, reviews: list = []) -&gt; list:
-        &#34;&#34;&#34;get_reviews Crawls individual product pages for review text, title, date user attributes etc.
+        &#34;&#34;&#34;get_reviews crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
-            drv (webdriver.Firefox): drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): drv (webdriver.Chrome): Selenium webdriver with opened product page.
             prod_id (str): Id of the product from metdata.
             product_name (str): Name of the product from metadata.
             last_scraped_review_date (str): The last review date scraped as per database.
@@ -787,7 +796,8 @@ class DetailReview(Boots):
             reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
         Returns:
-            list: List od dictionaries containing all the scraped reviews of a product.
+            list: List of dictionaries containing all the scraped reviews of a product.
+
         &#34;&#34;&#34;
         # print(no_of_reviews)
         # drv.find_element_by_class_name(&#39;css-2rg6q7&#39;).click()
@@ -979,6 +989,7 @@ class DetailReview(Boots):
         &#34;&#34;&#34;crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
         The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
+
         Args:
             indices (list): list of indices or range of indices of product urls to scrape.
             open_headless (bool): Whether to open browser headless.
@@ -990,6 +1001,7 @@ class DetailReview(Boots):
                                                                                          &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
             review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
             incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+
         &#34;&#34;&#34;
 
         def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
@@ -1005,6 +1017,7 @@ class DetailReview(Boots):
 
             Returns:
                 Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
+
             &#34;&#34;&#34;
             pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                              f&#39;bts_prod_detail_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
@@ -1064,7 +1077,7 @@ class DetailReview(Boots):
                 self.logger.info(str.encode(
                     f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
                         (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
-                self.meta.loc[prod, &#39;detail_scraped&#39;] = &#39;NA&#39;
+                self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
                 continue
 
             # self.scroll_down_page(drv, speed=6, h2=0.6)
@@ -1110,7 +1123,7 @@ class DetailReview(Boots):
                                 (no_of_new_extracted_reviews: {len(reviews)},\
                                 page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
             else:
-                reviews = 0
+                reviews = []
 
             if prod != 0 and prod % 5 == 0:
                 detail_data, item_df, review_data = store_data_refresh_mem(
@@ -1129,7 +1142,7 @@ class DetailReview(Boots):
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-        &#34;&#34;&#34;extract method controls all properties of the spiders and runs multi-threaded web crawling.
+        &#34;&#34;&#34;Extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
         Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
         This method has four major functionality:
@@ -1155,6 +1168,7 @@ class DetailReview(Boots):
             compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
             clean (bool, optional): Whether to clean the compiled data. Defaults to True.
             delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
+
         &#34;&#34;&#34;
         def fresh():
             if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -1314,7 +1328,6 @@ class DetailReview(Boots):
                 rev_df.reset_index(inplace=True, drop=True)
                 rev_df[&#39;meta_date&#39;] = pd.to_datetime(meta_date).date()
                 review_filename = f&#39;bts_product_review_all_{meta_date}&#39;
-                # , index=None)
                 rev_df.to_feather(self.review_path/review_filename)
 
                 self.logger.info(
@@ -1378,15 +1391,19 @@ class DetailReview(Boots):
 <dd>Class that initializes folder paths and selenium webdriver for data scraping.</dd>
 </dl>
 <p><strong>init</strong> DetailReview class instace initializer.</p>
-<p>This method sets all the folder paths required for Metadata crawler to work.
+<p>This method sets all the folder paths required for DetailReview crawler to work.
 If the paths does not exist the paths get automatically created depending on current directory
 or provided directory.</p>
+<p>Initializer Tasks:
+1. Set folder paths for data reading and storing.
+2. Move old scraped and cleaned data files to archive folders before starting new extraction.
+3. Create data scraping log files in log path to monitor/correct failed data extraction from website.</p>
 <h2 id="args_1">Args</h2>
 <dl>
 <dt><strong><code>log</code></strong> :&ensp;<code>bool</code>, optional</dt>
 <dd>Whether to create crawling exception and progess log. Defaults to True.</dd>
 <dt><strong><code>path</code></strong> :&ensp;<code>Path</code>, optional</dt>
-<dd>Folder path where the Metadata will be extracted.
+<dd>Folder path where the Detail and Review data will be extracted.
 Defaults to current directory(Path.cwd()).</dd>
 </dl></div>
 <details class="source">
@@ -1398,18 +1415,24 @@ Defaults to current directory(Path.cwd()).</dd>
 
     Args:
         Boots (Browser): Class that initializes folder paths and selenium webdriver for data scraping.
+
     &#34;&#34;&#34;
 
     def __init__(self, log: bool = True, path: Path = Path.cwd()):
         &#34;&#34;&#34;__init__ DetailReview class instace initializer.
 
-        This method sets all the folder paths required for Metadata crawler to work.
+        This method sets all the folder paths required for DetailReview crawler to work.
         If the paths does not exist the paths get automatically created depending on current directory
         or provided directory.
 
+        Initializer Tasks:
+        1. Set folder paths for data reading and storing.
+        2. Move old scraped and cleaned data files to archive folders before starting new extraction.
+        3. Create data scraping log files in log path to monitor/correct failed data extraction from website.
+
         Args:
             log (bool, optional): Whether to create crawling exception and progess log. Defaults to True.
-            path (Path, optional): Folder path where the Metadata will be extracted.
+            path (Path, optional): Folder path where the Detail and Review data will be extracted.
                                    Defaults to current directory(Path.cwd()).
 
         &#34;&#34;&#34;
@@ -1443,17 +1466,17 @@ Defaults to current directory(Path.cwd()).</dd>
                         str(self.old_review_clean_files_path))
         if log:
             self.prod_detail_review_image_log = Logger(
-                &#34;bts_prod_review_image_extraction&#34;, path=self.crawl_log_path)
+                &#34;bts_prod_detail_review_image_extraction&#34;, path=self.crawl_log_path)
             self.logger, _ = self.prod_detail_review_image_log.start_log()
 
-    def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
+    def get_details(self, drv: webdriver.Chrome, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
         &#34;&#34;&#34;get_detail scrapes individual product pages for price, ingredients, color etc.
 
         Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
         size specific prices, color, product claims and other information pertaining to one individual product.
 
         Args:
-            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
             prod_id (str): Id of the product from metdata.
             product_name (str): Name of the product from metadata.
 
@@ -1461,17 +1484,18 @@ Defaults to current directory(Path.cwd()).</dd>
             Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
                                        attributes of a product.
         &#34;&#34;&#34;
-        def get_product_attributes(drv: webdriver.Firefox, prod_id: str, product_name: str):
+        def get_product_attributes(drv: webdriver.Chrome, prod_id: str, product_name: str):
             &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores
             in a list which is returned to get_detail method for storing in a product specific dataframe.
 
             Args:
-                drv (webdriver.Firefox): Selenium webdriver with opened product page.
+                drv (webdriver.Chrome): Selenium webdriver with opened product page.
                 prod_id (str): Id of the product from metdata.
                 product_name (str): Name of the product from metadata.
 
             Returns:
                 list: List containing all product item attributes of multiple varieties with name and id.
+
             &#34;&#34;&#34;
             # get all the variation of product
             product_attributes = []
@@ -1603,13 +1627,13 @@ Defaults to current directory(Path.cwd()).</dd>
 
         return detail, item
 
-    def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
+    def get_reviews(self,  drv: webdriver.Chrome, prod_id: str, product_name: str,
                     last_scraped_review_date: str, no_of_reviews: int,
                     incremental: bool = True, reviews: list = []) -&gt; list:
-        &#34;&#34;&#34;get_reviews Crawls individual product pages for review text, title, date user attributes etc.
+        &#34;&#34;&#34;get_reviews crawls individual product pages for review text, title, date user attributes etc.
 
         Args:
-            drv (webdriver.Firefox): drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): drv (webdriver.Chrome): Selenium webdriver with opened product page.
             prod_id (str): Id of the product from metdata.
             product_name (str): Name of the product from metadata.
             last_scraped_review_date (str): The last review date scraped as per database.
@@ -1618,7 +1642,8 @@ Defaults to current directory(Path.cwd()).</dd>
             reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
         Returns:
-            list: List od dictionaries containing all the scraped reviews of a product.
+            list: List of dictionaries containing all the scraped reviews of a product.
+
         &#34;&#34;&#34;
         # print(no_of_reviews)
         # drv.find_element_by_class_name(&#39;css-2rg6q7&#39;).click()
@@ -1810,6 +1835,7 @@ Defaults to current directory(Path.cwd()).</dd>
         &#34;&#34;&#34;crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
         The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
+
         Args:
             indices (list): list of indices or range of indices of product urls to scrape.
             open_headless (bool): Whether to open browser headless.
@@ -1821,6 +1847,7 @@ Defaults to current directory(Path.cwd()).</dd>
                                                                                          &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
             review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
             incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+
         &#34;&#34;&#34;
 
         def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
@@ -1836,6 +1863,7 @@ Defaults to current directory(Path.cwd()).</dd>
 
             Returns:
                 Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
+
             &#34;&#34;&#34;
             pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                              f&#39;bts_prod_detail_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
@@ -1895,7 +1923,7 @@ Defaults to current directory(Path.cwd()).</dd>
                 self.logger.info(str.encode(
                     f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
                         (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
-                self.meta.loc[prod, &#39;detail_scraped&#39;] = &#39;NA&#39;
+                self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
                 continue
 
             # self.scroll_down_page(drv, speed=6, h2=0.6)
@@ -1941,7 +1969,7 @@ Defaults to current directory(Path.cwd()).</dd>
                                 (no_of_new_extracted_reviews: {len(reviews)},\
                                 page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
             else:
-                reviews = 0
+                reviews = []
 
             if prod != 0 and prod % 5 == 0:
                 detail_data, item_df, review_data = store_data_refresh_mem(
@@ -1960,7 +1988,7 @@ Defaults to current directory(Path.cwd()).</dd>
                 open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
                 start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
                 compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-        &#34;&#34;&#34;extract method controls all properties of the spiders and runs multi-threaded web crawling.
+        &#34;&#34;&#34;Extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
         Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
         This method has four major functionality:
@@ -1986,6 +2014,7 @@ Defaults to current directory(Path.cwd()).</dd>
             compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
             clean (bool, optional): Whether to clean the compiled data. Defaults to True.
             delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
+
         &#34;&#34;&#34;
         def fresh():
             if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -2145,7 +2174,6 @@ Defaults to current directory(Path.cwd()).</dd>
                 rev_df.reset_index(inplace=True, drop=True)
                 rev_df[&#39;meta_date&#39;] = pd.to_datetime(meta_date).date()
                 review_filename = f&#39;bts_product_review_all_{meta_date}&#39;
-                # , index=None)
                 rev_df.to_feather(self.review_path/review_filename)
 
                 self.logger.info(
@@ -2236,6 +2264,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
     &#34;&#34;&#34;crawl_page opens each product url in a sepearate browser to scrape detail and review data together.
 
     The scraping happens in a multi-threaded manner to extract product information of up to 20 products simultaneously.
+
     Args:
         indices (list): list of indices or range of indices of product urls to scrape.
         open_headless (bool): Whether to open browser headless.
@@ -2247,6 +2276,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                                                                                      &#39;item_size&#39;, &#39;item_price&#39;, &#39;item_ingredients&#39;]).
         review_data (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to [].
         incremental (bool, optional): Whether to scrape reviews incrementally from last scraped review date. Defaults to True.
+
     &#34;&#34;&#34;
 
     def store_data_refresh_mem(detail_data: list, item_df: pd.DataFrame,
@@ -2262,6 +2292,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 
         Returns:
             Tuple[list, pd.DataFrame, list]: Empty list, dataframe and list to accumulate data from next product scraping.
+
         &#34;&#34;&#34;
         pd.DataFrame(detail_data).to_csv(self.detail_current_progress_path /
                                          f&#39;bts_prod_detail_extract_progress_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.csv&#39;,
@@ -2321,7 +2352,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
             self.logger.info(str.encode(
                 f&#39;product: {product_name} (prod_id: {prod_id}) no longer exists in the previously fetched link.\
                     (link:{product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
-            self.meta.loc[prod, &#39;detail_scraped&#39;] = &#39;NA&#39;
+            self.meta.loc[prod, &#39;scraped&#39;] = &#39;NA&#39;
             continue
 
         # self.scroll_down_page(drv, speed=6, h2=0.6)
@@ -2367,7 +2398,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
                             (no_of_new_extracted_reviews: {len(reviews)},\
                             page: {product_page})&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
         else:
-            reviews = 0
+            reviews = []
 
         if prod != 0 and prod % 5 == 0:
             detail_data, item_df, review_data = store_data_refresh_mem(
@@ -2386,7 +2417,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 <span>def <span class="ident">extract</span></span>(<span>self, metadata: Union[pandas.core.frame.DataFrame, str, pathlib.Path], download: bool = True, n_workers: int = 5, fresh_start: bool = False, auto_fresh_start: bool = False, incremental: bool = True, open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True, start_idx: Union[int, NoneType] = None, end_idx: Union[int, NoneType] = None, list_of_index=None, compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>extract method controls all properties of the spiders and runs multi-threaded web crawling.</p>
+<div class="desc"><p>Extract method controls all properties of the spiders and runs multi-threaded web crawling.</p>
 <p>Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
 This method has four major functionality:
 * 1. Run the spider
@@ -2436,7 +2467,7 @@ This method has four major functionality:
             open_headless: bool = False, open_with_proxy_server: bool = True, randomize_proxy_usage: bool = True,
             start_idx: Optional[int] = None, end_idx: Optional[int] = None, list_of_index=None,
             compile_progress_files: bool = False, clean: bool = True, delete_progress: bool = False):
-    &#34;&#34;&#34;extract method controls all properties of the spiders and runs multi-threaded web crawling.
+    &#34;&#34;&#34;Extract method controls all properties of the spiders and runs multi-threaded web crawling.
 
     Extract is exposes all functionality of the spiders and user needs to run this method to begin data crawling from web.
     This method has four major functionality:
@@ -2462,6 +2493,7 @@ This method has four major functionality:
         compile_progress_files (bool, optional): Whether to combine crawled data into one file. Defaults to False.
         clean (bool, optional): Whether to clean the compiled data. Defaults to True.
         delete_progress (bool, optional): Whether to delete intermediate data after compilation into one file. Defaults to False.
+
     &#34;&#34;&#34;
     def fresh():
         if not isinstance(metadata, pd.core.frame.DataFrame):
@@ -2621,7 +2653,6 @@ This method has four major functionality:
             rev_df.reset_index(inplace=True, drop=True)
             rev_df[&#39;meta_date&#39;] = pd.to_datetime(meta_date).date()
             review_filename = f&#39;bts_product_review_all_{meta_date}&#39;
-            # , index=None)
             rev_df.to_feather(self.review_path/review_filename)
 
             self.logger.info(
@@ -2659,7 +2690,7 @@ This method has four major functionality:
 </details>
 </dd>
 <dt id="meiyume.bts.crawler.DetailReview.get_details"><code class="name flex">
-<span>def <span class="ident">get_details</span></span>(<span>self, drv: selenium.webdriver.firefox.webdriver.WebDriver, prod_id: str, product_name: str) ‑> Tuple[dict, pandas.core.frame.DataFrame]</span>
+<span>def <span class="ident">get_details</span></span>(<span>self, drv: selenium.webdriver.chrome.webdriver.WebDriver, prod_id: str, product_name: str) ‑> Tuple[dict, pandas.core.frame.DataFrame]</span>
 </code></dt>
 <dd>
 <div class="desc"><p>get_detail scrapes individual product pages for price, ingredients, color etc.</p>
@@ -2667,7 +2698,7 @@ This method has four major functionality:
 size specific prices, color, product claims and other information pertaining to one individual product.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Firefox</code></dt>
+<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Chrome</code></dt>
 <dd>Selenium webdriver with opened product page.</dd>
 <dt><strong><code>prod_id</code></strong> :&ensp;<code>str</code></dt>
 <dd>Id of the product from metdata.</dd>
@@ -2684,14 +2715,14 @@ attributes of a product.</dd>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_details(self, drv: webdriver.Firefox, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
+<pre><code class="python">def get_details(self, drv: webdriver.Chrome, prod_id: str, product_name: str) -&gt; Tuple[dict, pd.DataFrame]:
     &#34;&#34;&#34;get_detail scrapes individual product pages for price, ingredients, color etc.
 
     Get Detail crawls product specific page and scrapes data such as ingredients, review rating distribution,
     size specific prices, color, product claims and other information pertaining to one individual product.
 
     Args:
-        drv (webdriver.Firefox): Selenium webdriver with opened product page.
+        drv (webdriver.Chrome): Selenium webdriver with opened product page.
         prod_id (str): Id of the product from metdata.
         product_name (str): Name of the product from metadata.
 
@@ -2699,17 +2730,18 @@ attributes of a product.</dd>
         Tuple[dict, pd.DataFrame]: Dictionary containing details of a product and dataframe containing item
                                    attributes of a product.
     &#34;&#34;&#34;
-    def get_product_attributes(drv: webdriver.Firefox, prod_id: str, product_name: str):
+    def get_product_attributes(drv: webdriver.Chrome, prod_id: str, product_name: str):
         &#34;&#34;&#34;get_product_attributes uses get_item_attribute method to scrape item details and stores
         in a list which is returned to get_detail method for storing in a product specific dataframe.
 
         Args:
-            drv (webdriver.Firefox): Selenium webdriver with opened product page.
+            drv (webdriver.Chrome): Selenium webdriver with opened product page.
             prod_id (str): Id of the product from metdata.
             product_name (str): Name of the product from metadata.
 
         Returns:
             list: List containing all product item attributes of multiple varieties with name and id.
+
         &#34;&#34;&#34;
         # get all the variation of product
         product_attributes = []
@@ -2843,14 +2875,14 @@ attributes of a product.</dd>
 </details>
 </dd>
 <dt id="meiyume.bts.crawler.DetailReview.get_reviews"><code class="name flex">
-<span>def <span class="ident">get_reviews</span></span>(<span>self, drv: selenium.webdriver.firefox.webdriver.WebDriver, prod_id: str, product_name: str, last_scraped_review_date: str, no_of_reviews: int, incremental: bool = True, reviews: list = []) ‑> list</span>
+<span>def <span class="ident">get_reviews</span></span>(<span>self, drv: selenium.webdriver.chrome.webdriver.WebDriver, prod_id: str, product_name: str, last_scraped_review_date: str, no_of_reviews: int, incremental: bool = True, reviews: list = []) ‑> list</span>
 </code></dt>
 <dd>
-<div class="desc"><p>get_reviews Crawls individual product pages for review text, title, date user attributes etc.</p>
+<div class="desc"><p>get_reviews crawls individual product pages for review text, title, date user attributes etc.</p>
 <h2 id="args">Args</h2>
 <dl>
-<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Firefox</code></dt>
-<dd>drv (webdriver.Firefox): Selenium webdriver with opened product page.</dd>
+<dt><strong><code>drv</code></strong> :&ensp;<code>webdriver.Chrome</code></dt>
+<dd>drv (webdriver.Chrome): Selenium webdriver with opened product page.</dd>
 <dt><strong><code>prod_id</code></strong> :&ensp;<code>str</code></dt>
 <dd>Id of the product from metdata.</dd>
 <dt><strong><code>product_name</code></strong> :&ensp;<code>str</code></dt>
@@ -2867,19 +2899,19 @@ attributes of a product.</dd>
 <h2 id="returns">Returns</h2>
 <dl>
 <dt><code>list</code></dt>
-<dd>List od dictionaries containing all the scraped reviews of a product.</dd>
+<dd>List of dictionaries containing all the scraped reviews of a product.</dd>
 </dl></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_reviews(self,  drv: webdriver.Firefox, prod_id: str, product_name: str,
+<pre><code class="python">def get_reviews(self,  drv: webdriver.Chrome, prod_id: str, product_name: str,
                 last_scraped_review_date: str, no_of_reviews: int,
                 incremental: bool = True, reviews: list = []) -&gt; list:
-    &#34;&#34;&#34;get_reviews Crawls individual product pages for review text, title, date user attributes etc.
+    &#34;&#34;&#34;get_reviews crawls individual product pages for review text, title, date user attributes etc.
 
     Args:
-        drv (webdriver.Firefox): drv (webdriver.Firefox): Selenium webdriver with opened product page.
+        drv (webdriver.Chrome): drv (webdriver.Chrome): Selenium webdriver with opened product page.
         prod_id (str): Id of the product from metdata.
         product_name (str): Name of the product from metadata.
         last_scraped_review_date (str): The last review date scraped as per database.
@@ -2888,7 +2920,8 @@ attributes of a product.</dd>
         reviews (list, optional): Empty intermediate list to store data during parallel crawl. Defaults to []
 
     Returns:
-        list: List od dictionaries containing all the scraped reviews of a product.
+        list: List of dictionaries containing all the scraped reviews of a product.
+
     &#34;&#34;&#34;
     # print(no_of_reviews)
     # drv.find_element_by_class_name(&#39;css-2rg6q7&#39;).click()
@@ -3190,106 +3223,107 @@ current directory(Path.cwd()).</dd>
                 &#34;bts_prod_metadata_extraction&#34;, path=self.crawl_log_path)
             self.logger, _ = self.prod_meta_log.start_log()
 
-    def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -&gt; pd.DataFrame:
-        &#34;&#34;&#34;get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
+    # def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -&gt; pd.DataFrame:
+    #     &#34;&#34;&#34;get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
 
-        Extracts the links of pages containing the list of all products structured into
-        category/subcategory/product type to effectively stored in relational database.
-        Defines the structure of data extraction that helps store unstructured data in a structured manner.
+    #     Extracts the links of pages containing the list of all products structured into
+    #     category/subcategory/product type to effectively stored in relational database.
+    #     Defines the structure of data extraction that helps store unstructured data in a structured manner.
 
-        Args:
-            open_headless (bool): Whether to open browser headless.
-            open_with_proxy_server (bool): Whether to use proxy server.
+    #     Args:
+    #         open_headless (bool): Whether to open browser headless.
+    #         open_with_proxy_server (bool): Whether to use proxy server.
 
-        Returns:
-            pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
-        &#34;&#34;&#34;
-        # create webdriver instance
-        drv = self.open_browser(
-            open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
+    #     Returns:
+    #         pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
+    #     &#34;&#34;&#34;
+    #     # create webdriver instance
+    #     drv = self.open_browser(
+    #         open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
 
-        drv.get(self.base_url)
-        time.sleep(15)
-        # click and close welcome forms
-        accept_alert(drv, 10)
-        close_popups(drv)
+    #     drv.get(self.base_url)
+    #     time.sleep(15)
+    #     # click and close welcome forms
+    #     accept_alert(drv, 10)
+    #     close_popups(drv)
 
-        try:
-            country_popup = WebDriverWait(drv, 3).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)))
-            pop_close_button = drv.find_element_by_css_selector(
-                &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)
-            Browser().scroll_to_element(drv, pop_close_button)
-            ActionChains(drv).move_to_element(
-                pop_close_button).click(pop_close_button).perform()
-        except Exception as ex:
-            pass
+    #     try:
+    #         country_popup = WebDriverWait(drv, 3).until(
+    #             EC.presence_of_element_located((By.CSS_SELECTOR, &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)))
+    #         pop_close_button = drv.find_element_by_css_selector(
+    #             &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)
+    #         Browser().scroll_to_element(drv, pop_close_button)
+    #         ActionChains(drv).move_to_element(
+    #             pop_close_button).click(pop_close_button).perform()
+    #     except Exception as ex:
+    #         pass
 
-        allowed_categories = [&#39;beauty&#39;, &#39;fragrance&#39;,
-                              &#39;toiletries&#39;, &#39;mens&#39;, &#39;wellness&#39;]
-        exclude_categories = [&#39;health-pharmacy&#39;, &#39;advice&#39;, &#39;luxury-beauty-premium-beauty-book-an-appointment&#39;,
-                              &#39;health-value-packs-and-bundles&#39;, &#39;all-luxury-skincare&#39;, &#39;wellness-supplements&#39;, &#39;travel-essentials&#39;,
-                              &#39;opticians&#39;, &#39;feminine-hygiene&#39;, &#39;travel-health&#39;, &#39;sunglasses&#39;, &#39;inspiration&#39;, &#39;food-and-drink&#39;,
-                              &#39;nutrition&#39;, &#39;vitaminsandsupplements&#39;, &#39;condoms-sexual-health&#39;, &#39;mens-health-information&#39;,
-                              &#39;weightloss&#39;, &#39;menshealth&#39;, &#39;recommended&#39;, &#39;offers&#39;, &#39;all-&#39;, &#39;male-incontinence&#39;, &#39;sustainable-living&#39;,
-                              &#39;bootsdental&#39;, &#39;back-to-school-and-nursery&#39;, &#39;luxury-beauty-skincare&#39;, &#39;mens-gift-sets&#39;,
-                              &#39;all-face&#39;, &#39;all-eyes&#39;, &#39;all-lips&#39;, &#39;gift/him/mens-aftershave&#39;, &#39;gift/her/luxury-beauty-gift&#39;,
-                              &#39;christmas/christmas-3-for-2&#39;, &#39;christmas/gifts-for-her&#39;, &#39;christmas/gifts-for-him&#39;,
-                              &#39;christmas/advent-calendars&#39;, &#39;beauty-expert-skincare-expert-skincare-shop-all&#39;,
-                              &#39;black-afro-and-textured-hair-straight-hair&#39;, &#39;black-afro-and-textured-hair-wavy&#39;,
-                              &#39;black-afro-and-textured-hair-straight-hair&#39;,
-                              ]
-        # Extracting the category-sub category structure
-        cat_urls = []
-        for i in drv.find_elements_by_css_selector(&#39;a[id*=&#34;subcategoryLink&#34;]&#39;):
-            cat_urls.append(i.get_attribute(&#39;href&#39;))
+    #     allowed_categories = [&#39;beauty&#39;, &#39;fragrance&#39;,
+    #                           &#39;toiletries&#39;, &#39;mens&#39;, &#39;wellness&#39;]
+    #     exclude_categories = [&#39;health-pharmacy&#39;, &#39;advice&#39;, &#39;luxury-beauty-premium-beauty-book-an-appointment&#39;,
+    #                           &#39;health-value-packs-and-bundles&#39;, &#39;all-luxury-skincare&#39;, &#39;wellness-supplements&#39;, &#39;travel-essentials&#39;,
+    #                           &#39;opticians&#39;, &#39;feminine-hygiene&#39;, &#39;travel-health&#39;, &#39;sunglasses&#39;, &#39;inspiration&#39;, &#39;food-and-drink&#39;,
+    #                           &#39;nutrition&#39;, &#39;vitaminsandsupplements&#39;, &#39;condoms-sexual-health&#39;, &#39;mens-health-information&#39;,
+    #                           &#39;weightloss&#39;, &#39;menshealth&#39;, &#39;recommended&#39;, &#39;offers&#39;, &#39;all-&#39;, &#39;male-incontinence&#39;, &#39;sustainable-living&#39;,
+    #                           &#39;bootsdental&#39;, &#39;back-to-school-and-nursery&#39;, &#39;luxury-beauty-skincare&#39;, &#39;mens-gift-sets&#39;,
+    #                           &#39;all-face&#39;, &#39;all-eyes&#39;, &#39;all-lips&#39;, &#39;gift/him/mens-aftershave&#39;, &#39;gift/her/luxury-beauty-gift&#39;,
+    #                           &#39;christmas/christmas-3-for-2&#39;, &#39;christmas/gifts-for-her&#39;, &#39;christmas/gifts-for-him&#39;,
+    #                           &#39;christmas/advent-calendars&#39;, &#39;beauty-expert-skincare-expert-skincare-shop-all&#39;,
+    #                           &#39;black-afro-and-textured-hair-straight-hair&#39;, &#39;black-afro-and-textured-hair-wavy&#39;,
+    #                           &#39;black-afro-and-textured-hair-straight-hair&#39;,
+    #                           ]
+    #     # Extracting the category-sub category structure
+    #     cat_urls = []
+    #     for i in drv.find_elements_by_css_selector(&#39;a[class*=&#34;menuLink&#34;]&#39;):
+    #         cat_urls.append(i.get_attribute(&#39;href&#39;))
 
-        cat_urls = [u for u in cat_urls if any(
-            cat in str(u) for cat in allowed_categories)]
-        cat_urls = [u for u in cat_urls if all(
-            cat not in str(u) for cat in exclude_categories)]
+    #     cat_urls = [u for u in cat_urls if &#39;www.boots.com&#39; in u]
+    #     cat_urls = [u for u in cat_urls if any(
+    #         cat in str(u) for cat in allowed_categories)]
+    #     cat_urls = [u for u in cat_urls if all(
+    #         cat not in str(u) for cat in exclude_categories)]
 
-        prod_type_urls = []
+    #     prod_type_urls = []
 
-        for url in cat_urls:
-            drv.get(url)
+    #     for url in cat_urls:
+    #         drv.get(url)
 
-            time.sleep(6)
-            accept_alert(drv, 10)
-            close_popups(drv)
+    #         time.sleep(6)
+    #         accept_alert(drv, 10)
+    #         close_popups(drv)
 
-            subcats = drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;)
-            if len(subcats) &gt; 0:
-                for i in drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;):
-                    prod_type_urls.append(i.get_attribute(&#39;href&#39;))
-            else:
-                prod_type_urls.append(url)
+    #         subcats = drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;)
+    #         if len(subcats) &gt; 0:
+    #             for i in drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;):
+    #                 prod_type_urls.append(i.get_attribute(&#39;href&#39;))
+    #         else:
+    #             prod_type_urls.append(url)
 
-        prod_type_urls = [u for u in prod_type_urls if any(
-            cat in str(u) for cat in allowed_categories)]
-        prod_type_urls = [u for u in prod_type_urls if all(
-            cat not in str(u) for cat in exclude_categories)]
+    #     prod_type_urls = [u for u in prod_type_urls if any(
+    #         cat in str(u) for cat in allowed_categories)]
+    #     prod_type_urls = [u for u in prod_type_urls if all(
+    #         cat not in str(u) for cat in exclude_categories)]
 
-        drv.quit()
+    #     drv.quit()
 
-        df = pd.DataFrame(prod_type_urls, columns=[&#39;url&#39;])
-        df[&#39;dept&#39;], df[&#39;category_raw&#39;], df[&#39;subcategory_raw&#39;], df[&#39;product_type&#39;] = zip(
-            *df.url.str.split(&#39;/&#39;, expand=True).loc[:, 3:].values)
+    #     df = pd.DataFrame(prod_type_urls, columns=[&#39;url&#39;])
+    #     df[&#39;dept&#39;], df[&#39;category_raw&#39;], df[&#39;subcategory_raw&#39;], df[&#39;product_type&#39;] = zip(
+    #         *df.url.str.split(&#39;/&#39;, expand=True).loc[:, 3:].values)
 
-        def set_cat_subcat_ptype(x):
-            if x.product_type is None:
-                return x.dept, x.category_raw, x.subcategory_raw
-            else:
-                return x.category_raw, x.subcategory_raw, x.product_type
+    #     def set_cat_subcat_ptype(x):
+    #         if x.product_type is None:
+    #             return x.dept, x.category_raw, x.subcategory_raw
+    #         else:
+    #             return x.category_raw, x.subcategory_raw, x.product_type
 
-        df.category_raw, df.subcategory_raw, df.product_type = zip(
-            *df.apply(set_cat_subcat_ptype, axis=1))
-        df.drop(columns=[&#39;dept&#39;], inplace=True)
-        df.drop_duplicates(subset=&#39;url&#39;, inplace=True)
-        df.reset_index(inplace=True, drop=True)
-        df[&#39;scraped&#39;] = &#39;N&#39;
-        df.to_feather(self.metadata_path/f&#39;bts_product_type_urls_to_extract&#39;)
-        return df
+    #     df.category_raw, df.subcategory_raw, df.product_type = zip(
+    #         *df.apply(set_cat_subcat_ptype, axis=1))
+    #     df.drop(columns=[&#39;dept&#39;], inplace=True)
+    #     df.drop_duplicates(subset=&#39;url&#39;, inplace=True)
+    #     df.reset_index(inplace=True, drop=True)
+    #     df[&#39;scraped&#39;] = &#39;N&#39;
+    #     df.to_feather(self.metadata_path/f&#39;bts_product_type_urls_to_extract&#39;)
+    #     return df
 
     def get_metadata(self, indices: Union[list, range],
                      open_headless: bool, open_with_proxy_server: bool,
@@ -3501,8 +3535,9 @@ current directory(Path.cwd()).</dd>
         def fresh():
             &#34;&#34;&#34;[summary]
             &#34;&#34;&#34;
-            self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
-                                                                open_with_proxy_server=open_with_proxy_server)
+            self.product_type_urls = pd.read_feather(
+                self.metadata_path/&#39;bts_product_type_urls_to_extract&#39;)  # self.get_product_type_urls(open_headless=open_headless,
+            #                          open_with_proxy_server=open_with_proxy_server)
             # progress tracker: captures scraped and error desc
             self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
                 &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
@@ -3755,8 +3790,9 @@ Defaults to True.</dd>
     def fresh():
         &#34;&#34;&#34;[summary]
         &#34;&#34;&#34;
-        self.product_type_urls = self.get_product_type_urls(open_headless=open_headless,
-                                                            open_with_proxy_server=open_with_proxy_server)
+        self.product_type_urls = pd.read_feather(
+            self.metadata_path/&#39;bts_product_type_urls_to_extract&#39;)  # self.get_product_type_urls(open_headless=open_headless,
+        #                          open_with_proxy_server=open_with_proxy_server)
         # progress tracker: captures scraped and error desc
         self.progress_tracker = pd.DataFrame(index=self.product_type_urls.index, columns=[
             &#39;product_type&#39;, &#39;scraped&#39;, &#39;error_desc&#39;])
@@ -4076,132 +4112,6 @@ other specific information.</p>
     print(&#39;Metadata Extraction Complete&#39;)</code></pre>
 </details>
 </dd>
-<dt id="meiyume.bts.crawler.Metadata.get_product_type_urls"><code class="name flex">
-<span>def <span class="ident">get_product_type_urls</span></span>(<span>self, open_headless: bool, open_with_proxy_server: bool) ‑> pandas.core.frame.DataFrame</span>
-</code></dt>
-<dd>
-<div class="desc"><p>get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.</p>
-<p>Extracts the links of pages containing the list of all products structured into
-category/subcategory/product type to effectively stored in relational database.
-Defines the structure of data extraction that helps store unstructured data in a structured manner.</p>
-<h2 id="args">Args</h2>
-<dl>
-<dt><strong><code>open_headless</code></strong> :&ensp;<code>bool</code></dt>
-<dd>Whether to open browser headless.</dd>
-<dt><strong><code>open_with_proxy_server</code></strong> :&ensp;<code>bool</code></dt>
-<dd>Whether to use proxy server.</dd>
-</dl>
-<h2 id="returns">Returns</h2>
-<dl>
-<dt><code>pd.DataFrame</code></dt>
-<dd>returns pandas dataframe containing urls for getting list of products, category, subcategory etc.</dd>
-</dl></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def get_product_type_urls(self, open_headless: bool, open_with_proxy_server: bool) -&gt; pd.DataFrame:
-    &#34;&#34;&#34;get_product_type_urls Extract the category/subcategory structure and urls to extract the products of those category/subcategory.
-
-    Extracts the links of pages containing the list of all products structured into
-    category/subcategory/product type to effectively stored in relational database.
-    Defines the structure of data extraction that helps store unstructured data in a structured manner.
-
-    Args:
-        open_headless (bool): Whether to open browser headless.
-        open_with_proxy_server (bool): Whether to use proxy server.
-
-    Returns:
-        pd.DataFrame: returns pandas dataframe containing urls for getting list of products, category, subcategory etc.
-    &#34;&#34;&#34;
-    # create webdriver instance
-    drv = self.open_browser(
-        open_headless=open_headless, open_with_proxy_server=open_with_proxy_server, path=self.metadata_path)
-
-    drv.get(self.base_url)
-    time.sleep(15)
-    # click and close welcome forms
-    accept_alert(drv, 10)
-    close_popups(drv)
-
-    try:
-        country_popup = WebDriverWait(drv, 3).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)))
-        pop_close_button = drv.find_element_by_css_selector(
-            &#39;.estores_overlay_content &gt; a:nth-child(1)&#39;)
-        Browser().scroll_to_element(drv, pop_close_button)
-        ActionChains(drv).move_to_element(
-            pop_close_button).click(pop_close_button).perform()
-    except Exception as ex:
-        pass
-
-    allowed_categories = [&#39;beauty&#39;, &#39;fragrance&#39;,
-                          &#39;toiletries&#39;, &#39;mens&#39;, &#39;wellness&#39;]
-    exclude_categories = [&#39;health-pharmacy&#39;, &#39;advice&#39;, &#39;luxury-beauty-premium-beauty-book-an-appointment&#39;,
-                          &#39;health-value-packs-and-bundles&#39;, &#39;all-luxury-skincare&#39;, &#39;wellness-supplements&#39;, &#39;travel-essentials&#39;,
-                          &#39;opticians&#39;, &#39;feminine-hygiene&#39;, &#39;travel-health&#39;, &#39;sunglasses&#39;, &#39;inspiration&#39;, &#39;food-and-drink&#39;,
-                          &#39;nutrition&#39;, &#39;vitaminsandsupplements&#39;, &#39;condoms-sexual-health&#39;, &#39;mens-health-information&#39;,
-                          &#39;weightloss&#39;, &#39;menshealth&#39;, &#39;recommended&#39;, &#39;offers&#39;, &#39;all-&#39;, &#39;male-incontinence&#39;, &#39;sustainable-living&#39;,
-                          &#39;bootsdental&#39;, &#39;back-to-school-and-nursery&#39;, &#39;luxury-beauty-skincare&#39;, &#39;mens-gift-sets&#39;,
-                          &#39;all-face&#39;, &#39;all-eyes&#39;, &#39;all-lips&#39;, &#39;gift/him/mens-aftershave&#39;, &#39;gift/her/luxury-beauty-gift&#39;,
-                          &#39;christmas/christmas-3-for-2&#39;, &#39;christmas/gifts-for-her&#39;, &#39;christmas/gifts-for-him&#39;,
-                          &#39;christmas/advent-calendars&#39;, &#39;beauty-expert-skincare-expert-skincare-shop-all&#39;,
-                          &#39;black-afro-and-textured-hair-straight-hair&#39;, &#39;black-afro-and-textured-hair-wavy&#39;,
-                          &#39;black-afro-and-textured-hair-straight-hair&#39;,
-                          ]
-    # Extracting the category-sub category structure
-    cat_urls = []
-    for i in drv.find_elements_by_css_selector(&#39;a[id*=&#34;subcategoryLink&#34;]&#39;):
-        cat_urls.append(i.get_attribute(&#39;href&#39;))
-
-    cat_urls = [u for u in cat_urls if any(
-        cat in str(u) for cat in allowed_categories)]
-    cat_urls = [u for u in cat_urls if all(
-        cat not in str(u) for cat in exclude_categories)]
-
-    prod_type_urls = []
-
-    for url in cat_urls:
-        drv.get(url)
-
-        time.sleep(6)
-        accept_alert(drv, 10)
-        close_popups(drv)
-
-        subcats = drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;)
-        if len(subcats) &gt; 0:
-            for i in drv.find_elements_by_css_selector(&#39;div.category-link&gt;a&#39;):
-                prod_type_urls.append(i.get_attribute(&#39;href&#39;))
-        else:
-            prod_type_urls.append(url)
-
-    prod_type_urls = [u for u in prod_type_urls if any(
-        cat in str(u) for cat in allowed_categories)]
-    prod_type_urls = [u for u in prod_type_urls if all(
-        cat not in str(u) for cat in exclude_categories)]
-
-    drv.quit()
-
-    df = pd.DataFrame(prod_type_urls, columns=[&#39;url&#39;])
-    df[&#39;dept&#39;], df[&#39;category_raw&#39;], df[&#39;subcategory_raw&#39;], df[&#39;product_type&#39;] = zip(
-        *df.url.str.split(&#39;/&#39;, expand=True).loc[:, 3:].values)
-
-    def set_cat_subcat_ptype(x):
-        if x.product_type is None:
-            return x.dept, x.category_raw, x.subcategory_raw
-        else:
-            return x.category_raw, x.subcategory_raw, x.product_type
-
-    df.category_raw, df.subcategory_raw, df.product_type = zip(
-        *df.apply(set_cat_subcat_ptype, axis=1))
-    df.drop(columns=[&#39;dept&#39;], inplace=True)
-    df.drop_duplicates(subset=&#39;url&#39;, inplace=True)
-    df.reset_index(inplace=True, drop=True)
-    df[&#39;scraped&#39;] = &#39;N&#39;
-    df.to_feather(self.metadata_path/f&#39;bts_product_type_urls_to_extract&#39;)
-    return df</code></pre>
-</details>
-</dd>
 <dt id="meiyume.bts.crawler.Metadata.terminate_logging"><code class="name flex">
 <span>def <span class="ident">terminate_logging</span></span>(<span>self)</span>
 </code></dt>
@@ -4259,11 +4169,10 @@ Defines the structure of data extraction that helps store unstructured data in a
 </li>
 <li>
 <h4><code><a title="meiyume.bts.crawler.Metadata" href="#meiyume.bts.crawler.Metadata">Metadata</a></code></h4>
-<ul class="">
+<ul class="two-column">
 <li><code><a title="meiyume.bts.crawler.Metadata.base_url" href="#meiyume.bts.crawler.Metadata.base_url">base_url</a></code></li>
 <li><code><a title="meiyume.bts.crawler.Metadata.extract" href="#meiyume.bts.crawler.Metadata.extract">extract</a></code></li>
 <li><code><a title="meiyume.bts.crawler.Metadata.get_metadata" href="#meiyume.bts.crawler.Metadata.get_metadata">get_metadata</a></code></li>
-<li><code><a title="meiyume.bts.crawler.Metadata.get_product_type_urls" href="#meiyume.bts.crawler.Metadata.get_product_type_urls">get_product_type_urls</a></code></li>
 <li><code><a title="meiyume.bts.crawler.Metadata.info" href="#meiyume.bts.crawler.Metadata.info">info</a></code></li>
 <li><code><a title="meiyume.bts.crawler.Metadata.source" href="#meiyume.bts.crawler.Metadata.source">source</a></code></li>
 <li><code><a title="meiyume.bts.crawler.Metadata.terminate_logging" href="#meiyume.bts.crawler.Metadata.terminate_logging">terminate_logging</a></code></li>

@@ -1,4 +1,4 @@
-""" This script runs spider to grab sephora review data."""
+""" This script runs spider to grab Boots detail and review data."""
 import gc
 import os
 import sys
@@ -18,15 +18,14 @@ open_with_proxy_server = True
 
 
 def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -> pd.DataFrame:
-    """get_metadata_with_last_scraped_review_date [summary]
-
-    [extended_summary]
+    """get_metadata_with_last_scraped_review_date queries redshift for last scraped review date of products available in review table.
 
     Args:
-        meta_df (pd.DataFrame): [description]
+        meta_df (pd.DataFrame): Metadata containing product page url to scrape.
 
     Returns:
-        pd.DataFrame: [description]
+        pd.DataFrame: metadata with last scraped review date as a new column.
+
     """
     df = db.query_database("with cte as (select row_number() over (partition by prod_id\
                                  order by review_date desc) as rn,\
@@ -86,8 +85,8 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
         if i[0] == 0:
-            fresh_start = False
-            auto_fresh_start = False
+            fresh_start = True
+            auto_fresh_start = True
         else:
             fresh_start = False
             auto_fresh_start = False
@@ -115,7 +114,7 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
                             open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
-        if trials <= 4:
+        if trials <= 2:
             reset_na = True
         else:
             reset_na = False
@@ -128,7 +127,7 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
 
     bts_crawler.extract(metadata=None, download=False, fresh_start=False, auto_fresh_start=False,
                         compile_progress_files=True,  clean=True, delete_progress=True)
-    # Path(review_crawler.review_path/'sph_review_progress_tracker.csv').unlink()
+
     bts_crawler.terminate_logging()
     del bts_crawler
     gc.collect()
