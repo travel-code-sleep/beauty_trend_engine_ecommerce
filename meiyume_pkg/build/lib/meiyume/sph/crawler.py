@@ -3183,7 +3183,7 @@ class DetailReview(Sephora):
 
             if no_of_reviews > 0:
                 reviews = self.get_reviews(
-                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
+                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental, reviews=[])
                 if len(reviews) > 0:
                     review_data.extend(reviews)
 

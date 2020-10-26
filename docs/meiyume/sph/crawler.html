@@ -3212,7 +3212,7 @@ class DetailReview(Sephora):
 
             if no_of_reviews &gt; 0:
                 reviews = self.get_reviews(
-                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
+                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental, reviews=[])
                 if len(reviews) &gt; 0:
                     review_data.extend(reviews)
 
@@ -6195,7 +6195,7 @@ Defaults to current directory(Path.cwd()).</dd>
 
             if no_of_reviews &gt; 0:
                 reviews = self.get_reviews(
-                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
+                    drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental, reviews=[])
                 if len(reviews) &gt; 0:
                     review_data.extend(reviews)
 
@@ -6664,7 +6664,7 @@ Defaults to []. Defaults to pd.DataFrame(columns=['prod_id', 'product_name', 'it
 
         if no_of_reviews &gt; 0:
             reviews = self.get_reviews(
-                drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental)
+                drv, prod_id, product_name, product_page, last_scraped_review_date, no_of_reviews, incremental, reviews=[])
             if len(reviews) &gt; 0:
                 review_data.extend(reviews)
 
