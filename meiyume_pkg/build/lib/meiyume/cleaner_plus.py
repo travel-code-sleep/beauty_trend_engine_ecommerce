@@ -1,36 +1,29 @@
-""" [summary]
-
-[extended_summary]
-
-Returns:
-    [type]: [description]
-"""
+"""The module to clean and structure unstructured webscraped natural language data."""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from numba import (jit, njit, vectorize, cuda)
-import concurrent.futures
-from tqdm.notebook import tqdm
-from tqdm import tqdm
-# import swifter
-import pandas as pd
-import numpy as np
-from typing import Union
-from functools import reduce
-from datetime import datetime, timedelta
-from ast import literal_eval
-from pathlib import Path
-import warnings
-import time
-import os
+
 import gc
-from typing import *
-from meiyume.utils import (Logger, Sephora, Boots, nan_equal,
-                           ModelsAlgorithms, MeiyumeException, S3FileManager)
-# text lib imports
-from unidecode import unidecode
+import os
 import re
-import string
+import warnings
+from ast import literal_eval
+# from datetime import datetime, timedelta
+from functools import reduce
+from pathlib import Path
+from typing import *
+from typing import Union
+
+import numpy as np
+
+import pandas as pd
 import spacy
+from tqdm import tqdm
+from tqdm.notebook import tqdm
+
+from unidecode import unidecode
+
+from meiyume.utils import (Boots, Logger, MeiyumeException, ModelsAlgorithms,
+                           S3FileManager, Sephora)
 
 file_manager = S3FileManager()
 tqdm.pandas()
@@ -39,18 +32,15 @@ np.random.seed(1337)
 
 
 class Cleaner():
-    """Cleaner.
+    """Cleaner class uses high performance python following functional programming to clean and structure data at scale."""
 
-    [extended_summary]
-    """
-
-    def __init__(self, path='.'):
-        """__init__ [summary]
-
-        [extended_summary]
+    def __init__(self, path: Union[str, Path] = Path.cwd()):
+        """__init__ Cleaner class instace initializer.
 
         Args:
-            path (str, optional): [description]. Defaults to '.'.
+            path (Union[str, Path], optional): Folder path where the cleaned output data structure will be saved
+                                               and uncleaned data will be read. Defaults to current directory(Path.cwd()).
+
         """
         self.path = Path(path)
         self.sph = Sephora(path=self.path)
@@ -59,22 +49,32 @@ class Cleaner():
 
     def clean(self, data: Union[str, Path, pd.DataFrame], save: bool = True,
               logs: bool = False, source: Optional[str] = None, definition: Optional[str] = None) -> pd.DataFrame:
-        """clean [summary]
+        """Clean method takes an uncleaned data file or path, determines the source and applies relevant function to clean webdata.
 
-        [extended_summary]
+        Clean method is dependent on four methods to clean specific types of e-commerce webdata:
+        1. Metadata cleaner
+        2. Detail cleaner
+        3. Item cleaner
+        4. Review cleaner
+
+        Once the data is cleaned and tranformed to relational structure the data is pushed to S3 storage for further processing
+        and insights generation by Algorithms module.
 
         Args:
-            data (Union[str, Path, pd.DataFrame]): [description]
-            save (bool, optional): [description]. Defaults to True.
-            logs (bool, optional): [description]. Defaults to False.
-            source (Optional[str], optional): [description]. Defaults to None.
-            definition (Optional[str], optional): [description]. Defaults to None.
+            data (Union[str, Path, pd.DataFrame]): Uncleaned data file path or dataframe.
+            save (bool, optional): Whether to save the cleaned data to disk. Defaults to True.
+            logs (bool, optional): Whether to generate logs during cleaning action. Defaults to False.
+            source (Optional[str], optional): The website code from which the data is extracted.
+                                              Defaults to None.(Current accepted values: [sph, bts])
+            definition (Optional[str], optional): The type of data. Defaults to None.(Accepted values: [Metadata, detail,
+                                                  item, review])
 
         Raises:
-            MeiyumeException: [description]
+            MeiyumeException: Raises exception if source or data files are incorrect.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Cleaned and structured metadata, detail, item, ingredient and review data.
+
         """
         if not isinstance(data, pd.core.frame.DataFrame):
             filename = str(data).split('\\')[-1]
@@ -111,10 +111,8 @@ class Cleaner():
     def get_cleaner_utility(self) -> Callable[[pd.DataFrame, bool], pd.DataFrame]:
         """get_cleaner_utility chooses the correct cleaning function based on the data definition.
 
-        [extended_summary]
-
         Raises:
-            MeiyumeException: raises exception if incorrect data definition is passed to the utility function.
+            MeiyumeException: Raises exception if incorrect data definition is passed to the utility function.
 
         Returns:
             Callable[[pd.DataFrame, bool], pd.DataFrame]: the cleaning utility function to clean the data.
@@ -132,15 +130,14 @@ class Cleaner():
 
     @staticmethod
     def make_price(price: str) -> Tuple[str, str, str]:
-        """make_price [summary]
-
-        [extended_summary]
+        """make_price separates cleaned product price data into individual pricing components.
 
         Args:
-            price (str): [description]
+            price (str): input price.
 
         Returns:
-            Tuple[str, str, str]: [description]
+            Tuple[str, str, str]: Cleaned and separated small product price, larger product price and mrp.
+
         """
         if '/' not in price and '-' not in price:
             return price, '', ''
@@ -167,15 +164,13 @@ class Cleaner():
 
     @staticmethod
     def clean_price(price: str) -> str:
-        """clean_price [summary]
-
-        [extended_summary]
+        """clean_price removes unwanted characters from product price data.
 
         Args:
-            price (str): [description]`
-
+            price (str): input price
         Returns:
-            str: [description]
+            str: Cleaned price.
+
         """
         replace_strings = (('$', ''), ('(', '/ '),
                            (')', ''), ('value', ''),
@@ -184,16 +179,15 @@ class Cleaner():
         return reduce(lambda a, kv: a.replace(*kv), replace_strings, price)
 
     def metadata_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
-        """metadata_cleaner [summary]
-
-        [extended_summary]
+        """metadata_cleaner cleans e-commerce product metdata.
 
         Args:
-            data (pd.DataFrame): [description]
-            save (bool): [description]
+            data (pd.DataFrame): Metadata to clean.
+            save (bool): Whether to save cleaned data to disk.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Cleaned metadata.
+
         """
         self.meta = data
         del data
@@ -295,11 +289,7 @@ class Cleaner():
                                     'price1', 'price2'], inplace=True)
 
         def fix_multi_low_price(x):
-            """[summary]
-
-            Arguments:
-                x {[type]} -- [description]
-            """
+            """Choose correct low price."""
             if len(x) > 7 and ' ' in x:
                 p = x.split()
                 return p[-1], p[0]
@@ -314,9 +304,10 @@ class Cleaner():
                                                                      Cleaner.make_price(y)))
             self.meta.drop('price', axis=1, inplace=True)
 
-            self.meta.low_p[self.meta.low_p.apply(len) > 7], self.meta.mrp[self.meta.low_p.apply(len) > 7] =\
-                zip(*self.meta.low_p[self.meta.low_p.apply(len)
-                                     > 7].apply(fix_multi_low_price))
+            if self.meta.low_p[self.meta.low_p.apply(len) > 7].count() != 0:
+                self.meta.low_p[self.meta.low_p.apply(len) > 7], self.meta.mrp[self.meta.low_p.apply(len) > 7] =\
+                    zip(*self.meta.low_p[self.meta.low_p.apply(len)
+                                         > 7].apply(fix_multi_low_price))
 
         # create product id
         self.meta['prod_id'] = self.meta.product_page.apply(
@@ -389,15 +380,15 @@ class Cleaner():
         return self.meta
 
     def detail_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
-        """detail_cleaner [summary]
-        [extended_summary]
+        """detail_cleaner cleans e-commerce product detail data.
 
         Args:
-            data (pd.DataFrame): [description]
-            save (bool): [description]
+            data (pd.DataFrame): Detail data file to clean.
+            save (bool): Whether to save cleaned data to disk.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Cleaned detail data.
+
         """
         self.detail = data
         del data
@@ -479,16 +470,19 @@ class Cleaner():
         return self.detail
 
     def item_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
-        """item_cleaner [summary]
+        """item_cleaner cleans e-commerce product item data.
 
-        [extended_summary]
+        Item cleaner generates two files, 1. Cleaned Item file and 2. Cleaned Ingredient File.
+        Once the cleaned item file is generated it does not require any algorithmic processing
+        and is pushed to S3 storage directly for Redshit ingestion.
 
         Args:
-            data (pd.DataFrame): [description]
-            save (bool): [description]
+            data (pd.DataFrame): Item data to clean.
+            save (bool): Whether to save cleaned data to disk.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Cleaned Item and Ingredient data.
+
         """
         nlp = spacy.load('en_core_web_lg')
 
@@ -515,12 +509,14 @@ class Cleaner():
             .apply(lambda x: x.str.lower() if(x.dtype == 'object') else x)
 
         def get_item_price(x: list) -> float:
-            """get_item_price [summary]
+            """get_item_price chooses the correct item price if more than one price is mentioned in website.
+
             Args:
-                x (list): [description]
+                x (list): List of prices of a product.
 
             Returns:
-                float: [description]
+                float: The chosen correct price of a product.
+
             """
             x = [float(i) for i in x]
             if len(x) == 1:
@@ -544,13 +540,14 @@ class Cleaner():
         #     get_item_price)
         if self.source == 'sph':
             def get_item_size_from_item_name(x: str) -> str:
-                """get_item_size_from_item_name [summary]
+                """get_item_size_from_item_name extracts the size of an item if it is mentioned in item name.
 
                 Args:
-                    x (str): [description]
+                    x (str): item name
 
                 Returns:
-                    str: [description]
+                    str: Extracted item size.
+
                 """
                 if x.item_size == '' and x.item_name != '':
                     if ' oz' in x.item_name or x.item_name.count(' ml') >= 1 or x.item_name.count(' g') >= 1:
@@ -561,13 +558,14 @@ class Cleaner():
                     return x.item_size
 
             def get_item_size(x: str) -> Tuple[str, str]:
-                """get_item_size [summary]
+                """get_item_size breaks item size data into oz, ml and gm components.
 
                 Args:
-                    x (str): [description]
+                    x (str): Item size.
 
                 Returns:
-                    Tuple[str, str]: [description]
+                    Tuple[str, str]: Size in oz and ml_gm.
+
                 """
                 if x != '':
                     lst = str(x).split('/')
@@ -613,13 +611,14 @@ class Cleaner():
         #     lambda x: 'New' if x in new_product_list else '')
 
         def clean_ing_sep(x: str) -> str:
-            """clean_ing_sep [summary]
+            """clean_ing_sep separates unwanted repetitive ingredient information from actual ingredient data.
 
             Args:
-                x (str): [description]
+                x (str): Jumbled/messy ingredient data.
 
             Returns:
-                str: [description]
+                str: Cleaned required ingredients.
+
             """
             if x.clean_flag == 'Clean' and x.item_ingredients is not np.nan:
                 return x.item_ingredients.split('clean at sephora')[0]+'\n'
@@ -740,16 +739,18 @@ class Cleaner():
         return self.item, self.ing
 
     def review_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
-        """review_cleaner [summary]
+        """review_cleaner cleans e-commerce product review data.
 
-        [extended_summary]
+        Review cleaner creates the user attributes for e-commerce data along with all the cleaning operations and
+        data transformations.
 
         Args:
-            data (pd.DataFrame): [description]
-            save (bool): [description]
+            data (pd.DataFrame): Metadata to clean.
+            save (bool): Whether to save cleaned data to disk.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Cleaned review data.
+
         """
         self.review = data
         del data

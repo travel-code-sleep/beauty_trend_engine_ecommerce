@@ -1,0 +1,3024 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>meiyume.utils API documentation</title>
+<meta name="description" content="Utils module contains crucial classes and functions that are used in all other modules of meiyume package." />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>meiyume.utils</code></h1>
+</header>
+<section id="section-intro">
+<p>Utils module contains crucial classes and functions that are used in all other modules of meiyume package.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Utils module contains crucial classes and functions that are used in all other modules of meiyume package.&#34;&#34;&#34;
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
+
+import gc
+import io
+import logging
+import os
+import re
+import sys
+import time
+from datetime import date, datetime, timedelta
+from pathlib import Path
+from typing import *
+
+import boto3
+import numpy as np
+import pandas as pd
+import pg8000
+from retrying import retry
+# import missingno as msno
+from selenium import webdriver
+from selenium.common.exceptions import (ElementClickInterceptedException,
+                                        NoSuchElementException,
+                                        StaleElementReferenceException,
+                                        TimeoutException)
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.alert import Alert
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.proxy import Proxy, ProxyType
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
+
+os.environ[&#39;WDM_LOG_LEVEL&#39;] = &#39;0&#39;
+
+
+class MeiyumeException(Exception):
+    &#34;&#34;&#34;MeiyumeException class to define custom exceptions in runtime.
+
+    Args:
+        Exception (object): Python exceptions module.
+
+    &#34;&#34;&#34;
+
+    pass
+
+
+class Browser(object):
+    &#34;&#34;&#34;Browser class serves selenium web-driver in head and headless mode for web scraping.
+
+    Browser module provides methods to either use chrome or firefox browser for scraping.
+
+    It carries out below functions:
+    1. Instantiate selenium driver for scraping.
+    2. Enable or disable ip rotation service
+    3. Open web pages to take high resolution screenshots.
+    4. Scroll web page.
+    5. Scroll to particular element on a webpage.
+
+    &#34;&#34;&#34;
+
+    def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                     open_with_proxy_server: bool = False, path: Path = Path.cwd()) -&gt; webdriver.Chrome:
+        &#34;&#34;&#34;open_browser instantiates selenium chrome driver with or without proxy services.
+
+        Args:
+            open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+            open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+            path (Path, optional): Folder path where the driver software will be saved and used from.
+                                   Defaults to current working directory(Path.cwd()).
+
+        Returns:
+            webdriver.Chrome: Instantiated chrome driver.
+
+        &#34;&#34;&#34;
+        # chrome_options = Options()
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.set_capability(&#39;unhandledPromptBehavior&#39;, &#39;accept&#39;)
+        chrome_options.set_capability(&#39;unexpectedAlertBehaviour&#39;, &#39;accept&#39;)
+        # chrome_options.add_argument(&#39;--no-sandbox&#39;)
+
+        if open_headless:
+            chrome_options.add_argument(&#39;--headless&#39;)
+
+        if open_for_screenshot:
+            WINDOW_SIZE = &#34;1920,1080&#34;
+            chrome_options.add_argument(&#34;--window-size=%s&#34; % WINDOW_SIZE)
+
+        if open_with_proxy_server:
+            chrome_options.add_argument(&#39;--ignore-ssl-errors=yes&#39;)
+            chrome_options.add_argument(&#39;--ignore-certificate-errors&#39;)
+            headless_proxy = &#34;127.0.0.1:3128&#34;
+            proxy = Proxy({
+                &#39;proxyType&#39;: ProxyType.MANUAL,
+                &#39;httpProxy&#39;: headless_proxy,
+                &#39;ftpProxy&#39;: headless_proxy,
+                &#39;sslProxy&#39;: headless_proxy,
+                &#34;noProxy&#34;: None,
+                &#34;proxyType&#34;: &#34;MANUAL&#34;,
+                &#34;class&#34;: &#34;org.openqa.selenium.Proxy&#34;,
+                &#34;autodetect&#34;: False,
+                &#34;acceptSslCerts&#34;: True,
+                &#34;unexpectedAlertBehaviour&#34;: &#34;accept&#34;,
+                &#34;browser.tabs.warnOnClose&#34;: False
+            })
+            capabilities = dict(DesiredCapabilities.CHROME)
+            proxy.add_to_capabilities(capabilities)
+            driver = webdriver.Chrome(ChromeDriverManager(path=path, log_level=0).install(),
+                                      desired_capabilities=capabilities, options=chrome_options)
+            driver.set_page_load_timeout(600)
+            return driver
+
+        driver = webdriver.Chrome(ChromeDriverManager(path=path,
+                                                      log_level=0).install(),
+                                  options=chrome_options)
+        driver.set_page_load_timeout(600)
+        return driver
+
+    def open_browser_firefox(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                             open_with_proxy_server: bool = False, path: Path = Path.cwd()) -&gt; webdriver.Firefox:
+        &#34;&#34;&#34;open_browser instantiates selenium firefox geckodriver with or without proxy services.
+
+        Args:
+            open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+            open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+            path (Path, optional): Folder path where the driver software will be saved and used from.
+                                   Defaults to current working directory(Path.cwd()).
+
+        Returns:
+            webdriver.Firefox: Instantiated firefox driver.
+
+        &#34;&#34;&#34;
+        # Add service path creation condition to store logs
+        if not Path(path/&#39;service&#39;).exists():
+            (path/&#39;service&#39;).mkdir(parents=True, exist_ok=True)
+
+        binary = FirefoxBinary(
+            r&#39;C:\Program Files\Mozilla Firefox\firefox.exe&#39;)
+        firefox_options = webdriver.FirefoxOptions()
+        firefox_options.set_capability(&#39;unhandledPromptBehavior&#39;, &#39;accept&#39;)
+        firefox_options.set_capability(&#39;unexpectedAlertBehaviour&#39;, &#39;accept&#39;)
+
+        if open_headless:
+            firefox_options.add_argument(&#39;--headless&#39;)
+
+        if open_for_screenshot:
+            WINDOW_SIZE = &#34;1920,1080&#34;
+            firefox_options.add_argument(&#34;--window-size=%s&#34; % WINDOW_SIZE)
+
+        if open_with_proxy_server:
+            firefox_options.add_argument(&#39;--ignore-ssl-errors=yes&#39;)
+            firefox_options.add_argument(&#39;--ignore-certificate-errors&#39;)
+            headless_proxy = &#34;127.0.0.1:3128&#34;
+            proxy = Proxy({
+                &#39;proxyType&#39;: ProxyType.MANUAL,
+                &#39;httpProxy&#39;: headless_proxy,
+                &#39;ftpProxy&#39;: headless_proxy,
+                &#39;sslProxy&#39;: headless_proxy,
+                &#34;noProxy&#34;: None,
+                &#34;proxyType&#34;: &#34;MANUAL&#34;,
+                &#34;class&#34;: &#34;org.openqa.selenium.Proxy&#34;,
+                &#34;autodetect&#34;: False,
+                &#34;acceptSslCerts&#34;: True,
+                &#34;unexpectedAlertBehaviour&#34;: &#34;accept&#34;,
+                &#34;browser.tabs.warnOnClose&#34;: False
+            })
+            capabilities = dict(DesiredCapabilities.FIREFOX)
+            capabilities[&#34;marionette&#34;] = True
+            proxy.add_to_capabilities(capabilities)
+            driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                       desired_capabilities=capabilities, options=firefox_options,
+                                       firefox_binary=binary, service_log_path=path/&#39;service/geckodriver.log&#39;,
+                                       log_path=path/&#39;geckodriver.log&#39;)
+            driver.set_page_load_timeout(600)
+            return driver
+
+        driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                   options=firefox_options, firefox_binary=binary,
+                                   service_log_path=path/&#39;service/geckodriver.log&#39;, log_path=path/&#39;geckodriver.log&#39;)
+        driver.set_page_load_timeout(600)
+        return driver
+
+    @staticmethod
+    def scroll_down_page(driver: Union[webdriver.Firefox, webdriver.Chrome], speed: int = 8,
+                         h1: int = 0, h2: int = 1) -&gt; None:
+        &#34;&#34;&#34;scroll_down_page scrolls up or down a page at given speed.
+
+        Args:
+            driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+            speed (int, optional): Scrolling speed. Defaults to 8.
+            h1 (int, optional): Starting height from which to scroll. Defaults to 0.
+            h2 (int, optional): Ending height to which to scroll. Defaults to 1.
+
+        &#34;&#34;&#34;
+        current_scroll_position, new_height = h1, h2
+        while current_scroll_position &lt;= new_height:
+            current_scroll_position += speed
+            driver.execute_script(
+                &#34;window.scrollTo(0, {});&#34;.format(current_scroll_position))
+            new_height = driver.execute_script(
+                &#34;return document.body.scrollHeight&#34;)
+
+    @staticmethod
+    def scroll_to_element(driver: Union[webdriver.Firefox, webdriver.Chrome], element: WebElement) -&gt; None:
+        &#34;&#34;&#34;scroll_to_element scrolls to a particular element on a webpage.
+
+        Args:
+            driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+            element (WebElement): The web element to scroll to.
+
+        &#34;&#34;&#34;
+        driver.execute_script(
+            &#34;arguments[0].scrollIntoView();&#34;, element)
+
+
+class Sephora(Browser):
+    &#34;&#34;&#34;This object is inherited by all crawler and cleaner classes in sph.crawler module.
+
+    Sephora class creates and sets directories for respective data definitions.
+
+    Args:
+        Browser (object): Browser class serves selenium webdriver in head or headless
+                          mode. It also provides some additional utilities such as scrolling. proxies etc.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
+        &#34;&#34;&#34;__init__ Sephora class instacne constructor creates all the data folder paths as per data definition.
+
+        The sub directories are created under parent directory only when the folders don&#39;t already exist.
+
+        Args:
+            data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
+            path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
+                                               will be created. Defaults to Path.cwd().
+
+        &#34;&#34;&#34;
+        super().__init__()
+        self.path = Path(Path(path)/&#39;sephora&#39;)
+
+        # set data paths as per calls from data definition classes
+        self.metadata_path = self.path/&#39;metadata&#39;
+        self.old_metadata_files_path = self.metadata_path/&#39;old_metadata_files&#39;
+        self.metadata_clean_path = self.metadata_path/&#39;clean&#39;
+        self.old_metadata_clean_files_path = self.metadata_path/&#39;cleaned_old_metadata_files&#39;
+        # set crawler trigger folders
+        self.detail_crawler_trigger_path = self.path/&#39;detail_crawler_trigger_folder&#39;
+        self.review_crawler_trigger_path = self.path/&#39;review_crawler_trigger_folder&#39;
+        if data_def == &#39;meta&#39;:
+            self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
+            self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+            self.detail_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+            self.review_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+
+        self.detail_path = self.path/&#39;detail&#39;
+        self.old_detail_files_path = self.detail_path/&#39;old_detail_files&#39;
+        self.detail_clean_path = self.detail_path/&#39;clean&#39;
+        self.old_detail_clean_files_path = self.detail_path/&#39;cleaned_old_detail_files&#39;
+        if data_def == &#39;detail&#39;:
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.review_path = self.path/&#39;review&#39;
+        self.old_review_files_path = self.review_path/&#39;old_review_files&#39;
+        self.review_clean_path = self.review_path/&#39;clean&#39;
+        self.old_review_clean_files_path = self.review_path/&#39;cleaned_old_review_files&#39;
+        if data_def == &#39;review&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.image_path = self.path/&#39;product_images&#39;
+        self.image_processed_path = self.image_path/&#39;processed_product_images&#39;
+        if data_def == &#39;image&#39;:
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        if data_def == &#39;detail_review_image&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+        # set universal log path for sephora
+        self.crawl_log_path = self.path/&#39;crawler_logs&#39;
+        self.crawl_log_path.mkdir(parents=True, exist_ok=True)
+        self.clean_log_path = self.path/&#39;cleaner_logs&#39;
+        self.clean_log_path.mkdir(parents=True, exist_ok=True)
+
+
+class Boots(Browser):
+    &#34;&#34;&#34;This object is inherited by all crawler and cleaner classes in bts.crawler module.
+
+    Boots class creates and sets directories for respective data definitions.
+
+    Args:
+        Browser (object): Browser class serves selenium webdriver in head or headless
+                          mode. It also provides some additional utilities such as scrolling. proxies etc.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
+        &#34;&#34;&#34;__init__ Boots class instance constructor creates all the data folder paths as per data definition.
+
+        The sub directories are created under parent directory only when the folders don&#39;t already exist.
+
+        Args:
+            data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
+            path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
+                                               will be created. Defaults to Path.cwd().
+
+        &#34;&#34;&#34;
+        super().__init__()
+        self.path = Path(Path(path)/&#39;boots&#39;)
+        # set data paths as per calls from data definition classes
+        self.metadata_path = self.path/&#39;metadata&#39;
+        self.old_metadata_files_path = self.metadata_path/&#39;old_metadata_files&#39;
+        self.metadata_clean_path = self.metadata_path/&#39;clean&#39;
+        self.old_metadata_clean_files_path = self.metadata_path/&#39;cleaned_old_metadata_files&#39;
+        # set crawler trigger folders
+        self.detail_crawler_trigger_path = self.path/&#39;detail_crawler_trigger_folder&#39;
+        self.review_crawler_trigger_path = self.path/&#39;review_crawler_trigger_folder&#39;
+        if data_def == &#39;meta&#39;:
+            self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
+            self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+            self.detail_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+            self.review_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+
+        self.detail_path = self.path/&#39;detail&#39;
+        self.old_detail_files_path = self.detail_path/&#39;old_detail_files&#39;
+        self.detail_clean_path = self.detail_path/&#39;clean&#39;
+        self.old_detail_clean_files_path = self.detail_path/&#39;cleaned_old_detail_files&#39;
+        if data_def == &#39;detail&#39;:
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.review_path = self.path/&#39;review&#39;
+        self.old_review_files_path = self.review_path/&#39;old_review_files&#39;
+        self.review_clean_path = self.review_path/&#39;clean&#39;
+        self.old_review_clean_files_path = self.review_path/&#39;cleaned_old_review_files&#39;
+        if data_def == &#39;review&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.image_path = self.path/&#39;product_images&#39;
+        self.image_processed_path = self.image_path/&#39;processed_product_images&#39;
+        if data_def == &#39;image&#39;:
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        if data_def == &#39;detail_review_image&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        # set universal log path for sephora
+        self.crawl_log_path = self.path/&#39;crawler_logs&#39;
+        self.crawl_log_path.mkdir(parents=True, exist_ok=True)
+        self.clean_log_path = self.path/&#39;cleaner_logs&#39;
+        self.clean_log_path.mkdir(parents=True, exist_ok=True)
+
+
+class ModelsAlgorithms(object):
+    &#34;&#34;&#34;ModelsAlgorithms creates folder structure to store outputs from several algorithms to disk.&#34;&#34;&#34;
+
+    def __init__(self, path: Union[str, Path] = Path.cwd()):
+        &#34;&#34;&#34;__init__ ModelsAlgorithms instance constructor will create the output paths at time of instantiation.
+
+        Args:
+            path Union[str, Path]: The parent directory where the output subdirectories will be created.
+                                   Defaults to current working directory(Path.cwd()).
+
+        &#34;&#34;&#34;
+        self.path = Path(path)
+        self.output_path = self.path/&#39;algorithm_outputs&#39;
+        self.output_path.mkdir(parents=True, exist_ok=True)
+
+        self.external_path = self.path/&#39;external_data_sources&#39;
+        self.external_path.mkdir(parents=True, exist_ok=True)
+
+        self.model_path = self.path/&#39;dl_ml_models&#39;
+        self.model_path.mkdir(parents=True, exist_ok=True)
+
+        self.sph = Sephora(path=&#39;.&#39;)
+        self.bts = Boots(path=&#39;.&#39;)
+
+
+class Logger(object):
+    &#34;&#34;&#34;Logger creates file handlers to write program execution logs to disk.&#34;&#34;&#34;
+
+    def __init__(self, task_name: str, path: Path):
+        &#34;&#34;&#34;__init__ initializes the file write stream.
+
+        Args:
+            task_name (str): Name of the log file.
+            path (Path): Path in which the generated logs will be stored.
+
+        &#34;&#34;&#34;
+        self.filename = path / \
+            f&#39;{task_name}_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.log&#39;
+
+    def start_log(self):
+        &#34;&#34;&#34;Start writing logs.&#34;&#34;&#34;
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+        formatter = logging.Formatter(&#39;%(asctime)s:%(levelname)s:%(message)s&#39;)
+        self.file_handler = logging.FileHandler(self.filename)
+        self.file_handler.setFormatter(formatter)
+        self.logger.addHandler(self.file_handler)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        stream_handler.setLevel(logging.WARNING)
+        self.logger.addHandler(stream_handler)
+        return self.logger, self.filename
+
+    def stop_log(self):
+        &#34;&#34;&#34;Stop writing logs and flush the file handlers.&#34;&#34;&#34;
+        # self.logger.removeHandler(self.file_handler)
+        del self.logger, self.file_handler
+        gc.collect()
+
+
+&#39;&#39;&#39;
+def show_missing_value(dataframe, viz_type=None):
+    &#34;&#34;&#34;[summary]
+
+    Arguments:
+        dataframe {[type]} -- [description]
+
+    Keyword Arguments:
+        viz_type {[type]} -- [description] (default: {None})
+    &#34;&#34;&#34;
+    if viz_type == &#39;matrix&#39;:
+        return msno.matrix(dataframe, figsize=(12, 4))
+    elif viz_type == &#39;percentage&#39;:
+        return dataframe.isna().mean() * 100
+    elif viz_type == &#39;dendrogram&#39;:
+        return msno.dendrogram(dataframe, figsize=(12, 8))
+    else:
+        return dataframe.isna().sum()
+&#39;&#39;&#39;
+
+
+def chunks(l, n):
+    &#34;&#34;&#34;Yield successive n-sized chunks from l.
+
+    Arguments:
+        l {[list, range, index]} -- [description]
+        n {[type]} -- [description]
+
+    &#34;&#34;&#34;
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
+def convert_ago_to_date(x: str) -&gt; str:
+    &#34;&#34;&#34;convert_ago_to_date removes ago from date and converts to proper date format.
+
+    Args:
+        x (str): Date data to clean. (e.g.: 11 days ago)
+
+    Returns:
+        str: Cleaned date data in dd mm yyyy format.
+
+    &#34;&#34;&#34;
+    if &#39;ago&#39; in x.lower() and x is not np.nan:
+        if &#39;d&#39; in x.lower():
+            days = int(x.split()[0])
+            date = datetime.today() - timedelta(days=days)
+            return date.strftime(&#39;%d %b %Y&#39;)
+        elif &#39;m&#39; in x.lower():
+            mins = int(x.split()[0])
+            date = datetime.today()  # - timedelta(minutes=mins)
+            return date.strftime(&#39;%d %b %Y&#39;)
+        elif &#39;h&#39; in x.lower():
+            hours = int(x.split()[0])
+            date = datetime.today()  # - timedelta(hours=hours)
+            return date.strftime(&#39;%d %b %Y&#39;)
+    else:
+        return x
+
+
+class S3FileManager(object):
+    &#34;&#34;&#34;S3FileManager reads from and writes data to aws S3 storage.
+
+    S3FileManager has below major functions:
+    1. Find stored files with string search.
+    2. Upload files to S3.
+    3. Download files from S3.
+    4. Read files from S3 into pandas dataframes.
+    5. Delete files in S3.
+    6. Crete S3 folder path for data upload.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, bucket: str = &#39;meiyume-datawarehouse-prod&#39;):
+        &#34;&#34;&#34;__init__ initializes S3FileManager instance with given data bucket.
+
+        Args:
+            bucket (str, optional): The S3 bucket from/to which files will be read/downloaded/uploaded.
+                                    Defaults to &#39;meiyume-datawarehouse-prod&#39;.
+
+        &#34;&#34;&#34;
+        self.bucket = bucket
+
+    def get_matching_s3_objects(self, prefix: str = &#34;&#34;, suffix: str = &#34;&#34;):
+        &#34;&#34;&#34;get_matching_s3_objects searches S3 with string matching to find relevant keys.
+
+        Args:
+            prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to &#34;&#34;.
+            suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to &#34;&#34;.
+
+        Yields:
+            Matching S3 keys.
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#34;s3&#34;)
+        paginator = s3.get_paginator(&#34;list_objects_v2&#34;)
+
+        kwargs = {&#39;Bucket&#39;: self.bucket}
+
+        # We can pass the prefix directly to the S3 API.  If the user has passed
+        # a tuple or list of prefixes, we go through them one by one.
+        if isinstance(prefix, str):
+            prefixes = (prefix, )
+        else:
+            prefixes = prefix
+
+        for key_prefix in prefixes:
+            kwargs[&#34;Prefix&#34;] = key_prefix
+
+            for page in paginator.paginate(**kwargs):
+                try:
+                    contents = page[&#34;Contents&#34;]
+                except KeyError:
+                    break
+
+                for obj in contents:
+                    key = obj[&#34;Key&#34;]
+                    if key.endswith(suffix):
+                        yield obj
+
+    def get_matching_s3_keys(self, prefix: str = &#34;&#34;, suffix: str = &#34;&#34;):
+        &#34;&#34;&#34;get_matching_s3_keys Generates the matching keys in an S3 bucket.
+
+        Args:
+            prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to &#34;&#34;.
+            suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to &#34;&#34;.
+
+        Yields:
+            Any: Matching S3 object key
+
+        &#34;&#34;&#34;
+        for obj in self.get_matching_s3_objects(prefix, suffix):
+            yield obj  # obj[&#34;Key&#34;]
+
+    def get_last_modified_s3(self, key: str) -&gt; dict:
+        &#34;&#34;&#34;get_last_modified_date_s3 gets the last modified date of a S3 object.
+
+        Args:
+            key (str): Object key to find last modified date for.
+
+        Returns:
+            dict: Dictionary containing the key and last modified timestamp.
+
+        &#34;&#34;&#34;
+        s3 = boto3.resource(&#39;s3&#39;)
+        k = s3.Bucket(self.bucket).Object(key)  # pylint: disable=no-member
+        return {&#39;key_name&#39;: k.key, &#39;key_last_modified&#39;: str(k.last_modified)}
+
+    def get_prefix_s3(self, job_name: str) -&gt; str:
+        &#34;&#34;&#34;get_prefix_s3 sets the correct S3 file prefix depending on the upload job.
+
+        [extended_summary]
+
+        Args:
+            job_name (str): [description]
+
+        Raises:
+            MeiyumeException: [description]
+
+        Returns:
+            str: [description]
+
+        &#34;&#34;&#34;
+        upload_jobs = {
+            &#39;source_meta&#39;: &#39;Feeds/BeautyTrendEngine/Source_Meta/Staging/&#39;,
+            &#39;meta_detail&#39;: &#39;Feeds/BeautyTrendEngine/Meta_Detail/Staging/&#39;,
+            &#39;item&#39;: &#39;Feeds/BeautyTrendEngine/Item/Staging/&#39;,
+            &#39;ingredient&#39;: &#39;Feeds/BeautyTrendEngine/Ingredient/Staging/&#39;,
+            &#39;review&#39;: &#39;Feeds/BeautyTrendEngine/Review/Staging/&#39;,
+            &#39;review_summary&#39;: &#39;Feeds/BeautyTrendEngine/Review_Summary/Staging/&#39;,
+            &#39;image&#39;: &#39;Feeds/BeautyTrendEngine/Image/Staging/&#39;,
+            &#39;cleaned_pre_algorithm&#39;: &#39;Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/&#39;,
+            &#39;webapp&#39;: &#39;Feeds/BeautyTrendEngine/WebAppData/&#39;
+        }
+
+        try:
+            return upload_jobs[job_name]
+        except Exception as ex:
+            raise MeiyumeException(
+                &#39;Unrecognizable job. Please input correct job_name.&#39;)
+        &#39;&#39;&#39;
+        if job_name == &#39;source_meta&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Source_Meta/Staging/&#39;
+        elif job_name == &#39;meta_detail&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Meta_Detail/Staging/&#39;
+        elif job_name == &#39;item&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Item/Staging/&#39;
+        elif job_name == &#39;ingredient&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Ingredient/Staging/&#39;
+        elif job_name == &#39;review&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Review/Staging/&#39;
+        elif job_name == &#39;review_summary&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Review_Summary/Staging/&#39;
+        elif job_name == &#39;image&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Image/Staging/&#39;
+        elif job_name == &#39;cleaned_pre_algorithm&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/&#39;
+        elif job_name == &#39;webapp&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/WebAppData/&#39;
+        else:
+            raise MeiyumeException(
+                &#39;Unrecognizable job. Please input correct job_name.&#39;)
+        return prefix
+        &#39;&#39;&#39;
+
+    def push_file_s3(self, file_path: Union[str, Path], job_name: str) -&gt; None:
+        &#34;&#34;&#34;push_file_s3 upload file to S3 storage with job name specific prefix.
+
+        Args:
+            file_path (Union[str, Path]): File path of the file to be uploaded as a string or Path object.
+            job_name (str): Type of file to upload: One of [meta_detail, item, ingredient,
+                                                        review, review_summary, image,
+                                                        cleaned_pre_algorithm, webappdata]
+
+        &#34;&#34;&#34;
+        # cls.make_manager()
+        file_name = str(file_path).split(&#34;\\&#34;)[-1]
+
+        prefix = self.get_prefix_s3(job_name)
+        object_name = prefix+file_name
+        # try:
+        s3_client = boto3.client(&#39;s3&#39;)
+        try:
+            s3_client.upload_file(str(file_path), self.bucket, object_name)
+            print(&#39;file pushed successfully.&#39;)
+        except Exception:
+            print(&#39;file pushing task failed.&#39;)
+
+    def pull_file_s3(self, key: str, file_path: Path = Path.cwd()) -&gt; None:
+        &#34;&#34;&#34;pull_file_s3 dowload file from S3.
+
+        Args:
+            key (str): The file object to download.
+            file_path (Path, optional): The path in which the downloaded file will be stored.
+                                        Defaults to current working directory (Path.cwd()).
+
+        &#34;&#34;&#34;
+        s3 = boto3.resource(&#39;s3&#39;)
+        file_name = str(key).split(&#39;/&#39;)[-1]
+        s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
+            key, f&#39;{file_path}/{file_name}&#39;)
+
+    def read_data_to_dataframe_s3(self, key: str, file_type: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;read_data_to_dataframe_s3 reads S3 object into a pandas dataframe.
+
+        Args:
+            key (str): S3 object key.
+            file_type (str): File format.
+
+        Raises:
+            MeiyumeException: Raises exception if incorrect key or file type provied. (Accepted types: csv, feather, pickle)
+
+        Returns:
+            pd.DataFrame: File data in pandas dataframe.
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#39;s3&#39;)
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+
+        try:
+            if file_type == &#39;csv&#39;:
+                return pd.read_csv(io.BytesIO(obj[&#39;Body&#39;].read()), sep=&#39;~&#39;)
+            elif file_type == &#39;feather&#39;:
+                return pd.read_feather(io.BytesIO(obj[&#39;Body&#39;].read()))
+            elif file_type == &#39;pickle&#39;:
+                return pd.read_pickle(io.BytesIO(obj[&#39;Body&#39;].read()))
+        except Exception as ex:
+            raise MeiyumeException(&#39;Provide correct file key and file type.&#39;)
+
+    def read_feather_s3(self, key: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;read_feather_s3 will be removed in next version.
+
+        [extended_summary]
+
+        Args:
+            key (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#39;s3&#39;)
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        df = pd.read_feather(io.BytesIO(obj[&#39;Body&#39;].read()))
+        return df
+
+    def read_csv_s3(self, key: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;read_csv_s3 will be removed in next version.
+
+        [extended_summary]
+
+        Args:
+            key (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#39;s3&#39;)
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        df = pd.read_csv(io.BytesIO(obj[&#39;Body&#39;].read()), sep=&#39;~&#39;)
+        return df
+
+    def delete_file_s3(self, key: str) -&gt; None:
+        &#34;&#34;&#34;delete_file_s3 delete file object from S3.
+
+        Args:
+            key (str): The file key to delete.
+
+        &#34;&#34;&#34;
+        s3 = boto3.resource(&#39;s3&#39;)
+        try:
+            s3.Object(self.bucket, key).delete()  # pylint: disable=no-member
+            print(&#39;file deleted.&#39;)
+        except Exception:
+            print(&#39;delete operation failed&#39;)
+
+
+class RedShiftReader(object):
+    &#34;&#34;&#34;RedShiftReader connects to Redshift database and performs table querying for trend engine schema.&#34;&#34;&#34;
+
+    def __init__(self):
+        &#34;&#34;&#34;__init__ initializes RedshiftReader instance with all the database connection properties.&#34;&#34;&#34;
+        self.host = &#39;lifungprod.cctlwakofj4t.ap-southeast-1.redshift.amazonaws.com&#39;
+        self.port = 5439
+        self.database = &#39;lifungdb&#39;
+        self.user_name = &#39;btemymuser&#39;
+        self.password = &#39;Lifung123&#39;
+        self.conn = pg8000.connect(
+            database=self.database, host=self.host, port=self.port,
+            user=self.user_name, password=self.password)
+
+    def query_database(self, query: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;query_database takes a sql query in text format and returns table/view query results as pandas dataframe.
+
+        Args:
+            query (str): Sql query as a string in double quotes.
+
+        Returns:
+            pd.DataFrame: Dataframe containing query results.
+
+        &#34;&#34;&#34;
+        df = pd.read_sql_query(query, self.conn)
+        df.columns = [name.decode(&#39;utf-8&#39;) for name in df.columns]
+        return df
+
+
+def log_exception(logger: Logger, additional_information: Optional[str] = None) -&gt; None:
+    &#34;&#34;&#34;log_exception logs exception when occurred while executing code.
+
+    Args:
+        logger (Logger): The logger handler with access to log file.
+        additional_information (Optional[str], optional): Any additional text info to add to the exception log.
+                                                          Defaults to None.
+
+    &#34;&#34;&#34;
+    exc_type, exc_obj, exc_tb = \
+        sys.exc_info(
+        )
+    file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    if additional_information:
+        logger.info(str.encode(
+            f&#39;Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
+                (Filename: {file_name}). {additional_information}&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+    else:
+        logger.info(str.encode(
+            f&#39;Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
+            (Filename: {file_name}).&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+
+
+def close_popups(drv: Union[webdriver.Firefox, webdriver.Chrome]):
+    &#34;&#34;&#34;close_popups closes pop up banners/messages/windows on webpage during scraping.
+
+    Args:
+        drv (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+
+    &#34;&#34;&#34;
+    # close popup windows
+    try:
+        alert = drv.switch_to.alert
+        alert.accept()
+    except Exception:
+        pass
+    try:
+        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+        time.sleep(1)
+        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+    except Exception:
+        pass
+
+
+def accept_alert(drv: Union[webdriver.Firefox, webdriver.Chrome], wait_time: int) -&gt; None:
+    &#34;&#34;&#34;accept_alert accepts unusual alerts on the webpage when scraping.
+
+    Args:
+        drv (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+        wait_time (int): Time to wait for the alert to appear.
+
+    &#34;&#34;&#34;
+    try:
+        WebDriverWait(drv, wait_time).until(EC.alert_is_present(),
+                                            &#39;Timed out waiting for PA creation &#39; +
+                                            &#39;confirmation popup to appear.&#39;)
+        alert = drv.switch_to.alert
+        alert.accept()
+        print(&#34;alert accepted&#34;)
+    except TimeoutException:
+        pass
+
+
+def ranges(N: int, nb: int, start_idx: int = 0) -&gt; list:
+    &#34;&#34;&#34;Ranges partions a sequence of integers into equally spaced ranges.
+
+    Args:
+        N (int): end index of the range or length
+        nb (int): no. of equally spaced ranges to return
+        start_idx (int, optional): Start index of the range list. Defaults to 0.
+                                   If start index is given the range partions will start from start_idx instead of 0.
+
+    Returns:
+        list: list of equispaced ranges between [(start_idx, N)]
+
+    &#34;&#34;&#34;
+    step = (N-start_idx) / nb
+    return [range(start_idx+round(step*i), start_idx+round(step*(i+1))) for i in range(nb)]
+
+
+def hasNumbers(inputString: str) -&gt; bool:
+    &#34;&#34;&#34;Hasnumbers checks whether string contains any numerical characters.
+
+    Args:
+        inputString (str): Input String
+
+    Returns:
+        bool: True if contains numbers.
+
+    &#34;&#34;&#34;
+    return bool(re.search(r&#39;\d&#39;, inputString))
+
+
+class DataAggregator(object):
+    &#34;&#34;&#34;DataAggregator future class to handle data merging from multiple sites.
+
+    [extended_summary]
+
+    Args:
+        object ([type]): [description]
+
+    &#34;&#34;&#34;
+
+    # def __init__(self):
+    #     self.sph = Sephora(path=&#39;.&#39;)
+    #     pass</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="meiyume.utils.accept_alert"><code class="name flex">
+<span>def <span class="ident">accept_alert</span></span>(<span>drv: Union[selenium.webdriver.firefox.webdriver.WebDriver, selenium.webdriver.chrome.webdriver.WebDriver], wait_time: int) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>accept_alert accepts unusual alerts on the webpage when scraping.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>drv</code></strong> :&ensp;<code>Union[webdriver.Firefox, webdriver.Chrome]</code></dt>
+<dd>The selenium driver with opened webpage.</dd>
+<dt><strong><code>wait_time</code></strong> :&ensp;<code>int</code></dt>
+<dd>Time to wait for the alert to appear.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def accept_alert(drv: Union[webdriver.Firefox, webdriver.Chrome], wait_time: int) -&gt; None:
+    &#34;&#34;&#34;accept_alert accepts unusual alerts on the webpage when scraping.
+
+    Args:
+        drv (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+        wait_time (int): Time to wait for the alert to appear.
+
+    &#34;&#34;&#34;
+    try:
+        WebDriverWait(drv, wait_time).until(EC.alert_is_present(),
+                                            &#39;Timed out waiting for PA creation &#39; +
+                                            &#39;confirmation popup to appear.&#39;)
+        alert = drv.switch_to.alert
+        alert.accept()
+        print(&#34;alert accepted&#34;)
+    except TimeoutException:
+        pass</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.chunks"><code class="name flex">
+<span>def <span class="ident">chunks</span></span>(<span>l, n)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Yield successive n-sized chunks from l.</p>
+<h2 id="arguments">Arguments</h2>
+<p>l {[list, range, index]} &ndash; [description]
+n {[type]} &ndash; [description]</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def chunks(l, n):
+    &#34;&#34;&#34;Yield successive n-sized chunks from l.
+
+    Arguments:
+        l {[list, range, index]} -- [description]
+        n {[type]} -- [description]
+
+    &#34;&#34;&#34;
+    for i in range(0, len(l), n):
+        yield l[i:i + n]</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.close_popups"><code class="name flex">
+<span>def <span class="ident">close_popups</span></span>(<span>drv: Union[selenium.webdriver.firefox.webdriver.WebDriver, selenium.webdriver.chrome.webdriver.WebDriver])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>close_popups closes pop up banners/messages/windows on webpage during scraping.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>drv</code></strong> :&ensp;<code>Union[webdriver.Firefox, webdriver.Chrome]</code></dt>
+<dd>The selenium driver with opened webpage.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def close_popups(drv: Union[webdriver.Firefox, webdriver.Chrome]):
+    &#34;&#34;&#34;close_popups closes pop up banners/messages/windows on webpage during scraping.
+
+    Args:
+        drv (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+
+    &#34;&#34;&#34;
+    # close popup windows
+    try:
+        alert = drv.switch_to.alert
+        alert.accept()
+    except Exception:
+        pass
+    try:
+        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+        time.sleep(1)
+        ActionChains(drv).send_keys(Keys.ESCAPE).perform()
+    except Exception:
+        pass</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.convert_ago_to_date"><code class="name flex">
+<span>def <span class="ident">convert_ago_to_date</span></span>(<span>x: str) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>convert_ago_to_date removes ago from date and converts to proper date format.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>x</code></strong> :&ensp;<code>str</code></dt>
+<dd>Date data to clean. (e.g.: 11 days ago)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>str</code></dt>
+<dd>Cleaned date data in dd mm yyyy format.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def convert_ago_to_date(x: str) -&gt; str:
+    &#34;&#34;&#34;convert_ago_to_date removes ago from date and converts to proper date format.
+
+    Args:
+        x (str): Date data to clean. (e.g.: 11 days ago)
+
+    Returns:
+        str: Cleaned date data in dd mm yyyy format.
+
+    &#34;&#34;&#34;
+    if &#39;ago&#39; in x.lower() and x is not np.nan:
+        if &#39;d&#39; in x.lower():
+            days = int(x.split()[0])
+            date = datetime.today() - timedelta(days=days)
+            return date.strftime(&#39;%d %b %Y&#39;)
+        elif &#39;m&#39; in x.lower():
+            mins = int(x.split()[0])
+            date = datetime.today()  # - timedelta(minutes=mins)
+            return date.strftime(&#39;%d %b %Y&#39;)
+        elif &#39;h&#39; in x.lower():
+            hours = int(x.split()[0])
+            date = datetime.today()  # - timedelta(hours=hours)
+            return date.strftime(&#39;%d %b %Y&#39;)
+    else:
+        return x</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.hasNumbers"><code class="name flex">
+<span>def <span class="ident">hasNumbers</span></span>(<span>inputString: str) ‑> bool</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Hasnumbers checks whether string contains any numerical characters.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>inputString</code></strong> :&ensp;<code>str</code></dt>
+<dd>Input String</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>bool</code></dt>
+<dd>True if contains numbers.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def hasNumbers(inputString: str) -&gt; bool:
+    &#34;&#34;&#34;Hasnumbers checks whether string contains any numerical characters.
+
+    Args:
+        inputString (str): Input String
+
+    Returns:
+        bool: True if contains numbers.
+
+    &#34;&#34;&#34;
+    return bool(re.search(r&#39;\d&#39;, inputString))</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.log_exception"><code class="name flex">
+<span>def <span class="ident">log_exception</span></span>(<span>logger: <a title="meiyume.utils.Logger" href="#meiyume.utils.Logger">Logger</a>, additional_information: Union[str, NoneType] = None) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>log_exception logs exception when occurred while executing code.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>logger</code></strong> :&ensp;<code><a title="meiyume.utils.Logger" href="#meiyume.utils.Logger">Logger</a></code></dt>
+<dd>The logger handler with access to log file.</dd>
+<dt><strong><code>additional_information</code></strong> :&ensp;<code>Optional[str]</code>, optional</dt>
+<dd>Any additional text info to add to the exception log.
+Defaults to None.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def log_exception(logger: Logger, additional_information: Optional[str] = None) -&gt; None:
+    &#34;&#34;&#34;log_exception logs exception when occurred while executing code.
+
+    Args:
+        logger (Logger): The logger handler with access to log file.
+        additional_information (Optional[str], optional): Any additional text info to add to the exception log.
+                                                          Defaults to None.
+
+    &#34;&#34;&#34;
+    exc_type, exc_obj, exc_tb = \
+        sys.exc_info(
+        )
+    file_name = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+    if additional_information:
+        logger.info(str.encode(
+            f&#39;Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
+                (Filename: {file_name}). {additional_information}&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))
+    else:
+        logger.info(str.encode(
+            f&#39;Exception: {exc_type} occurred at line number {exc_tb.tb_lineno}.\
+            (Filename: {file_name}).&#39;, &#39;utf-8&#39;, &#39;ignore&#39;))</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.ranges"><code class="name flex">
+<span>def <span class="ident">ranges</span></span>(<span>N: int, nb: int, start_idx: int = 0) ‑> list</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Ranges partions a sequence of integers into equally spaced ranges.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>N</code></strong> :&ensp;<code>int</code></dt>
+<dd>end index of the range or length</dd>
+<dt><strong><code>nb</code></strong> :&ensp;<code>int</code></dt>
+<dd>no. of equally spaced ranges to return</dd>
+<dt><strong><code>start_idx</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Start index of the range list. Defaults to 0.
+If start index is given the range partions will start from start_idx instead of 0.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>list</code></dt>
+<dd>list of equispaced ranges between [(start_idx, N)]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ranges(N: int, nb: int, start_idx: int = 0) -&gt; list:
+    &#34;&#34;&#34;Ranges partions a sequence of integers into equally spaced ranges.
+
+    Args:
+        N (int): end index of the range or length
+        nb (int): no. of equally spaced ranges to return
+        start_idx (int, optional): Start index of the range list. Defaults to 0.
+                                   If start index is given the range partions will start from start_idx instead of 0.
+
+    Returns:
+        list: list of equispaced ranges between [(start_idx, N)]
+
+    &#34;&#34;&#34;
+    step = (N-start_idx) / nb
+    return [range(start_idx+round(step*i), start_idx+round(step*(i+1))) for i in range(nb)]</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="meiyume.utils.Boots"><code class="flex name class">
+<span>class <span class="ident">Boots</span></span>
+<span>(</span><span>data_def: str = None, path: Union[str, pathlib.Path] = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes'))</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This object is inherited by all crawler and cleaner classes in bts.crawler module.</p>
+<p>Boots class creates and sets directories for respective data definitions.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>Browser</code></strong> :&ensp;<code>object</code></dt>
+<dd>Browser class serves selenium webdriver in head or headless
+mode. It also provides some additional utilities such as scrolling. proxies etc.</dd>
+</dl>
+<p><strong>init</strong> Boots class instance constructor creates all the data folder paths as per data definition.</p>
+<p>The sub directories are created under parent directory only when the folders don't already exist.</p>
+<h2 id="args_1">Args</h2>
+<dl>
+<dt><strong><code>data_def</code></strong> :&ensp;<code>[type]</code>, optional</dt>
+<dd>Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])</dd>
+<dt><strong><code>path</code></strong> :&ensp;<code>Union[str, Path]</code>, optional</dt>
+<dd>The parent directory where the data definition specific sub-directories
+will be created. Defaults to Path.cwd().</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Boots(Browser):
+    &#34;&#34;&#34;This object is inherited by all crawler and cleaner classes in bts.crawler module.
+
+    Boots class creates and sets directories for respective data definitions.
+
+    Args:
+        Browser (object): Browser class serves selenium webdriver in head or headless
+                          mode. It also provides some additional utilities such as scrolling. proxies etc.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
+        &#34;&#34;&#34;__init__ Boots class instance constructor creates all the data folder paths as per data definition.
+
+        The sub directories are created under parent directory only when the folders don&#39;t already exist.
+
+        Args:
+            data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
+            path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
+                                               will be created. Defaults to Path.cwd().
+
+        &#34;&#34;&#34;
+        super().__init__()
+        self.path = Path(Path(path)/&#39;boots&#39;)
+        # set data paths as per calls from data definition classes
+        self.metadata_path = self.path/&#39;metadata&#39;
+        self.old_metadata_files_path = self.metadata_path/&#39;old_metadata_files&#39;
+        self.metadata_clean_path = self.metadata_path/&#39;clean&#39;
+        self.old_metadata_clean_files_path = self.metadata_path/&#39;cleaned_old_metadata_files&#39;
+        # set crawler trigger folders
+        self.detail_crawler_trigger_path = self.path/&#39;detail_crawler_trigger_folder&#39;
+        self.review_crawler_trigger_path = self.path/&#39;review_crawler_trigger_folder&#39;
+        if data_def == &#39;meta&#39;:
+            self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
+            self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+            self.detail_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+            self.review_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+
+        self.detail_path = self.path/&#39;detail&#39;
+        self.old_detail_files_path = self.detail_path/&#39;old_detail_files&#39;
+        self.detail_clean_path = self.detail_path/&#39;clean&#39;
+        self.old_detail_clean_files_path = self.detail_path/&#39;cleaned_old_detail_files&#39;
+        if data_def == &#39;detail&#39;:
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.review_path = self.path/&#39;review&#39;
+        self.old_review_files_path = self.review_path/&#39;old_review_files&#39;
+        self.review_clean_path = self.review_path/&#39;clean&#39;
+        self.old_review_clean_files_path = self.review_path/&#39;cleaned_old_review_files&#39;
+        if data_def == &#39;review&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.image_path = self.path/&#39;product_images&#39;
+        self.image_processed_path = self.image_path/&#39;processed_product_images&#39;
+        if data_def == &#39;image&#39;:
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        if data_def == &#39;detail_review_image&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        # set universal log path for sephora
+        self.crawl_log_path = self.path/&#39;crawler_logs&#39;
+        self.crawl_log_path.mkdir(parents=True, exist_ok=True)
+        self.clean_log_path = self.path/&#39;cleaner_logs&#39;
+        self.clean_log_path.mkdir(parents=True, exist_ok=True)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="meiyume.utils.Browser" href="#meiyume.utils.Browser">Browser</a></li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="meiyume.bts.crawler.DetailReview" href="bts/crawler.html#meiyume.bts.crawler.DetailReview">DetailReview</a></li>
+<li><a title="meiyume.bts.crawler.Metadata" href="bts/crawler.html#meiyume.bts.crawler.Metadata">Metadata</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="meiyume.utils.Browser" href="#meiyume.utils.Browser">Browser</a></b></code>:
+<ul class="hlist">
+<li><code><a title="meiyume.utils.Browser.open_browser" href="#meiyume.utils.Browser.open_browser">open_browser</a></code></li>
+<li><code><a title="meiyume.utils.Browser.open_browser_firefox" href="#meiyume.utils.Browser.open_browser_firefox">open_browser_firefox</a></code></li>
+<li><code><a title="meiyume.utils.Browser.scroll_down_page" href="#meiyume.utils.Browser.scroll_down_page">scroll_down_page</a></code></li>
+<li><code><a title="meiyume.utils.Browser.scroll_to_element" href="#meiyume.utils.Browser.scroll_to_element">scroll_to_element</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+<dt id="meiyume.utils.Browser"><code class="flex name class">
+<span>class <span class="ident">Browser</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>Browser class serves selenium web-driver in head and headless mode for web scraping.</p>
+<p>Browser module provides methods to either use chrome or firefox browser for scraping.</p>
+<p>It carries out below functions:
+1. Instantiate selenium driver for scraping.
+2. Enable or disable ip rotation service
+3. Open web pages to take high resolution screenshots.
+4. Scroll web page.
+5. Scroll to particular element on a webpage.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Browser(object):
+    &#34;&#34;&#34;Browser class serves selenium web-driver in head and headless mode for web scraping.
+
+    Browser module provides methods to either use chrome or firefox browser for scraping.
+
+    It carries out below functions:
+    1. Instantiate selenium driver for scraping.
+    2. Enable or disable ip rotation service
+    3. Open web pages to take high resolution screenshots.
+    4. Scroll web page.
+    5. Scroll to particular element on a webpage.
+
+    &#34;&#34;&#34;
+
+    def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                     open_with_proxy_server: bool = False, path: Path = Path.cwd()) -&gt; webdriver.Chrome:
+        &#34;&#34;&#34;open_browser instantiates selenium chrome driver with or without proxy services.
+
+        Args:
+            open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+            open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+            path (Path, optional): Folder path where the driver software will be saved and used from.
+                                   Defaults to current working directory(Path.cwd()).
+
+        Returns:
+            webdriver.Chrome: Instantiated chrome driver.
+
+        &#34;&#34;&#34;
+        # chrome_options = Options()
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.set_capability(&#39;unhandledPromptBehavior&#39;, &#39;accept&#39;)
+        chrome_options.set_capability(&#39;unexpectedAlertBehaviour&#39;, &#39;accept&#39;)
+        # chrome_options.add_argument(&#39;--no-sandbox&#39;)
+
+        if open_headless:
+            chrome_options.add_argument(&#39;--headless&#39;)
+
+        if open_for_screenshot:
+            WINDOW_SIZE = &#34;1920,1080&#34;
+            chrome_options.add_argument(&#34;--window-size=%s&#34; % WINDOW_SIZE)
+
+        if open_with_proxy_server:
+            chrome_options.add_argument(&#39;--ignore-ssl-errors=yes&#39;)
+            chrome_options.add_argument(&#39;--ignore-certificate-errors&#39;)
+            headless_proxy = &#34;127.0.0.1:3128&#34;
+            proxy = Proxy({
+                &#39;proxyType&#39;: ProxyType.MANUAL,
+                &#39;httpProxy&#39;: headless_proxy,
+                &#39;ftpProxy&#39;: headless_proxy,
+                &#39;sslProxy&#39;: headless_proxy,
+                &#34;noProxy&#34;: None,
+                &#34;proxyType&#34;: &#34;MANUAL&#34;,
+                &#34;class&#34;: &#34;org.openqa.selenium.Proxy&#34;,
+                &#34;autodetect&#34;: False,
+                &#34;acceptSslCerts&#34;: True,
+                &#34;unexpectedAlertBehaviour&#34;: &#34;accept&#34;,
+                &#34;browser.tabs.warnOnClose&#34;: False
+            })
+            capabilities = dict(DesiredCapabilities.CHROME)
+            proxy.add_to_capabilities(capabilities)
+            driver = webdriver.Chrome(ChromeDriverManager(path=path, log_level=0).install(),
+                                      desired_capabilities=capabilities, options=chrome_options)
+            driver.set_page_load_timeout(600)
+            return driver
+
+        driver = webdriver.Chrome(ChromeDriverManager(path=path,
+                                                      log_level=0).install(),
+                                  options=chrome_options)
+        driver.set_page_load_timeout(600)
+        return driver
+
+    def open_browser_firefox(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                             open_with_proxy_server: bool = False, path: Path = Path.cwd()) -&gt; webdriver.Firefox:
+        &#34;&#34;&#34;open_browser instantiates selenium firefox geckodriver with or without proxy services.
+
+        Args:
+            open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+            open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+            open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+            path (Path, optional): Folder path where the driver software will be saved and used from.
+                                   Defaults to current working directory(Path.cwd()).
+
+        Returns:
+            webdriver.Firefox: Instantiated firefox driver.
+
+        &#34;&#34;&#34;
+        # Add service path creation condition to store logs
+        if not Path(path/&#39;service&#39;).exists():
+            (path/&#39;service&#39;).mkdir(parents=True, exist_ok=True)
+
+        binary = FirefoxBinary(
+            r&#39;C:\Program Files\Mozilla Firefox\firefox.exe&#39;)
+        firefox_options = webdriver.FirefoxOptions()
+        firefox_options.set_capability(&#39;unhandledPromptBehavior&#39;, &#39;accept&#39;)
+        firefox_options.set_capability(&#39;unexpectedAlertBehaviour&#39;, &#39;accept&#39;)
+
+        if open_headless:
+            firefox_options.add_argument(&#39;--headless&#39;)
+
+        if open_for_screenshot:
+            WINDOW_SIZE = &#34;1920,1080&#34;
+            firefox_options.add_argument(&#34;--window-size=%s&#34; % WINDOW_SIZE)
+
+        if open_with_proxy_server:
+            firefox_options.add_argument(&#39;--ignore-ssl-errors=yes&#39;)
+            firefox_options.add_argument(&#39;--ignore-certificate-errors&#39;)
+            headless_proxy = &#34;127.0.0.1:3128&#34;
+            proxy = Proxy({
+                &#39;proxyType&#39;: ProxyType.MANUAL,
+                &#39;httpProxy&#39;: headless_proxy,
+                &#39;ftpProxy&#39;: headless_proxy,
+                &#39;sslProxy&#39;: headless_proxy,
+                &#34;noProxy&#34;: None,
+                &#34;proxyType&#34;: &#34;MANUAL&#34;,
+                &#34;class&#34;: &#34;org.openqa.selenium.Proxy&#34;,
+                &#34;autodetect&#34;: False,
+                &#34;acceptSslCerts&#34;: True,
+                &#34;unexpectedAlertBehaviour&#34;: &#34;accept&#34;,
+                &#34;browser.tabs.warnOnClose&#34;: False
+            })
+            capabilities = dict(DesiredCapabilities.FIREFOX)
+            capabilities[&#34;marionette&#34;] = True
+            proxy.add_to_capabilities(capabilities)
+            driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                       desired_capabilities=capabilities, options=firefox_options,
+                                       firefox_binary=binary, service_log_path=path/&#39;service/geckodriver.log&#39;,
+                                       log_path=path/&#39;geckodriver.log&#39;)
+            driver.set_page_load_timeout(600)
+            return driver
+
+        driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                   options=firefox_options, firefox_binary=binary,
+                                   service_log_path=path/&#39;service/geckodriver.log&#39;, log_path=path/&#39;geckodriver.log&#39;)
+        driver.set_page_load_timeout(600)
+        return driver
+
+    @staticmethod
+    def scroll_down_page(driver: Union[webdriver.Firefox, webdriver.Chrome], speed: int = 8,
+                         h1: int = 0, h2: int = 1) -&gt; None:
+        &#34;&#34;&#34;scroll_down_page scrolls up or down a page at given speed.
+
+        Args:
+            driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+            speed (int, optional): Scrolling speed. Defaults to 8.
+            h1 (int, optional): Starting height from which to scroll. Defaults to 0.
+            h2 (int, optional): Ending height to which to scroll. Defaults to 1.
+
+        &#34;&#34;&#34;
+        current_scroll_position, new_height = h1, h2
+        while current_scroll_position &lt;= new_height:
+            current_scroll_position += speed
+            driver.execute_script(
+                &#34;window.scrollTo(0, {});&#34;.format(current_scroll_position))
+            new_height = driver.execute_script(
+                &#34;return document.body.scrollHeight&#34;)
+
+    @staticmethod
+    def scroll_to_element(driver: Union[webdriver.Firefox, webdriver.Chrome], element: WebElement) -&gt; None:
+        &#34;&#34;&#34;scroll_to_element scrolls to a particular element on a webpage.
+
+        Args:
+            driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+            element (WebElement): The web element to scroll to.
+
+        &#34;&#34;&#34;
+        driver.execute_script(
+            &#34;arguments[0].scrollIntoView();&#34;, element)</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="meiyume.utils.Boots" href="#meiyume.utils.Boots">Boots</a></li>
+<li><a title="meiyume.utils.Sephora" href="#meiyume.utils.Sephora">Sephora</a></li>
+</ul>
+<h3>Static methods</h3>
+<dl>
+<dt id="meiyume.utils.Browser.scroll_down_page"><code class="name flex">
+<span>def <span class="ident">scroll_down_page</span></span>(<span>driver: Union[selenium.webdriver.firefox.webdriver.WebDriver, selenium.webdriver.chrome.webdriver.WebDriver], speed: int = 8, h1: int = 0, h2: int = 1) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>scroll_down_page scrolls up or down a page at given speed.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>driver</code></strong> :&ensp;<code>Union[webdriver.Firefox, webdriver.Chrome]</code></dt>
+<dd>The selenium driver with opened webpage.</dd>
+<dt><strong><code>speed</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Scrolling speed. Defaults to 8.</dd>
+<dt><strong><code>h1</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Starting height from which to scroll. Defaults to 0.</dd>
+<dt><strong><code>h2</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>Ending height to which to scroll. Defaults to 1.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def scroll_down_page(driver: Union[webdriver.Firefox, webdriver.Chrome], speed: int = 8,
+                     h1: int = 0, h2: int = 1) -&gt; None:
+    &#34;&#34;&#34;scroll_down_page scrolls up or down a page at given speed.
+
+    Args:
+        driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+        speed (int, optional): Scrolling speed. Defaults to 8.
+        h1 (int, optional): Starting height from which to scroll. Defaults to 0.
+        h2 (int, optional): Ending height to which to scroll. Defaults to 1.
+
+    &#34;&#34;&#34;
+    current_scroll_position, new_height = h1, h2
+    while current_scroll_position &lt;= new_height:
+        current_scroll_position += speed
+        driver.execute_script(
+            &#34;window.scrollTo(0, {});&#34;.format(current_scroll_position))
+        new_height = driver.execute_script(
+            &#34;return document.body.scrollHeight&#34;)</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.Browser.scroll_to_element"><code class="name flex">
+<span>def <span class="ident">scroll_to_element</span></span>(<span>driver: Union[selenium.webdriver.firefox.webdriver.WebDriver, selenium.webdriver.chrome.webdriver.WebDriver], element: selenium.webdriver.remote.webelement.WebElement) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>scroll_to_element scrolls to a particular element on a webpage.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>driver</code></strong> :&ensp;<code>Union[webdriver.Firefox, webdriver.Chrome]</code></dt>
+<dd>The selenium driver with opened webpage.</dd>
+<dt><strong><code>element</code></strong> :&ensp;<code>WebElement</code></dt>
+<dd>The web element to scroll to.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def scroll_to_element(driver: Union[webdriver.Firefox, webdriver.Chrome], element: WebElement) -&gt; None:
+    &#34;&#34;&#34;scroll_to_element scrolls to a particular element on a webpage.
+
+    Args:
+        driver (Union[webdriver.Firefox, webdriver.Chrome]): The selenium driver with opened webpage.
+        element (WebElement): The web element to scroll to.
+
+    &#34;&#34;&#34;
+    driver.execute_script(
+        &#34;arguments[0].scrollIntoView();&#34;, element)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="meiyume.utils.Browser.open_browser"><code class="name flex">
+<span>def <span class="ident">open_browser</span></span>(<span>self, open_headless: bool = False, open_for_screenshot: bool = False, open_with_proxy_server: bool = False, path: pathlib.Path = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes')) ‑> selenium.webdriver.chrome.webdriver.WebDriver</span>
+</code></dt>
+<dd>
+<div class="desc"><p>open_browser instantiates selenium chrome driver with or without proxy services.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>open_headless</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to open browser in headless mode. Defaults to False.</dd>
+<dt><strong><code>open_for_screenshot</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to open browser to take screenshots. Defaults to False.</dd>
+<dt><strong><code>open_with_proxy_server</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to enable ip rotation service. Defaults to False.</dd>
+<dt><strong><code>path</code></strong> :&ensp;<code>Path</code>, optional</dt>
+<dd>Folder path where the driver software will be saved and used from.
+Defaults to current working directory(Path.cwd()).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>webdriver.Chrome</code></dt>
+<dd>Instantiated chrome driver.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def open_browser(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                 open_with_proxy_server: bool = False, path: Path = Path.cwd()) -&gt; webdriver.Chrome:
+    &#34;&#34;&#34;open_browser instantiates selenium chrome driver with or without proxy services.
+
+    Args:
+        open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+        open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+        open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+        path (Path, optional): Folder path where the driver software will be saved and used from.
+                               Defaults to current working directory(Path.cwd()).
+
+    Returns:
+        webdriver.Chrome: Instantiated chrome driver.
+
+    &#34;&#34;&#34;
+    # chrome_options = Options()
+    chrome_options = webdriver.ChromeOptions()
+    chrome_options.set_capability(&#39;unhandledPromptBehavior&#39;, &#39;accept&#39;)
+    chrome_options.set_capability(&#39;unexpectedAlertBehaviour&#39;, &#39;accept&#39;)
+    # chrome_options.add_argument(&#39;--no-sandbox&#39;)
+
+    if open_headless:
+        chrome_options.add_argument(&#39;--headless&#39;)
+
+    if open_for_screenshot:
+        WINDOW_SIZE = &#34;1920,1080&#34;
+        chrome_options.add_argument(&#34;--window-size=%s&#34; % WINDOW_SIZE)
+
+    if open_with_proxy_server:
+        chrome_options.add_argument(&#39;--ignore-ssl-errors=yes&#39;)
+        chrome_options.add_argument(&#39;--ignore-certificate-errors&#39;)
+        headless_proxy = &#34;127.0.0.1:3128&#34;
+        proxy = Proxy({
+            &#39;proxyType&#39;: ProxyType.MANUAL,
+            &#39;httpProxy&#39;: headless_proxy,
+            &#39;ftpProxy&#39;: headless_proxy,
+            &#39;sslProxy&#39;: headless_proxy,
+            &#34;noProxy&#34;: None,
+            &#34;proxyType&#34;: &#34;MANUAL&#34;,
+            &#34;class&#34;: &#34;org.openqa.selenium.Proxy&#34;,
+            &#34;autodetect&#34;: False,
+            &#34;acceptSslCerts&#34;: True,
+            &#34;unexpectedAlertBehaviour&#34;: &#34;accept&#34;,
+            &#34;browser.tabs.warnOnClose&#34;: False
+        })
+        capabilities = dict(DesiredCapabilities.CHROME)
+        proxy.add_to_capabilities(capabilities)
+        driver = webdriver.Chrome(ChromeDriverManager(path=path, log_level=0).install(),
+                                  desired_capabilities=capabilities, options=chrome_options)
+        driver.set_page_load_timeout(600)
+        return driver
+
+    driver = webdriver.Chrome(ChromeDriverManager(path=path,
+                                                  log_level=0).install(),
+                              options=chrome_options)
+    driver.set_page_load_timeout(600)
+    return driver</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.Browser.open_browser_firefox"><code class="name flex">
+<span>def <span class="ident">open_browser_firefox</span></span>(<span>self, open_headless: bool = False, open_for_screenshot: bool = False, open_with_proxy_server: bool = False, path: pathlib.Path = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes')) ‑> selenium.webdriver.firefox.webdriver.WebDriver</span>
+</code></dt>
+<dd>
+<div class="desc"><p>open_browser instantiates selenium firefox geckodriver with or without proxy services.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>open_headless</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to open browser in headless mode. Defaults to False.</dd>
+<dt><strong><code>open_for_screenshot</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to open browser to take screenshots. Defaults to False.</dd>
+<dt><strong><code>open_with_proxy_server</code></strong> :&ensp;<code>bool</code>, optional</dt>
+<dd>Whether to enable ip rotation service. Defaults to False.</dd>
+<dt><strong><code>path</code></strong> :&ensp;<code>Path</code>, optional</dt>
+<dd>Folder path where the driver software will be saved and used from.
+Defaults to current working directory(Path.cwd()).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>webdriver.Firefox</code></dt>
+<dd>Instantiated firefox driver.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def open_browser_firefox(self, open_headless: bool = False, open_for_screenshot: bool = False,
+                         open_with_proxy_server: bool = False, path: Path = Path.cwd()) -&gt; webdriver.Firefox:
+    &#34;&#34;&#34;open_browser instantiates selenium firefox geckodriver with or without proxy services.
+
+    Args:
+        open_headless (bool, optional): Whether to open browser in headless mode. Defaults to False.
+        open_for_screenshot (bool, optional): Whether to open browser to take screenshots. Defaults to False.
+        open_with_proxy_server (bool, optional): Whether to enable ip rotation service. Defaults to False.
+        path (Path, optional): Folder path where the driver software will be saved and used from.
+                               Defaults to current working directory(Path.cwd()).
+
+    Returns:
+        webdriver.Firefox: Instantiated firefox driver.
+
+    &#34;&#34;&#34;
+    # Add service path creation condition to store logs
+    if not Path(path/&#39;service&#39;).exists():
+        (path/&#39;service&#39;).mkdir(parents=True, exist_ok=True)
+
+    binary = FirefoxBinary(
+        r&#39;C:\Program Files\Mozilla Firefox\firefox.exe&#39;)
+    firefox_options = webdriver.FirefoxOptions()
+    firefox_options.set_capability(&#39;unhandledPromptBehavior&#39;, &#39;accept&#39;)
+    firefox_options.set_capability(&#39;unexpectedAlertBehaviour&#39;, &#39;accept&#39;)
+
+    if open_headless:
+        firefox_options.add_argument(&#39;--headless&#39;)
+
+    if open_for_screenshot:
+        WINDOW_SIZE = &#34;1920,1080&#34;
+        firefox_options.add_argument(&#34;--window-size=%s&#34; % WINDOW_SIZE)
+
+    if open_with_proxy_server:
+        firefox_options.add_argument(&#39;--ignore-ssl-errors=yes&#39;)
+        firefox_options.add_argument(&#39;--ignore-certificate-errors&#39;)
+        headless_proxy = &#34;127.0.0.1:3128&#34;
+        proxy = Proxy({
+            &#39;proxyType&#39;: ProxyType.MANUAL,
+            &#39;httpProxy&#39;: headless_proxy,
+            &#39;ftpProxy&#39;: headless_proxy,
+            &#39;sslProxy&#39;: headless_proxy,
+            &#34;noProxy&#34;: None,
+            &#34;proxyType&#34;: &#34;MANUAL&#34;,
+            &#34;class&#34;: &#34;org.openqa.selenium.Proxy&#34;,
+            &#34;autodetect&#34;: False,
+            &#34;acceptSslCerts&#34;: True,
+            &#34;unexpectedAlertBehaviour&#34;: &#34;accept&#34;,
+            &#34;browser.tabs.warnOnClose&#34;: False
+        })
+        capabilities = dict(DesiredCapabilities.FIREFOX)
+        capabilities[&#34;marionette&#34;] = True
+        proxy.add_to_capabilities(capabilities)
+        driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                                   desired_capabilities=capabilities, options=firefox_options,
+                                   firefox_binary=binary, service_log_path=path/&#39;service/geckodriver.log&#39;,
+                                   log_path=path/&#39;geckodriver.log&#39;)
+        driver.set_page_load_timeout(600)
+        return driver
+
+    driver = webdriver.Firefox(executable_path=GeckoDriverManager(path=path, log_level=0).install(),
+                               options=firefox_options, firefox_binary=binary,
+                               service_log_path=path/&#39;service/geckodriver.log&#39;, log_path=path/&#39;geckodriver.log&#39;)
+    driver.set_page_load_timeout(600)
+    return driver</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="meiyume.utils.DataAggregator"><code class="flex name class">
+<span>class <span class="ident">DataAggregator</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>DataAggregator future class to handle data merging from multiple sites.</p>
+<p>[extended_summary]</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>object</code></strong> :&ensp;<code>[type]</code></dt>
+<dd>[description]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DataAggregator(object):
+    &#34;&#34;&#34;DataAggregator future class to handle data merging from multiple sites.
+
+    [extended_summary]
+
+    Args:
+        object ([type]): [description]
+
+    &#34;&#34;&#34;</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.Logger"><code class="flex name class">
+<span>class <span class="ident">Logger</span></span>
+<span>(</span><span>task_name: str, path: pathlib.Path)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Logger creates file handlers to write program execution logs to disk.</p>
+<p><strong>init</strong> initializes the file write stream.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>task_name</code></strong> :&ensp;<code>str</code></dt>
+<dd>Name of the log file.</dd>
+<dt><strong><code>path</code></strong> :&ensp;<code>Path</code></dt>
+<dd>Path in which the generated logs will be stored.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Logger(object):
+    &#34;&#34;&#34;Logger creates file handlers to write program execution logs to disk.&#34;&#34;&#34;
+
+    def __init__(self, task_name: str, path: Path):
+        &#34;&#34;&#34;__init__ initializes the file write stream.
+
+        Args:
+            task_name (str): Name of the log file.
+            path (Path): Path in which the generated logs will be stored.
+
+        &#34;&#34;&#34;
+        self.filename = path / \
+            f&#39;{task_name}_{time.strftime(&#34;%Y-%m-%d-%H%M%S&#34;)}.log&#39;
+
+    def start_log(self):
+        &#34;&#34;&#34;Start writing logs.&#34;&#34;&#34;
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.logger.propagate = False
+        formatter = logging.Formatter(&#39;%(asctime)s:%(levelname)s:%(message)s&#39;)
+        self.file_handler = logging.FileHandler(self.filename)
+        self.file_handler.setFormatter(formatter)
+        self.logger.addHandler(self.file_handler)
+        stream_handler = logging.StreamHandler()
+        stream_handler.setFormatter(formatter)
+        stream_handler.setLevel(logging.WARNING)
+        self.logger.addHandler(stream_handler)
+        return self.logger, self.filename
+
+    def stop_log(self):
+        &#34;&#34;&#34;Stop writing logs and flush the file handlers.&#34;&#34;&#34;
+        # self.logger.removeHandler(self.file_handler)
+        del self.logger, self.file_handler
+        gc.collect()</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="meiyume.utils.Logger.start_log"><code class="name flex">
+<span>def <span class="ident">start_log</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Start writing logs.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def start_log(self):
+    &#34;&#34;&#34;Start writing logs.&#34;&#34;&#34;
+    self.logger = logging.getLogger(__name__)
+    self.logger.setLevel(logging.INFO)
+    self.logger.propagate = False
+    formatter = logging.Formatter(&#39;%(asctime)s:%(levelname)s:%(message)s&#39;)
+    self.file_handler = logging.FileHandler(self.filename)
+    self.file_handler.setFormatter(formatter)
+    self.logger.addHandler(self.file_handler)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+    stream_handler.setLevel(logging.WARNING)
+    self.logger.addHandler(stream_handler)
+    return self.logger, self.filename</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.Logger.stop_log"><code class="name flex">
+<span>def <span class="ident">stop_log</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Stop writing logs and flush the file handlers.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def stop_log(self):
+    &#34;&#34;&#34;Stop writing logs and flush the file handlers.&#34;&#34;&#34;
+    # self.logger.removeHandler(self.file_handler)
+    del self.logger, self.file_handler
+    gc.collect()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="meiyume.utils.MeiyumeException"><code class="flex name class">
+<span>class <span class="ident">MeiyumeException</span></span>
+<span>(</span><span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>MeiyumeException class to define custom exceptions in runtime.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>Exception</code></strong> :&ensp;<code>object</code></dt>
+<dd>Python exceptions module.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class MeiyumeException(Exception):
+    &#34;&#34;&#34;MeiyumeException class to define custom exceptions in runtime.
+
+    Args:
+        Exception (object): Python exceptions module.
+
+    &#34;&#34;&#34;
+
+    pass</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>builtins.Exception</li>
+<li>builtins.BaseException</li>
+</ul>
+</dd>
+<dt id="meiyume.utils.ModelsAlgorithms"><code class="flex name class">
+<span>class <span class="ident">ModelsAlgorithms</span></span>
+<span>(</span><span>path: Union[str, pathlib.Path] = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes'))</span>
+</code></dt>
+<dd>
+<div class="desc"><p>ModelsAlgorithms creates folder structure to store outputs from several algorithms to disk.</p>
+<p><strong>init</strong> ModelsAlgorithms instance constructor will create the output paths at time of instantiation.</p>
+<h2 id="args">Args</h2>
+<p>path Union[str, Path]: The parent directory where the output subdirectories will be created.
+Defaults to current working directory(Path.cwd()).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ModelsAlgorithms(object):
+    &#34;&#34;&#34;ModelsAlgorithms creates folder structure to store outputs from several algorithms to disk.&#34;&#34;&#34;
+
+    def __init__(self, path: Union[str, Path] = Path.cwd()):
+        &#34;&#34;&#34;__init__ ModelsAlgorithms instance constructor will create the output paths at time of instantiation.
+
+        Args:
+            path Union[str, Path]: The parent directory where the output subdirectories will be created.
+                                   Defaults to current working directory(Path.cwd()).
+
+        &#34;&#34;&#34;
+        self.path = Path(path)
+        self.output_path = self.path/&#39;algorithm_outputs&#39;
+        self.output_path.mkdir(parents=True, exist_ok=True)
+
+        self.external_path = self.path/&#39;external_data_sources&#39;
+        self.external_path.mkdir(parents=True, exist_ok=True)
+
+        self.model_path = self.path/&#39;dl_ml_models&#39;
+        self.model_path.mkdir(parents=True, exist_ok=True)
+
+        self.sph = Sephora(path=&#39;.&#39;)
+        self.bts = Boots(path=&#39;.&#39;)</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="meiyume.algorithms.KeyWords" href="algorithms.html#meiyume.algorithms.KeyWords">KeyWords</a></li>
+<li><a title="meiyume.algorithms.PredictInfluence" href="algorithms.html#meiyume.algorithms.PredictInfluence">PredictInfluence</a></li>
+<li><a title="meiyume.algorithms.PredictSentiment" href="algorithms.html#meiyume.algorithms.PredictSentiment">PredictSentiment</a></li>
+<li><a title="meiyume.algorithms.SelectCandidate" href="algorithms.html#meiyume.algorithms.SelectCandidate">SelectCandidate</a></li>
+<li><a title="meiyume.algorithms.SexyIngredient" href="algorithms.html#meiyume.algorithms.SexyIngredient">SexyIngredient</a></li>
+<li><a title="meiyume.algorithms.SexyMetaDetail" href="algorithms.html#meiyume.algorithms.SexyMetaDetail">SexyMetaDetail</a></li>
+<li><a title="meiyume.algorithms.SexyReview" href="algorithms.html#meiyume.algorithms.SexyReview">SexyReview</a></li>
+<li><a title="meiyume.algorithms.Summarizer" href="algorithms.html#meiyume.algorithms.Summarizer">Summarizer</a></li>
+</ul>
+</dd>
+<dt id="meiyume.utils.RedShiftReader"><code class="flex name class">
+<span>class <span class="ident">RedShiftReader</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>RedShiftReader connects to Redshift database and performs table querying for trend engine schema.</p>
+<p><strong>init</strong> initializes RedshiftReader instance with all the database connection properties.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class RedShiftReader(object):
+    &#34;&#34;&#34;RedShiftReader connects to Redshift database and performs table querying for trend engine schema.&#34;&#34;&#34;
+
+    def __init__(self):
+        &#34;&#34;&#34;__init__ initializes RedshiftReader instance with all the database connection properties.&#34;&#34;&#34;
+        self.host = &#39;lifungprod.cctlwakofj4t.ap-southeast-1.redshift.amazonaws.com&#39;
+        self.port = 5439
+        self.database = &#39;lifungdb&#39;
+        self.user_name = &#39;btemymuser&#39;
+        self.password = &#39;Lifung123&#39;
+        self.conn = pg8000.connect(
+            database=self.database, host=self.host, port=self.port,
+            user=self.user_name, password=self.password)
+
+    def query_database(self, query: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;query_database takes a sql query in text format and returns table/view query results as pandas dataframe.
+
+        Args:
+            query (str): Sql query as a string in double quotes.
+
+        Returns:
+            pd.DataFrame: Dataframe containing query results.
+
+        &#34;&#34;&#34;
+        df = pd.read_sql_query(query, self.conn)
+        df.columns = [name.decode(&#39;utf-8&#39;) for name in df.columns]
+        return df</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="meiyume.utils.RedShiftReader.query_database"><code class="name flex">
+<span>def <span class="ident">query_database</span></span>(<span>self, query: str) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>query_database takes a sql query in text format and returns table/view query results as pandas dataframe.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>query</code></strong> :&ensp;<code>str</code></dt>
+<dd>Sql query as a string in double quotes.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>Dataframe containing query results.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def query_database(self, query: str) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;query_database takes a sql query in text format and returns table/view query results as pandas dataframe.
+
+    Args:
+        query (str): Sql query as a string in double quotes.
+
+    Returns:
+        pd.DataFrame: Dataframe containing query results.
+
+    &#34;&#34;&#34;
+    df = pd.read_sql_query(query, self.conn)
+    df.columns = [name.decode(&#39;utf-8&#39;) for name in df.columns]
+    return df</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="meiyume.utils.S3FileManager"><code class="flex name class">
+<span>class <span class="ident">S3FileManager</span></span>
+<span>(</span><span>bucket: str = 'meiyume-datawarehouse-prod')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>S3FileManager reads from and writes data to aws S3 storage.</p>
+<p>S3FileManager has below major functions:
+1. Find stored files with string search.
+2. Upload files to S3.
+3. Download files from S3.
+4. Read files from S3 into pandas dataframes.
+5. Delete files in S3.
+6. Crete S3 folder path for data upload.</p>
+<p><strong>init</strong> initializes S3FileManager instance with given data bucket.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>bucket</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>The S3 bucket from/to which files will be read/downloaded/uploaded.
+Defaults to 'meiyume-datawarehouse-prod'.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class S3FileManager(object):
+    &#34;&#34;&#34;S3FileManager reads from and writes data to aws S3 storage.
+
+    S3FileManager has below major functions:
+    1. Find stored files with string search.
+    2. Upload files to S3.
+    3. Download files from S3.
+    4. Read files from S3 into pandas dataframes.
+    5. Delete files in S3.
+    6. Crete S3 folder path for data upload.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, bucket: str = &#39;meiyume-datawarehouse-prod&#39;):
+        &#34;&#34;&#34;__init__ initializes S3FileManager instance with given data bucket.
+
+        Args:
+            bucket (str, optional): The S3 bucket from/to which files will be read/downloaded/uploaded.
+                                    Defaults to &#39;meiyume-datawarehouse-prod&#39;.
+
+        &#34;&#34;&#34;
+        self.bucket = bucket
+
+    def get_matching_s3_objects(self, prefix: str = &#34;&#34;, suffix: str = &#34;&#34;):
+        &#34;&#34;&#34;get_matching_s3_objects searches S3 with string matching to find relevant keys.
+
+        Args:
+            prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to &#34;&#34;.
+            suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to &#34;&#34;.
+
+        Yields:
+            Matching S3 keys.
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#34;s3&#34;)
+        paginator = s3.get_paginator(&#34;list_objects_v2&#34;)
+
+        kwargs = {&#39;Bucket&#39;: self.bucket}
+
+        # We can pass the prefix directly to the S3 API.  If the user has passed
+        # a tuple or list of prefixes, we go through them one by one.
+        if isinstance(prefix, str):
+            prefixes = (prefix, )
+        else:
+            prefixes = prefix
+
+        for key_prefix in prefixes:
+            kwargs[&#34;Prefix&#34;] = key_prefix
+
+            for page in paginator.paginate(**kwargs):
+                try:
+                    contents = page[&#34;Contents&#34;]
+                except KeyError:
+                    break
+
+                for obj in contents:
+                    key = obj[&#34;Key&#34;]
+                    if key.endswith(suffix):
+                        yield obj
+
+    def get_matching_s3_keys(self, prefix: str = &#34;&#34;, suffix: str = &#34;&#34;):
+        &#34;&#34;&#34;get_matching_s3_keys Generates the matching keys in an S3 bucket.
+
+        Args:
+            prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to &#34;&#34;.
+            suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to &#34;&#34;.
+
+        Yields:
+            Any: Matching S3 object key
+
+        &#34;&#34;&#34;
+        for obj in self.get_matching_s3_objects(prefix, suffix):
+            yield obj  # obj[&#34;Key&#34;]
+
+    def get_last_modified_s3(self, key: str) -&gt; dict:
+        &#34;&#34;&#34;get_last_modified_date_s3 gets the last modified date of a S3 object.
+
+        Args:
+            key (str): Object key to find last modified date for.
+
+        Returns:
+            dict: Dictionary containing the key and last modified timestamp.
+
+        &#34;&#34;&#34;
+        s3 = boto3.resource(&#39;s3&#39;)
+        k = s3.Bucket(self.bucket).Object(key)  # pylint: disable=no-member
+        return {&#39;key_name&#39;: k.key, &#39;key_last_modified&#39;: str(k.last_modified)}
+
+    def get_prefix_s3(self, job_name: str) -&gt; str:
+        &#34;&#34;&#34;get_prefix_s3 sets the correct S3 file prefix depending on the upload job.
+
+        [extended_summary]
+
+        Args:
+            job_name (str): [description]
+
+        Raises:
+            MeiyumeException: [description]
+
+        Returns:
+            str: [description]
+
+        &#34;&#34;&#34;
+        upload_jobs = {
+            &#39;source_meta&#39;: &#39;Feeds/BeautyTrendEngine/Source_Meta/Staging/&#39;,
+            &#39;meta_detail&#39;: &#39;Feeds/BeautyTrendEngine/Meta_Detail/Staging/&#39;,
+            &#39;item&#39;: &#39;Feeds/BeautyTrendEngine/Item/Staging/&#39;,
+            &#39;ingredient&#39;: &#39;Feeds/BeautyTrendEngine/Ingredient/Staging/&#39;,
+            &#39;review&#39;: &#39;Feeds/BeautyTrendEngine/Review/Staging/&#39;,
+            &#39;review_summary&#39;: &#39;Feeds/BeautyTrendEngine/Review_Summary/Staging/&#39;,
+            &#39;image&#39;: &#39;Feeds/BeautyTrendEngine/Image/Staging/&#39;,
+            &#39;cleaned_pre_algorithm&#39;: &#39;Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/&#39;,
+            &#39;webapp&#39;: &#39;Feeds/BeautyTrendEngine/WebAppData/&#39;
+        }
+
+        try:
+            return upload_jobs[job_name]
+        except Exception as ex:
+            raise MeiyumeException(
+                &#39;Unrecognizable job. Please input correct job_name.&#39;)
+        &#39;&#39;&#39;
+        if job_name == &#39;source_meta&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Source_Meta/Staging/&#39;
+        elif job_name == &#39;meta_detail&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Meta_Detail/Staging/&#39;
+        elif job_name == &#39;item&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Item/Staging/&#39;
+        elif job_name == &#39;ingredient&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Ingredient/Staging/&#39;
+        elif job_name == &#39;review&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Review/Staging/&#39;
+        elif job_name == &#39;review_summary&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Review_Summary/Staging/&#39;
+        elif job_name == &#39;image&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/Image/Staging/&#39;
+        elif job_name == &#39;cleaned_pre_algorithm&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/&#39;
+        elif job_name == &#39;webapp&#39;:
+            prefix = &#39;Feeds/BeautyTrendEngine/WebAppData/&#39;
+        else:
+            raise MeiyumeException(
+                &#39;Unrecognizable job. Please input correct job_name.&#39;)
+        return prefix
+        &#39;&#39;&#39;
+
+    def push_file_s3(self, file_path: Union[str, Path], job_name: str) -&gt; None:
+        &#34;&#34;&#34;push_file_s3 upload file to S3 storage with job name specific prefix.
+
+        Args:
+            file_path (Union[str, Path]): File path of the file to be uploaded as a string or Path object.
+            job_name (str): Type of file to upload: One of [meta_detail, item, ingredient,
+                                                        review, review_summary, image,
+                                                        cleaned_pre_algorithm, webappdata]
+
+        &#34;&#34;&#34;
+        # cls.make_manager()
+        file_name = str(file_path).split(&#34;\\&#34;)[-1]
+
+        prefix = self.get_prefix_s3(job_name)
+        object_name = prefix+file_name
+        # try:
+        s3_client = boto3.client(&#39;s3&#39;)
+        try:
+            s3_client.upload_file(str(file_path), self.bucket, object_name)
+            print(&#39;file pushed successfully.&#39;)
+        except Exception:
+            print(&#39;file pushing task failed.&#39;)
+
+    def pull_file_s3(self, key: str, file_path: Path = Path.cwd()) -&gt; None:
+        &#34;&#34;&#34;pull_file_s3 dowload file from S3.
+
+        Args:
+            key (str): The file object to download.
+            file_path (Path, optional): The path in which the downloaded file will be stored.
+                                        Defaults to current working directory (Path.cwd()).
+
+        &#34;&#34;&#34;
+        s3 = boto3.resource(&#39;s3&#39;)
+        file_name = str(key).split(&#39;/&#39;)[-1]
+        s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
+            key, f&#39;{file_path}/{file_name}&#39;)
+
+    def read_data_to_dataframe_s3(self, key: str, file_type: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;read_data_to_dataframe_s3 reads S3 object into a pandas dataframe.
+
+        Args:
+            key (str): S3 object key.
+            file_type (str): File format.
+
+        Raises:
+            MeiyumeException: Raises exception if incorrect key or file type provied. (Accepted types: csv, feather, pickle)
+
+        Returns:
+            pd.DataFrame: File data in pandas dataframe.
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#39;s3&#39;)
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+
+        try:
+            if file_type == &#39;csv&#39;:
+                return pd.read_csv(io.BytesIO(obj[&#39;Body&#39;].read()), sep=&#39;~&#39;)
+            elif file_type == &#39;feather&#39;:
+                return pd.read_feather(io.BytesIO(obj[&#39;Body&#39;].read()))
+            elif file_type == &#39;pickle&#39;:
+                return pd.read_pickle(io.BytesIO(obj[&#39;Body&#39;].read()))
+        except Exception as ex:
+            raise MeiyumeException(&#39;Provide correct file key and file type.&#39;)
+
+    def read_feather_s3(self, key: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;read_feather_s3 will be removed in next version.
+
+        [extended_summary]
+
+        Args:
+            key (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#39;s3&#39;)
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        df = pd.read_feather(io.BytesIO(obj[&#39;Body&#39;].read()))
+        return df
+
+    def read_csv_s3(self, key: str) -&gt; pd.DataFrame:
+        &#34;&#34;&#34;read_csv_s3 will be removed in next version.
+
+        [extended_summary]
+
+        Args:
+            key (str): [description]
+
+        Returns:
+            pd.DataFrame: [description]
+
+        &#34;&#34;&#34;
+        s3 = boto3.client(&#39;s3&#39;)
+        obj = s3.get_object(Bucket=self.bucket, Key=key)
+        df = pd.read_csv(io.BytesIO(obj[&#39;Body&#39;].read()), sep=&#39;~&#39;)
+        return df
+
+    def delete_file_s3(self, key: str) -&gt; None:
+        &#34;&#34;&#34;delete_file_s3 delete file object from S3.
+
+        Args:
+            key (str): The file key to delete.
+
+        &#34;&#34;&#34;
+        s3 = boto3.resource(&#39;s3&#39;)
+        try:
+            s3.Object(self.bucket, key).delete()  # pylint: disable=no-member
+            print(&#39;file deleted.&#39;)
+        except Exception:
+            print(&#39;delete operation failed&#39;)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="meiyume.utils.S3FileManager.delete_file_s3"><code class="name flex">
+<span>def <span class="ident">delete_file_s3</span></span>(<span>self, key: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>delete_file_s3 delete file object from S3.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file key to delete.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def delete_file_s3(self, key: str) -&gt; None:
+    &#34;&#34;&#34;delete_file_s3 delete file object from S3.
+
+    Args:
+        key (str): The file key to delete.
+
+    &#34;&#34;&#34;
+    s3 = boto3.resource(&#39;s3&#39;)
+    try:
+        s3.Object(self.bucket, key).delete()  # pylint: disable=no-member
+        print(&#39;file deleted.&#39;)
+    except Exception:
+        print(&#39;delete operation failed&#39;)</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.get_last_modified_s3"><code class="name flex">
+<span>def <span class="ident">get_last_modified_s3</span></span>(<span>self, key: str) ‑> dict</span>
+</code></dt>
+<dd>
+<div class="desc"><p>get_last_modified_date_s3 gets the last modified date of a S3 object.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong> :&ensp;<code>str</code></dt>
+<dd>Object key to find last modified date for.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>dict</code></dt>
+<dd>Dictionary containing the key and last modified timestamp.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_last_modified_s3(self, key: str) -&gt; dict:
+    &#34;&#34;&#34;get_last_modified_date_s3 gets the last modified date of a S3 object.
+
+    Args:
+        key (str): Object key to find last modified date for.
+
+    Returns:
+        dict: Dictionary containing the key and last modified timestamp.
+
+    &#34;&#34;&#34;
+    s3 = boto3.resource(&#39;s3&#39;)
+    k = s3.Bucket(self.bucket).Object(key)  # pylint: disable=no-member
+    return {&#39;key_name&#39;: k.key, &#39;key_last_modified&#39;: str(k.last_modified)}</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.get_matching_s3_keys"><code class="name flex">
+<span>def <span class="ident">get_matching_s3_keys</span></span>(<span>self, prefix: str = '', suffix: str = '')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>get_matching_s3_keys Generates the matching keys in an S3 bucket.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>prefix</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Only fetch objects whose key starts with this prefix. Defaults to "".</dd>
+<dt><strong><code>suffix</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Only fetch objects whose keys end with this suffix. Defaults to "".</dd>
+</dl>
+<h2 id="yields">Yields</h2>
+<dl>
+<dt><code>Any</code></dt>
+<dd>Matching S3 object key</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_matching_s3_keys(self, prefix: str = &#34;&#34;, suffix: str = &#34;&#34;):
+    &#34;&#34;&#34;get_matching_s3_keys Generates the matching keys in an S3 bucket.
+
+    Args:
+        prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to &#34;&#34;.
+        suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to &#34;&#34;.
+
+    Yields:
+        Any: Matching S3 object key
+
+    &#34;&#34;&#34;
+    for obj in self.get_matching_s3_objects(prefix, suffix):
+        yield obj  # obj[&#34;Key&#34;]</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.get_matching_s3_objects"><code class="name flex">
+<span>def <span class="ident">get_matching_s3_objects</span></span>(<span>self, prefix: str = '', suffix: str = '')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>get_matching_s3_objects searches S3 with string matching to find relevant keys.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>prefix</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Only fetch objects whose key starts with this prefix. Defaults to "".</dd>
+<dt><strong><code>suffix</code></strong> :&ensp;<code>str</code>, optional</dt>
+<dd>Only fetch objects whose keys end with this suffix. Defaults to "".</dd>
+</dl>
+<h2 id="yields">Yields</h2>
+<p>Matching S3 keys.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_matching_s3_objects(self, prefix: str = &#34;&#34;, suffix: str = &#34;&#34;):
+    &#34;&#34;&#34;get_matching_s3_objects searches S3 with string matching to find relevant keys.
+
+    Args:
+        prefix (str, optional): Only fetch objects whose key starts with this prefix. Defaults to &#34;&#34;.
+        suffix (str, optional): Only fetch objects whose keys end with this suffix. Defaults to &#34;&#34;.
+
+    Yields:
+        Matching S3 keys.
+
+    &#34;&#34;&#34;
+    s3 = boto3.client(&#34;s3&#34;)
+    paginator = s3.get_paginator(&#34;list_objects_v2&#34;)
+
+    kwargs = {&#39;Bucket&#39;: self.bucket}
+
+    # We can pass the prefix directly to the S3 API.  If the user has passed
+    # a tuple or list of prefixes, we go through them one by one.
+    if isinstance(prefix, str):
+        prefixes = (prefix, )
+    else:
+        prefixes = prefix
+
+    for key_prefix in prefixes:
+        kwargs[&#34;Prefix&#34;] = key_prefix
+
+        for page in paginator.paginate(**kwargs):
+            try:
+                contents = page[&#34;Contents&#34;]
+            except KeyError:
+                break
+
+            for obj in contents:
+                key = obj[&#34;Key&#34;]
+                if key.endswith(suffix):
+                    yield obj</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.get_prefix_s3"><code class="name flex">
+<span>def <span class="ident">get_prefix_s3</span></span>(<span>self, job_name: str) ‑> str</span>
+</code></dt>
+<dd>
+<div class="desc"><p>get_prefix_s3 sets the correct S3 file prefix depending on the upload job.</p>
+<p>[extended_summary]</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>job_name</code></strong> :&ensp;<code>str</code></dt>
+<dd>[description]</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code><a title="meiyume.utils.MeiyumeException" href="#meiyume.utils.MeiyumeException">MeiyumeException</a></code></dt>
+<dd>[description]</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>str</code></dt>
+<dd>[description]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_prefix_s3(self, job_name: str) -&gt; str:
+    &#34;&#34;&#34;get_prefix_s3 sets the correct S3 file prefix depending on the upload job.
+
+    [extended_summary]
+
+    Args:
+        job_name (str): [description]
+
+    Raises:
+        MeiyumeException: [description]
+
+    Returns:
+        str: [description]
+
+    &#34;&#34;&#34;
+    upload_jobs = {
+        &#39;source_meta&#39;: &#39;Feeds/BeautyTrendEngine/Source_Meta/Staging/&#39;,
+        &#39;meta_detail&#39;: &#39;Feeds/BeautyTrendEngine/Meta_Detail/Staging/&#39;,
+        &#39;item&#39;: &#39;Feeds/BeautyTrendEngine/Item/Staging/&#39;,
+        &#39;ingredient&#39;: &#39;Feeds/BeautyTrendEngine/Ingredient/Staging/&#39;,
+        &#39;review&#39;: &#39;Feeds/BeautyTrendEngine/Review/Staging/&#39;,
+        &#39;review_summary&#39;: &#39;Feeds/BeautyTrendEngine/Review_Summary/Staging/&#39;,
+        &#39;image&#39;: &#39;Feeds/BeautyTrendEngine/Image/Staging/&#39;,
+        &#39;cleaned_pre_algorithm&#39;: &#39;Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/&#39;,
+        &#39;webapp&#39;: &#39;Feeds/BeautyTrendEngine/WebAppData/&#39;
+    }
+
+    try:
+        return upload_jobs[job_name]
+    except Exception as ex:
+        raise MeiyumeException(
+            &#39;Unrecognizable job. Please input correct job_name.&#39;)
+    &#39;&#39;&#39;
+    if job_name == &#39;source_meta&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Source_Meta/Staging/&#39;
+    elif job_name == &#39;meta_detail&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Meta_Detail/Staging/&#39;
+    elif job_name == &#39;item&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Item/Staging/&#39;
+    elif job_name == &#39;ingredient&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Ingredient/Staging/&#39;
+    elif job_name == &#39;review&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Review/Staging/&#39;
+    elif job_name == &#39;review_summary&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Review_Summary/Staging/&#39;
+    elif job_name == &#39;image&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/Image/Staging/&#39;
+    elif job_name == &#39;cleaned_pre_algorithm&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/&#39;
+    elif job_name == &#39;webapp&#39;:
+        prefix = &#39;Feeds/BeautyTrendEngine/WebAppData/&#39;
+    else:
+        raise MeiyumeException(
+            &#39;Unrecognizable job. Please input correct job_name.&#39;)
+    return prefix
+    &#39;&#39;&#39;</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.pull_file_s3"><code class="name flex">
+<span>def <span class="ident">pull_file_s3</span></span>(<span>self, key: str, file_path: pathlib.Path = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes')) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>pull_file_s3 dowload file from S3.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file object to download.</dd>
+<dt><strong><code>file_path</code></strong> :&ensp;<code>Path</code>, optional</dt>
+<dd>The path in which the downloaded file will be stored.
+Defaults to current working directory (Path.cwd()).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pull_file_s3(self, key: str, file_path: Path = Path.cwd()) -&gt; None:
+    &#34;&#34;&#34;pull_file_s3 dowload file from S3.
+
+    Args:
+        key (str): The file object to download.
+        file_path (Path, optional): The path in which the downloaded file will be stored.
+                                    Defaults to current working directory (Path.cwd()).
+
+    &#34;&#34;&#34;
+    s3 = boto3.resource(&#39;s3&#39;)
+    file_name = str(key).split(&#39;/&#39;)[-1]
+    s3.Bucket(self.bucket).download_file(  # pylint: disable=no-member
+        key, f&#39;{file_path}/{file_name}&#39;)</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.push_file_s3"><code class="name flex">
+<span>def <span class="ident">push_file_s3</span></span>(<span>self, file_path: Union[str, pathlib.Path], job_name: str) ‑> NoneType</span>
+</code></dt>
+<dd>
+<div class="desc"><p>push_file_s3 upload file to S3 storage with job name specific prefix.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>file_path</code></strong> :&ensp;<code>Union[str, Path]</code></dt>
+<dd>File path of the file to be uploaded as a string or Path object.</dd>
+<dt><strong><code>job_name</code></strong> :&ensp;<code>str</code></dt>
+<dd>Type of file to upload: One of [meta_detail, item, ingredient,
+review, review_summary, image,
+cleaned_pre_algorithm, webappdata]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def push_file_s3(self, file_path: Union[str, Path], job_name: str) -&gt; None:
+    &#34;&#34;&#34;push_file_s3 upload file to S3 storage with job name specific prefix.
+
+    Args:
+        file_path (Union[str, Path]): File path of the file to be uploaded as a string or Path object.
+        job_name (str): Type of file to upload: One of [meta_detail, item, ingredient,
+                                                    review, review_summary, image,
+                                                    cleaned_pre_algorithm, webappdata]
+
+    &#34;&#34;&#34;
+    # cls.make_manager()
+    file_name = str(file_path).split(&#34;\\&#34;)[-1]
+
+    prefix = self.get_prefix_s3(job_name)
+    object_name = prefix+file_name
+    # try:
+    s3_client = boto3.client(&#39;s3&#39;)
+    try:
+        s3_client.upload_file(str(file_path), self.bucket, object_name)
+        print(&#39;file pushed successfully.&#39;)
+    except Exception:
+        print(&#39;file pushing task failed.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.read_csv_s3"><code class="name flex">
+<span>def <span class="ident">read_csv_s3</span></span>(<span>self, key: str) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>read_csv_s3 will be removed in next version.</p>
+<p>[extended_summary]</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong> :&ensp;<code>str</code></dt>
+<dd>[description]</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>[description]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_csv_s3(self, key: str) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;read_csv_s3 will be removed in next version.
+
+    [extended_summary]
+
+    Args:
+        key (str): [description]
+
+    Returns:
+        pd.DataFrame: [description]
+
+    &#34;&#34;&#34;
+    s3 = boto3.client(&#39;s3&#39;)
+    obj = s3.get_object(Bucket=self.bucket, Key=key)
+    df = pd.read_csv(io.BytesIO(obj[&#39;Body&#39;].read()), sep=&#39;~&#39;)
+    return df</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.read_data_to_dataframe_s3"><code class="name flex">
+<span>def <span class="ident">read_data_to_dataframe_s3</span></span>(<span>self, key: str, file_type: str) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>read_data_to_dataframe_s3 reads S3 object into a pandas dataframe.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong> :&ensp;<code>str</code></dt>
+<dd>S3 object key.</dd>
+<dt><strong><code>file_type</code></strong> :&ensp;<code>str</code></dt>
+<dd>File format.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code><a title="meiyume.utils.MeiyumeException" href="#meiyume.utils.MeiyumeException">MeiyumeException</a></code></dt>
+<dd>Raises exception if incorrect key or file type provied. (Accepted types: csv, feather, pickle)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>File data in pandas dataframe.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_data_to_dataframe_s3(self, key: str, file_type: str) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;read_data_to_dataframe_s3 reads S3 object into a pandas dataframe.
+
+    Args:
+        key (str): S3 object key.
+        file_type (str): File format.
+
+    Raises:
+        MeiyumeException: Raises exception if incorrect key or file type provied. (Accepted types: csv, feather, pickle)
+
+    Returns:
+        pd.DataFrame: File data in pandas dataframe.
+
+    &#34;&#34;&#34;
+    s3 = boto3.client(&#39;s3&#39;)
+    obj = s3.get_object(Bucket=self.bucket, Key=key)
+
+    try:
+        if file_type == &#39;csv&#39;:
+            return pd.read_csv(io.BytesIO(obj[&#39;Body&#39;].read()), sep=&#39;~&#39;)
+        elif file_type == &#39;feather&#39;:
+            return pd.read_feather(io.BytesIO(obj[&#39;Body&#39;].read()))
+        elif file_type == &#39;pickle&#39;:
+            return pd.read_pickle(io.BytesIO(obj[&#39;Body&#39;].read()))
+    except Exception as ex:
+        raise MeiyumeException(&#39;Provide correct file key and file type.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="meiyume.utils.S3FileManager.read_feather_s3"><code class="name flex">
+<span>def <span class="ident">read_feather_s3</span></span>(<span>self, key: str) ‑> pandas.core.frame.DataFrame</span>
+</code></dt>
+<dd>
+<div class="desc"><p>read_feather_s3 will be removed in next version.</p>
+<p>[extended_summary]</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>key</code></strong> :&ensp;<code>str</code></dt>
+<dd>[description]</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>pd.DataFrame</code></dt>
+<dd>[description]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_feather_s3(self, key: str) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;read_feather_s3 will be removed in next version.
+
+    [extended_summary]
+
+    Args:
+        key (str): [description]
+
+    Returns:
+        pd.DataFrame: [description]
+
+    &#34;&#34;&#34;
+    s3 = boto3.client(&#39;s3&#39;)
+    obj = s3.get_object(Bucket=self.bucket, Key=key)
+    df = pd.read_feather(io.BytesIO(obj[&#39;Body&#39;].read()))
+    return df</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="meiyume.utils.Sephora"><code class="flex name class">
+<span>class <span class="ident">Sephora</span></span>
+<span>(</span><span>data_def: str = None, path: Union[str, pathlib.Path] = WindowsPath('D:/Amit/Meiyume/meiyume_master_source_codes'))</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This object is inherited by all crawler and cleaner classes in sph.crawler module.</p>
+<p>Sephora class creates and sets directories for respective data definitions.</p>
+<h2 id="args">Args</h2>
+<dl>
+<dt><strong><code>Browser</code></strong> :&ensp;<code>object</code></dt>
+<dd>Browser class serves selenium webdriver in head or headless
+mode. It also provides some additional utilities such as scrolling. proxies etc.</dd>
+</dl>
+<p><strong>init</strong> Sephora class instacne constructor creates all the data folder paths as per data definition.</p>
+<p>The sub directories are created under parent directory only when the folders don't already exist.</p>
+<h2 id="args_1">Args</h2>
+<dl>
+<dt><strong><code>data_def</code></strong> :&ensp;<code>[type]</code>, optional</dt>
+<dd>Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])</dd>
+<dt><strong><code>path</code></strong> :&ensp;<code>Union[str, Path]</code>, optional</dt>
+<dd>The parent directory where the data definition specific sub-directories
+will be created. Defaults to Path.cwd().</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Sephora(Browser):
+    &#34;&#34;&#34;This object is inherited by all crawler and cleaner classes in sph.crawler module.
+
+    Sephora class creates and sets directories for respective data definitions.
+
+    Args:
+        Browser (object): Browser class serves selenium webdriver in head or headless
+                          mode. It also provides some additional utilities such as scrolling. proxies etc.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, data_def: str = None, path: Union[str, Path] = Path.cwd()):
+        &#34;&#34;&#34;__init__ Sephora class instacne constructor creates all the data folder paths as per data definition.
+
+        The sub directories are created under parent directory only when the folders don&#39;t already exist.
+
+        Args:
+            data_def ([type], optional): Type of e-commerce data. Defaults to None.(Accepted values: [Metadata, Detail, Review])
+            path (Union[str, Path], optional): The parent directory where the data definition specific sub-directories
+                                               will be created. Defaults to Path.cwd().
+
+        &#34;&#34;&#34;
+        super().__init__()
+        self.path = Path(Path(path)/&#39;sephora&#39;)
+
+        # set data paths as per calls from data definition classes
+        self.metadata_path = self.path/&#39;metadata&#39;
+        self.old_metadata_files_path = self.metadata_path/&#39;old_metadata_files&#39;
+        self.metadata_clean_path = self.metadata_path/&#39;clean&#39;
+        self.old_metadata_clean_files_path = self.metadata_path/&#39;cleaned_old_metadata_files&#39;
+        # set crawler trigger folders
+        self.detail_crawler_trigger_path = self.path/&#39;detail_crawler_trigger_folder&#39;
+        self.review_crawler_trigger_path = self.path/&#39;review_crawler_trigger_folder&#39;
+        if data_def == &#39;meta&#39;:
+            self.metadata_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_files_path.mkdir(parents=True, exist_ok=True)
+            self.metadata_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_metadata_clean_files_path.mkdir(
+                parents=True, exist_ok=True)
+            self.detail_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+            self.review_crawler_trigger_path.mkdir(
+                parents=True, exist_ok=True)
+
+        self.detail_path = self.path/&#39;detail&#39;
+        self.old_detail_files_path = self.detail_path/&#39;old_detail_files&#39;
+        self.detail_clean_path = self.detail_path/&#39;clean&#39;
+        self.old_detail_clean_files_path = self.detail_path/&#39;cleaned_old_detail_files&#39;
+        if data_def == &#39;detail&#39;:
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.review_path = self.path/&#39;review&#39;
+        self.old_review_files_path = self.review_path/&#39;old_review_files&#39;
+        self.review_clean_path = self.review_path/&#39;clean&#39;
+        self.old_review_clean_files_path = self.review_path/&#39;cleaned_old_review_files&#39;
+        if data_def == &#39;review&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+
+        self.image_path = self.path/&#39;product_images&#39;
+        self.image_processed_path = self.image_path/&#39;processed_product_images&#39;
+        if data_def == &#39;image&#39;:
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+
+        if data_def == &#39;detail_review_image&#39;:
+            self.review_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_files_path.mkdir(parents=True, exist_ok=True)
+            self.review_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_review_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_files_path.mkdir(parents=True, exist_ok=True)
+            self.detail_clean_path.mkdir(parents=True, exist_ok=True)
+            self.old_detail_clean_files_path.mkdir(parents=True, exist_ok=True)
+            self.image_path.mkdir(parents=True, exist_ok=True)
+            self.image_processed_path.mkdir(parents=True, exist_ok=True)
+        # set universal log path for sephora
+        self.crawl_log_path = self.path/&#39;crawler_logs&#39;
+        self.crawl_log_path.mkdir(parents=True, exist_ok=True)
+        self.clean_log_path = self.path/&#39;cleaner_logs&#39;
+        self.clean_log_path.mkdir(parents=True, exist_ok=True)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li><a title="meiyume.utils.Browser" href="#meiyume.utils.Browser">Browser</a></li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="meiyume.sph.crawler.Detail" href="sph/crawler.html#meiyume.sph.crawler.Detail">Detail</a></li>
+<li><a title="meiyume.sph.crawler.DetailReview" href="sph/crawler.html#meiyume.sph.crawler.DetailReview">DetailReview</a></li>
+<li><a title="meiyume.sph.crawler.Image" href="sph/crawler.html#meiyume.sph.crawler.Image">Image</a></li>
+<li><a title="meiyume.sph.crawler.Metadata" href="sph/crawler.html#meiyume.sph.crawler.Metadata">Metadata</a></li>
+<li><a title="meiyume.sph.crawler.Review" href="sph/crawler.html#meiyume.sph.crawler.Review">Review</a></li>
+</ul>
+<h3>Inherited members</h3>
+<ul class="hlist">
+<li><code><b><a title="meiyume.utils.Browser" href="#meiyume.utils.Browser">Browser</a></b></code>:
+<ul class="hlist">
+<li><code><a title="meiyume.utils.Browser.open_browser" href="#meiyume.utils.Browser.open_browser">open_browser</a></code></li>
+<li><code><a title="meiyume.utils.Browser.open_browser_firefox" href="#meiyume.utils.Browser.open_browser_firefox">open_browser_firefox</a></code></li>
+<li><code><a title="meiyume.utils.Browser.scroll_down_page" href="#meiyume.utils.Browser.scroll_down_page">scroll_down_page</a></code></li>
+<li><code><a title="meiyume.utils.Browser.scroll_to_element" href="#meiyume.utils.Browser.scroll_to_element">scroll_to_element</a></code></li>
+</ul>
+</li>
+</ul>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="meiyume" href="index.html">meiyume</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="meiyume.utils.accept_alert" href="#meiyume.utils.accept_alert">accept_alert</a></code></li>
+<li><code><a title="meiyume.utils.chunks" href="#meiyume.utils.chunks">chunks</a></code></li>
+<li><code><a title="meiyume.utils.close_popups" href="#meiyume.utils.close_popups">close_popups</a></code></li>
+<li><code><a title="meiyume.utils.convert_ago_to_date" href="#meiyume.utils.convert_ago_to_date">convert_ago_to_date</a></code></li>
+<li><code><a title="meiyume.utils.hasNumbers" href="#meiyume.utils.hasNumbers">hasNumbers</a></code></li>
+<li><code><a title="meiyume.utils.log_exception" href="#meiyume.utils.log_exception">log_exception</a></code></li>
+<li><code><a title="meiyume.utils.ranges" href="#meiyume.utils.ranges">ranges</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="meiyume.utils.Boots" href="#meiyume.utils.Boots">Boots</a></code></h4>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.Browser" href="#meiyume.utils.Browser">Browser</a></code></h4>
+<ul class="">
+<li><code><a title="meiyume.utils.Browser.open_browser" href="#meiyume.utils.Browser.open_browser">open_browser</a></code></li>
+<li><code><a title="meiyume.utils.Browser.open_browser_firefox" href="#meiyume.utils.Browser.open_browser_firefox">open_browser_firefox</a></code></li>
+<li><code><a title="meiyume.utils.Browser.scroll_down_page" href="#meiyume.utils.Browser.scroll_down_page">scroll_down_page</a></code></li>
+<li><code><a title="meiyume.utils.Browser.scroll_to_element" href="#meiyume.utils.Browser.scroll_to_element">scroll_to_element</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.DataAggregator" href="#meiyume.utils.DataAggregator">DataAggregator</a></code></h4>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.Logger" href="#meiyume.utils.Logger">Logger</a></code></h4>
+<ul class="">
+<li><code><a title="meiyume.utils.Logger.start_log" href="#meiyume.utils.Logger.start_log">start_log</a></code></li>
+<li><code><a title="meiyume.utils.Logger.stop_log" href="#meiyume.utils.Logger.stop_log">stop_log</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.MeiyumeException" href="#meiyume.utils.MeiyumeException">MeiyumeException</a></code></h4>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.ModelsAlgorithms" href="#meiyume.utils.ModelsAlgorithms">ModelsAlgorithms</a></code></h4>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.RedShiftReader" href="#meiyume.utils.RedShiftReader">RedShiftReader</a></code></h4>
+<ul class="">
+<li><code><a title="meiyume.utils.RedShiftReader.query_database" href="#meiyume.utils.RedShiftReader.query_database">query_database</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.S3FileManager" href="#meiyume.utils.S3FileManager">S3FileManager</a></code></h4>
+<ul class="">
+<li><code><a title="meiyume.utils.S3FileManager.delete_file_s3" href="#meiyume.utils.S3FileManager.delete_file_s3">delete_file_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.get_last_modified_s3" href="#meiyume.utils.S3FileManager.get_last_modified_s3">get_last_modified_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.get_matching_s3_keys" href="#meiyume.utils.S3FileManager.get_matching_s3_keys">get_matching_s3_keys</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.get_matching_s3_objects" href="#meiyume.utils.S3FileManager.get_matching_s3_objects">get_matching_s3_objects</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.get_prefix_s3" href="#meiyume.utils.S3FileManager.get_prefix_s3">get_prefix_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.pull_file_s3" href="#meiyume.utils.S3FileManager.pull_file_s3">pull_file_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.push_file_s3" href="#meiyume.utils.S3FileManager.push_file_s3">push_file_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.read_csv_s3" href="#meiyume.utils.S3FileManager.read_csv_s3">read_csv_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.read_data_to_dataframe_s3" href="#meiyume.utils.S3FileManager.read_data_to_dataframe_s3">read_data_to_dataframe_s3</a></code></li>
+<li><code><a title="meiyume.utils.S3FileManager.read_feather_s3" href="#meiyume.utils.S3FileManager.read_feather_s3">read_feather_s3</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="meiyume.utils.Sephora" href="#meiyume.utils.Sephora">Sephora</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

@@ -771,6 +771,7 @@ class RefreshData():
 
         def hasNumbers(inputString):
             return bool(re.search(r'\d', inputString))
+
         prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
             lambda x: x if hasNumbers(x) else '').str.replace('out of stock:', '').str.replace('nan', '')
         prod_page_item_df.item_size = prod_page_item_df.item_size.apply(

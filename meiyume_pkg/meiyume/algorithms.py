@@ -1,61 +1,51 @@
-"""
-summary
+"""The module to run NLP Algorithms to extract insights from data.
 
-[extended_summary]
-
-Returns:
-    [type]: [description]
+There are several algorithms that carry out tasks such as summarization, classification, tagging, keyphrase extraction,
+ranking, searching and relation extraction.
 """
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
-from typing import *
-import warnings
-import os
-import gc
-from pathlib import Path
-import time
-from datetime import datetime, timedelta
-from functools import reduce
-from collections import Counter
-import math
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sns
-from tqdm import tqdm
-from tqdm.notebook import tqdm
-from meiyume.utils import (Logger, Sephora, Boots,
-                           MeiyumeException, ModelsAlgorithms, RedShiftReader,
-                           S3FileManager, chunks)
-
-# fast ai imports
-from fastai import *
-from fastai.text import *
-
-# transformers imports
-import torch
-from transformers import pipeline
-from transformers import BartForConditionalGeneration, BartTokenizer
 import argparse
-
+import gc
+import os
 # text lib imports
 import re
 import string
-import unidecode
+import warnings
 from ast import literal_eval
-import textacy
-import textacy.ke as ke
-from textacy import preprocessing
+from collections import Counter
+from datetime import datetime, timedelta
+from functools import reduce
+from pathlib import Path
+from typing import *
+
+import numpy as np
+import pandas as pd
 import pke
-from nltk.corpus import stopwords
-from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import seaborn as sns
 # spaCy based imports
 import spacy
-from spacy.lang.en.stop_words import STOP_WORDS
+import textacy
+import textacy.ke as ke
+# transformers imports
+import torch
+# import unidecode
+# fast ai imports
+from fastai import *
+from fastai.text import *
+from nltk.corpus import stopwords
 from spacy.lang.en import English
+from spacy.lang.en.stop_words import STOP_WORDS
 from spacy.matcher import Matcher
+from textacy import preprocessing
+from tqdm import tqdm
+from tqdm.notebook import tqdm
+from transformers import BartForConditionalGeneration, BartTokenizer, pipeline
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+from meiyume.utils import (Boots, Logger, MeiyumeException, ModelsAlgorithms,
+                           RedShiftReader, S3FileManager, Sephora, chunks)
 
 # # multiprocessing
 # import multiprocessing as mp
@@ -71,43 +61,41 @@ tqdm.pandas()
 
 
 class SexyMetaDetail(ModelsAlgorithms):
-    """SexyMetaDetail [summary]
+    """SexyMetaDetail uses Baayesian Ranker for product ranking and prepares data for Redshift ingestion.
 
-    [extended_summary]
+    This module is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
 
-    Returns:
-        [type]: [description]
     """
 
     def __init__(self, path: Union[str, Path] = Path.cwd()) -> None:
-        """__init__ [summary]
-
-        [extended_summary]
+        """__init__ SexyMetaDetail class instace initializer.
 
         Args:
-            path (Union[str, Path], optional): [description]. Defaults to Path.cwd().
+            path (Union[str, Path], optional): Folder path where the output folder structure will be saved
+                                               and data will be read. Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path)
 
     def make(self, source: str, metadata: Optional[Union[Path, str, pd.DataFrame]] = None,
              detail_data: Optional[Union[Path, str, pd.DataFrame]] = None) -> pd.DataFrame:
-        """make [summary]
-
-        [extended_summary]
+        """Make defines and runs bayesian ranker and data transformations to feed data correctly into redshift database.
 
         Args:
-            source (str): source code of the metadata and detail files. Must be passed. (Accepted values: [sph, bts])
-            metadata (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
-            detail_data (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
+            source (str): source code of the metadata and detail files. (Current accepted values: [sph, bts])
+            metadata (Optional[Union[Path, str, pd.DataFrame]], optional): Cleaned metadata file. Defaults to None.
+            detail_data (Optional[Union[Path, str, pd.DataFrame]], optional): Cleaned detail file. Defaults to None.
 
         Raises:
-            MeiyumeException: [description]
+            MeiyumeException: Raises exception if source or data files are incorrect.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Datafrane containing outputs from algorithms and other transformations.
+
         """
         if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
             raise MeiyumeException(
@@ -195,15 +183,14 @@ class SexyMetaDetail(ModelsAlgorithms):
                            ]
 
             def choose_type(x: str) -> str:
-                """choose_type [summary]
-
-                [extended_summary]
+                """choose_type correct product_type of a product.
 
                 Args:
-                    x (str): [description]
+                    x (str): Product types.
 
                 Returns:
-                    str: [description]
+                    str: Correct product type.
+
                 """
                 x = x.split()
                 t = list(set(x) - set(exclude_pdt))
@@ -274,15 +261,14 @@ class SexyMetaDetail(ModelsAlgorithms):
         def total_stars(x): return x.reviews * x.rating
 
         def bayesian_estimate(x) -> float:
-            """bayesian_estimate [summary]
-
-            [extended_summary]
+            """bayesian_estimate computes bayesian ranking score.
 
             Args:
-                x ([type]): [description]
+                x : pandas iterrow.
 
             Returns:
-                float: [description]
+                float: ranking score.
+
             """
             c = round(review_conf['reviews'][(review_conf.category == x.category) & (
                 review_conf.product_type == x.product_type)].values[0])
@@ -297,15 +283,14 @@ class SexyMetaDetail(ModelsAlgorithms):
         meta_detail.reset_index(drop=True, inplace=True)
 
         def ratio(x) -> Tuple[float, float]:
-            """ratio [summary]
-
-            [extended_summary]
+            """Ratio computes ration of positive to negative and total stars.
 
             Args:
-                x ([type]): [description]
+                x : pandas iterrow.
 
             Returns:
-                Tuple[float, float]: [description]
+                Tuple[float, float]: ratios.
+
             """
             pstv_to_ngtv_stars = ((x.five_star + x.four_star)+1) / \
                 ((x.two_star+1 + x.one_star+1)+1)
@@ -448,40 +433,48 @@ class SexyMetaDetail(ModelsAlgorithms):
 
 
 class SexyIngredient(ModelsAlgorithms):
-    """SexyIngredient [summary]
+    """SexyIngredient uses nlp algorithms to transform data for Redshift ingestion.
 
-    [extended_summary]
+    This module is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage.
+
+    Major functions of SexyIngredient are:
+    * 1. Ingredient classification.
+    * 2. Ingredient tagging.
+    * 3. Banned ingredient identification.
+    * 4. Data transformations to feed into Redshift database.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self, path: Union[str, Path] = Path.cwd()):
-        """__init__ [summary]
-
-        [extended_summary]
+        """__init__ SexyIngredient class instace initializer.
 
         Args:
-            path (Union[str, Path], optional): [description]. Defaults to Path.cwd().
+            path (Union[str, Path], optional): Folder path where the output folder structure will be saved
+                                               and data will be read. Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path)
 
     def make(self, source: str, meta_detail_data: Optional[Union[Path, str, pd.DataFrame]] = None,
              ingredient_data: Optional[Union[Path, str, pd.DataFrame]] = None) -> pd.DataFrame:
-        """make [summary]
-
-        [extended_summary]
+        """make defines and runs ingredient classifier, tagger, identifier and data transformations.
 
         Args:
-            source (str): source code of the metadata and detail files. Must be passed. (Accepted values: [sph, bts])
-            meta_detail_data (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
-            ingredient_data (Optional[Union[Path, str, pd.DataFrame]], optional): [description]. Defaults to None.
+            source (str): source code of the metadata and detail files. (Current accepted values: [sph, bts])
+            meta_detail_data (Optional[Union[Path, str, pd.DataFrame]], optional): Meta_Detail data generated by
+                                                                                   SexyMetaDetail algorithm. Defaults to None.
+            ingredient_data (Optional[Union[Path, str, pd.DataFrame]], optional): Cleaned ingredient data. Defaults to None.
 
         Raises:
-            MeiyumeException: [description]
+            MeiyumeException: Raises exception if source or data files are incorrect.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Datafrane containing outputs from algorithms and other transformations.
+
         """
         if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
             raise MeiyumeException(
@@ -655,22 +648,28 @@ class SexyIngredient(ModelsAlgorithms):
 
 
 class KeyWords(ModelsAlgorithms):
-    """KeyWords [summary]
+    """KeyWords uses nlp algorithms to extract keywords and phrases from text.
 
-    [extended_summary]
+    This module is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage.
+
+    Major functions of KeyWords Class are:
+    * 1. Keyword/Phrase extraction.
+    * 2. Keyword summarization over large bodies of text.
+    * 3. Keyphrase sentiment classification and segregation into sentiment phrases.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self, path: Union[str, Path] = '.'):
-        """KeyWords [summary]
-
-        [extended_summary]
+        """__init__ KeyWords class instace initializer.
 
         Args:
-            ModelsAlgorithms (type): parent class. instantitates the required libs and sets system paths
-            path (Union[str, Path], optional): root path. Defaults to '.' (current working directory).
+            path (Union[str, Path], optional): Folder path where the output folder structure will be saved
+                                               and data will be read. Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path)
         self.en = textacy.load_spacy_lang(
@@ -678,16 +677,15 @@ class KeyWords(ModelsAlgorithms):
         self.analyser = SentimentIntensityAnalyzer()
         self.nlp = spacy.load("en_core_web_lg")
 
-    def get_no_of_words(self, length):
-        """get_no_of_words [summary]
-
-        [extended_summary]
+    def get_no_of_words(self, length: int) -> int:
+        """get_no_of_words determines the no. of keywords to extract depending word count of input text.
 
         Args:
-            length ([type]): [description]
+            length (int): word count of input text.
 
         Returns:
-            [type]: [description]
+            int: no. of keywords to extract.
+
         """
         p = 0.2
         if length < 50:
@@ -707,18 +705,18 @@ class KeyWords(ModelsAlgorithms):
             k = 100
         return int(round(k)), p
 
-    def extract_keywords(self, text: Union[str, spacy.tokens.doc.Doc], include_pke: bool = False, is_doc: bool = False):
-        """extract_keywords [summary]
-
-        [extended_summary]
+    def extract_keywords(self, text: Union[str, spacy.tokens.doc.Doc],
+                         include_pke: bool = False, is_doc: bool = False) -> str:
+        """extract_keywords uses nlp algorithms to identify and extract keywords.
 
         Args:
-            text (Union[str, spacy.tokens.doc.Doc]): [description]
-            include_pke (bool, optional): [description]. Defaults to False.
-            is_doc (bool, optional): [description]. Defaults to False.
+            text (Union[str, spacy.tokens.doc.Doc]): Input text or document.
+            include_pke (bool, optional): Whether to include PKE lib keywords . Defaults to False.
+            is_doc (bool, optional): Whether the input is a spacey document. Defaults to False.
 
         Returns:
-            [type]: [description]
+            str: Keywords separated by comma.
+
         """
         try:
             if is_doc:
@@ -776,19 +774,19 @@ class KeyWords(ModelsAlgorithms):
         except IndexError:
             return 'failed'
 
-    def summarize_keywords(self, keywords: Union[str, list], sep: str = ',', exclude_keys: list = [], max_keys: int = -1):
-        """summarize_keywords [summary]
-
-        [extended_summary]
+    def summarize_keywords(self, keywords: Union[str, list], sep: str = ',', exclude_keys: list = [],
+                           max_keys: int = -1) -> dict:
+        """summarize_keywords summarizes generated keywords of a document.
 
         Args:
-            keywords (Union[str, list]): [description]
-            sep (str, optional): [description]. Defaults to ','.
-            exclude_keys (list, optional): [description]. Defaults to [].
-            max_keys (int, optional): [description]. Defaults to -1.
+            keywords (Union[str, list]): Input keywords delimited by sep to summarize.
+            sep (str, optional): Keyword delimiter. Defaults to ','.
+            exclude_keys (list, optional): List of keys to exclude from generated summary dictionary. Defaults to [].
+            max_keys (int, optional): Top N keywords to summarize and retrieve. Defaults to -1.
 
         Returns:
-            [type]: [description]
+            dict[str, int]: Dictionary containing keywords and their frequencies.
+
         """
         self.exclude_keys = ['', 'product', 'easy', 'glad', 'minutes', 'fingers', 'job', 'year',
                              'negative reviews', 'negative review', 'stuff', 'store', 'lot',
@@ -829,24 +827,29 @@ class KeyWords(ModelsAlgorithms):
 
         return self.keyword_summary
 
-    def generate_sentiment_ngrams(self, text: str, n: list = [2, 3, 4, 5, 6], min_freq: int = 2, max_terms: int = -1, exclude_ngrams: list = [],
-                                  sentiment: str = 'negative', sentiment_threshold: float = 0.0, increase_threshold_by: float = 0.2):
-        """generate_sentiment_ngrams [summary]
+    def generate_sentiment_ngrams(self, text: str, n: list = [2, 3, 4, 5, 6], min_freq: int = 2,
+                                  max_terms: int = -1, exclude_ngrams: list = [],
+                                  sentiment: str = 'negative', sentiment_threshold: float = 0.0,
+                                  increase_threshold_by: float = 0.2) -> dict:
+        """generate_sentiment_ngrams extracts sentiment wise ngrams from input text.
 
-        [extended_summary]
+        Depending on the input text's sentiment this method generates the most crucial n-gram phrases of a document
+        that are above the sentiment score threshold in either positive or negative direction.
 
         Args:
-            text (str): [description]
-            n (list, optional): [description]. Defaults to [2, 3, 4, 5, 6].
-            min_freq (int, optional): [description]. Defaults to 2.
-            max_terms (int, optional): [description]. Defaults to -1.
-            exclude_ngrams (list, optional): [description]. Defaults to [].
-            sentiment (str, optional): [description]. Defaults to 'negative'.
-            sentiment_threshold (float, optional): [description]. Defaults to 0.0.
-            increase_threshold_by (float, optional): [description]. Defaults to 0.2.
+            text (str): Input text
+            n (list, optional): ngrams word length. Defaults to [2, 3, 4, 5, 6].
+            min_freq (int, optional): Minimum number of times a n-gram occurs to qualify for extraction. Defaults to 2.
+            max_terms (int, optional): Top N ngrams/keyphrases to extract. Defaults to -1.
+            exclude_ngrams (list, optional): List of ngrams to exclude. Defaults to [].
+            sentiment (str, optional): Input text sentiment. Defaults to 'negative'.
+            sentiment_threshold (float, optional): Positive/Negative sentiment threshold only above which a phrase will be
+                                                   accepted. Defaults to 0.0.
+            increase_threshold_by (float, optional): Sentiment threshold increment step. Defaults to 0.2.
 
         Returns:
-            [type]: [description]
+            dict[Any, int]: Dictionary containing sentiment phrases and their frequencies.
+
         """
         self.exclude_ngram_list = ['good product', 'great product', 'works best', 'love love', 'great job', 'great tool',
                                    'works good', 'tool is great', 'recommend this product', 'tool works great', 'like this tool',
@@ -916,29 +919,32 @@ class KeyWords(ModelsAlgorithms):
 
 
 class PredictSentiment(ModelsAlgorithms):
-    """PredictSentiment [summary]
+    """PredictSentiment carries out sentiment classification using ULMfit language model.
 
-    [extended_summary]
+    This module is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage.
+
+    Major functions of PredictSentiment Class are:
+    * 1. Single Input Sentiment Prediction
+    * 2. Batch Sentiment Prediction
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
 
-    Returns:
-        [type]: [description]
     """
 
     def __init__(self, model_file: str = 'sentiment_model_two_class',
                  data_vocab_file: str = 'sentiment_class_databunch_two_class.pkl',
                  model_path: Path = None, path: Union[Path, str] = Path.cwd()) -> None:
-        """__init__ [summary]
-
-        [extended_summary]
+        """__init__ PredictSentiment class instace initializer.
 
         Args:
-            model_file (str, optional): [description]. Defaults to 'sentiment_model_two_class'.
-            data_vocab_file (str, optional): [description]. Defaults to 'sentiment_class_databunch_two_class.pkl'.
-            model_path (Path, optional): [description]. Defaults to None.
-            path (Union[Path,str], optional): [description]. Defaults to Path.cwd().
+            model_file (str, optional): Trained model weights file. Defaults to 'sentiment_model_two_class'.
+            data_vocab_file (str, optional): Trained model vocabulary file. Defaults to 'sentiment_class_databunch_two_class.pkl'.
+            model_path (Path, optional): Folder path for trained model files. Defaults to None.
+            path (Union[Path,str], optional): Folder path where the output folder structure will be saved
+                                              and data will be read. Defaults to current directory(Path.cwd()).
+
         """
         super().__init__(path=path)
         if model_path:
@@ -952,32 +958,33 @@ class PredictSentiment(ModelsAlgorithms):
             data_class, AWD_LSTM, drop_mult=0.5)
         self.learner.load(model_file)
 
-    def predict_instance(self, text: str):
-        """predict_instance [summary]
-
-        [extended_summary]
+    def predict_instance(self, text: str) -> Tuple[str, float, float]:
+        """predict_instance classifies the sentiment of one input document/text.
 
         Args:
-            text ([type]): [description]
+            text (str): Input text
 
         Returns:
-            [type]: [description]
+            Tuple[str, float, float]: Predicted Label, Positive Probability, Negative Probability
+
         """
         pred = self.learner.predict(text)
         return pred[0], pred[1].numpy(), pred[2].numpy()
 
-    def predict_batch(self, text_column_name: str, data, save: bool = False) -> pd.DataFrame:
-        """predict_batch [summary]
+    def predict_batch(self, text_column_name: str, data: Union[Path, str, pd.DataFrame],
+                      save: bool = False) -> pd.DataFrame:
+        """predict_batch classifies sentiment of an array of documents.
 
-        [extended_summary]
+        Takes a pandas dataframe or filepath and the column name of which sentiment will be classified.
 
         Args:
-            text_column_name (str): [description]
-            data ([type]): [description]
-            save (bool, optional): [description]. Defaults to False.
+            text_column_name (str): Column name that contains instances for classification.
+            data (Union[Path, str, pd.DataFrame]): Data file or path. (csv or feather file format accepted)
+            save (bool, optional): Whether to save the sentiment classification result to disk. Defaults to False.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Output of the sentiment classification algorithm contaiing predicted labels and probabilities.
+
         """
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -1014,18 +1021,26 @@ class PredictSentiment(ModelsAlgorithms):
 
 
 class PredictInfluence(ModelsAlgorithms):
-    """PredictInfluence [summary]
+    """PredictInfluence determines whether a review is influenced by giveaways or marketing events.
 
-    [extended_summary]
+    This module is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage.
+
+    Major functions of PredictInfluence Class are:
+    * 1. Tokenize input texts/documents.
+    * 2. Predict influence on a single input text/document.
+    * 3. Predict influence on a batch of texts/documents.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self) -> None:
-        """__init__ [summary]
+        """__init__ PredictInfluence class instace initializer.
 
-        [extended_summary]
+        Initializes the influence keywords, punctuations, stopwords and english language parser.
+
         """
         super().__init__()
         self.lookup_ = ['free sample', 'free test', 'complimentary test', 'complimentary review', 'complimentary review',
@@ -1035,16 +1050,15 @@ class PredictInfluence(ModelsAlgorithms):
         self.stopwords = list(STOP_WORDS)
         self.parser = English()
 
-    def spacy_tokenizer(self, text: str):
-        """spacy_tokenizer [summary]
-
-        [extended_summary]
+    def spacy_tokenizer(self, text: str) -> str:
+        """spacy_tokenizer tokenizes input text/document.
 
         Args:
-            text (str): [description]
+            text (str): Input text.
 
         Returns:
-            [type]: [description]
+            str: Tokenized text.
+
         """
         tokens = self.parser(text)
         tokens = [word.lemma_.lower().strip() if word.lemma_ !=
@@ -1055,15 +1069,14 @@ class PredictInfluence(ModelsAlgorithms):
         return tokens
 
     def predict_instance(self, text: str) -> str:
-        """predict_instance [summary]
-
-        [extended_summary]
+        """predict_instance predicts influence on one single input.
 
         Args:
-            text (str): [description]
+            text (str): Input text.
 
         Returns:
-            str: [description]
+            str: Predicted label.
+
         """
         tokenized_text = self.spacy_tokenizer(text)
         if any(i in tokenized_text.lower() for i in self.lookup_):
@@ -1071,15 +1084,19 @@ class PredictInfluence(ModelsAlgorithms):
         else:
             return 'not_influenced'
 
-    def predict_batch(self, text_column_name: str, data: pd.DataFrame, save: bool = False):
-        """predict_batch [summary]
+    def predict_batch(self, text_column_name: str, data: Union[Path, str, pd.DataFrame], save: bool = False):
+        """predict_batch predicts influce on a batch of documents.
 
-        [extended_summary]
+        Takes a pandas dataframe or filepath and the column name of which influence will be classified.
 
         Args:
-            text_column_name ([type]): [description]
-            data ([type]): [description]
-            save (bool, optional): [description]. Defaults to False.
+            text_column_name (str): Column name that contains instances for classification.
+            data (Union[Path, str, pd.DataFrame]): Data file or path. (csv or feather file format accepted)
+            save (bool, optional): Whether to save the influence classification result to disk. Defaults to False.
+
+        Returns:
+            data(pd.DataFrame): Output of the influence classification algorithm contaiing predicted labels.
+
         """
         if not isinstance(data, pd.core.frame.DataFrame):
             filename = data
@@ -1105,45 +1122,37 @@ class PredictInfluence(ModelsAlgorithms):
 
 
 class SelectCandidate(ModelsAlgorithms):
-    """SelectCandidate [summary]
-
-    [extended_summary]
+    """SelectCandidate selects best document/text candidates for summarization of reviews, keywords etc.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
 
-    Returns:
-        [type]: [description]
     """
 
     def __init__(self) -> None:
-        """__init__ [summary]
-
-        [extended_summary]
-        """
+        """__init__ SelectCandidate class instace initializer."""
         super().__init__()
 
-    def select(self, data: Union[str, Path, DataFrame], weight_column: str,
+    def select(self, data: Union[str, Path, pd.DataFrame], weight_column: str,
                groupby_columns: Union[str, list], fraction: float = 0.3,
-               select_column=None, sep: str = ' ', drop_weights: bool = True,
-               inverse_weights: bool = True, keep_all: bool = True, **kwargs):
-        """select [summary]
-
-        [extended_summary]
+               select_column=Optional[str], sep: str = ' ', drop_weights: bool = True,
+               inverse_weights: bool = True, keep_all: bool = True, **kwargs) -> pd.DataFrame:
+        """Select method determines which documents are the best candidates based on weighted threshold.
 
         Args:
-            data (Union[str, Path, DataFrame]): dataset. prefarably dataframe, csv or feather file.
+            data (Union[str, Path, pd.DataFrame]): dataset. prefarably dataframe, csv or feather file.
             weight_column (str): numerical column on which weights will be calculated
             groupby_columns (Union[str, list]): columns over which values the sampling candidate groups will be generated
             fraction (float, optional): fraction of data to keep. Defaults to 0.3.
-            select_column ([type], optional): the column of which rows will be combined over groups and
+            select_column (str, optional): the column of which rows will be combined over groups and
                                               be returned as group columns + combined data column. Defaults to None.
             sep (str, optional): separator by which the select column rows will be joined over groups. Defaults to ' '.
             drop_weights (bool, optional): whether to drop the weight column values. Defaults to True.
             keep_all (bool, optional): keep all the original groups. Defaults to True.
 
         Returns:
-            data_sample(DataFrame): [description]
+            data_sample(pd.DataFrame): Sampled data after probabilistic weighted candidate selection.
+
         """
         if type(groupby_columns) != list:
             groupby_columns = [groupby_columns]
@@ -1190,23 +1199,31 @@ class SelectCandidate(ModelsAlgorithms):
 
 
 class Summarizer(ModelsAlgorithms):
-    """Summarizer [summary]
+    """Summarizer summarizes thousands of text documents into a few sentences.
 
-    [extended_summary]
+    This module is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage.
+
+    Major functions of Summarizer Class are:
+    * 1. Generate summary of a single large text document.
+    * 2. Generate summary of a batch of many small to medium text documents.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self, current_device: int = -1, initialize_model: bool = False):
-        """__init__ [summary]
+        """__init__ Summarizer class instace initializer.
 
-        [extended_summary]
-
+        Initializer has two major functions:
+        * 1. Determine whether to run model inference on GPU or CPU.
+        * 2. Instantiate the pre-trained Bart language model for summarization task with pretrained weights.
         Args:
-            current_device (int, optional): [description]. Defaults to -1.
+            current_device (int, optional): GPU or CPU to run inference. Defaults to -1(CPU).
             initialize_model (bool, optional): Set to True if using method summarize_instance or summarize_batch.
                                                Set to False if using method summarize_batch_plus. Defaults to False.
+
         """
         super().__init__()
 
@@ -1219,8 +1236,17 @@ class Summarizer(ModelsAlgorithms):
         else:
             self.bart_summarizer = None
 
-    def generate_summary(self, text: str, min_length=150):
+    def generate_summary(self, text: str, min_length: int = 150) -> str:
+        """generate_summary generates summary on a single text document.
 
+        Args:
+            text (str): Input text document.
+            min_length (int, optional): Minimum length of chracters in generated summary. Defaults to 150.
+
+        Returns:
+            str: Generated text summary.
+
+        """
         assert self.bart_summarizer is not None, "Set initialize model parameter to True when using summarize_instance or \
                                                   summarize_batch methods. "
 
@@ -1238,7 +1264,20 @@ class Summarizer(ModelsAlgorithms):
             return summary[0]['summary_text']
 
     def generate_summary_batch(self, examples: list, model_name: str = "bart-large-cnn", min_length: int = 150,
-                               max_length: int = 1024, batch_size: int = 12):
+                               max_length: int = 1024, batch_size: int = 12) -> List:
+        """generate_summary_batch genereates summary of a batch of text documents at a time.
+
+        Args:
+            examples (list): List of text documents to summarize.
+            model_name (str, optional): Name of the pre-trained model to use to generate text summaries. Defaults to "bart-large-cnn".
+            min_length (int, optional): Minimum length of chracters in generated summary. Defaults to 150.
+            max_length (int, optional): Maximum length of chracters in generated summary. Defaults to 1024.
+            batch_size (int, optional): Size of the batch to run inference parrallely. Defaults to 12.
+
+        Returns:
+            List: List of generated document summaries.
+
+        """
         # device = "cuda" if torch.cuda.is_available() else "cpu"
         generated_summaries = []
         model = BartForConditionalGeneration.from_pretrained(
@@ -1269,19 +1308,31 @@ class Summarizer(ModelsAlgorithms):
 
         return generated_summaries
 
-    def summarize_instance(self, text, min_length=150):
+    def summarize_instance(self, text: str, min_length: int = 150) -> str:
+        """summarize_instance uses generate_summary to summarize one text document.
+
+        text (str): Input text document.
+        min_length (int, optional): Minimum length of chracters in generated summary. Defaults to 150.
+
+        Returns:
+            str: Generated text summary.
+
+        """
         return self.generate_summary(text, min_length=min_length)
 
-    def summarize_batch(self, data: Union[str, Path, DataFrame], text_column_name: str, min_length=150, save=False):
-        """summarize_batch [summary]
-
-        [extended_summary]
+    def summarize_batch(self, data: Union[str, Path, pd.DataFrame], text_column_name: str,
+                        min_length: int = 150, save: bool = False) -> pd.DataFrame:
+        """summarize_batch uses generate_summary_batch to summarize a huge amount of text documents in batches.
 
         Args:
-            data (Union[str, Path, DataFrame]): [description]
-            text_column_name (str): [description]
-            min_length (int, optional): [description]. Defaults to 150.
-            save (bool, optional): [description]. Defaults to False.
+            data (Union[str, Path, pd.DataFrame]): Dataframe or file path containing text documents to summarize.
+            text_column_name (str): Name of the dataframe column containing text documents.
+            min_length (int, optional): Minimum length of chracters in generated summary. Defaults to 150.
+            save (bool, optional): Whether to save the summarization results to disk. Defaults to False.. Defaults to False.
+
+        Returns:
+            pd.DataFrame: Dataframe containing generated summaries of the text documents.
+
         """
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -1305,25 +1356,26 @@ class Summarizer(ModelsAlgorithms):
 
         return data
 
-    def summarize_batch_plus(self, data: Union[str, Path, DataFrame], id_column_name: str = 'prod_id', text_column_name: str = 'text',
+    def summarize_batch_plus(self, data: Union[str, Path, pd.DataFrame], id_column_name: str = 'prod_id', text_column_name: str = 'text',
                              min_length: int = 150, max_length: int = 1024, batch_size: int = 12,
-                             summary_column_name: str = 'summary', save=False):
-        """summarize_batch_plus
-
-        [extended_summary]
+                             summary_column_name: str = 'summary', save=False) -> pd.DataFrame:
+        """summarize_batch_plus uses generate_summary_batch to summarize a huge amount of text documents in batches.
 
         Args:
-            data (Union[str, Path, DataFrame]): [description]
-            id_column_name (str, optional): [description]. Defaults to 'prod_id'.
-            text_column_name (str, optional): [description]. Defaults to 'text'.
-            min_length (int, optional): [description]. Defaults to 150.
-            max_length (int, optional): [description]. Defaults to 1024.
-            batch_size (int, optional): [description]. Defaults to 12.
-            summary_column_name (str, optional): [description]. Defaults to 'summary'.
-            save (bool, optional): [description]. Defaults to False.
+            data (Union[str, Path, DataFrame]): Dataframe or file path containing text documents to summarize.
+            id_column_name (str, optional): Name of column that uniquely identifies a text document in the dataframe.
+                                            Defaults to 'prod_id'.
+            text_column_name (str, optional): Name of the dataframe column containing text documents. Defaults to 'text'.
+            min_length (int, optional): Minimum length of chracters in generated summary. Defaults to 150.
+            max_length (int, optional): Maximum length of chracters in generated summary. Defaults to 1024.
+            batch_size (int, optional): Size of the batch to run inference parrallely. Defaults to 12.
+            summary_column_name (str, optional): Name of the genereated summary column in the pandas dataframe.
+                                                 Defaults to 'summary'.
+            save (bool, optional): Whether to save the summarization results to disk. Defaults to False.
 
         Returns:
-            DataFrame: [description]
+            pd.DataFrame: Dataframe containing generated summaries of the text documents.
+
         """
         if type(data) != pd.core.frame.DataFrame:
             filename = data
@@ -1363,24 +1415,38 @@ class Summarizer(ModelsAlgorithms):
 
 
 class SexyReview(ModelsAlgorithms):
-    """SexyReview [summary]
+    """SexyReview utilizes PredictSentiment, PredictInfluence, Keywords, CandidateSelection and Summarizer to extract insights from review data.
 
-    [extended_summary]
+    This object is a subclass of ModelsAlgorithms which initializes folder paths for data reading and
+    model output storage. It uses all the nlp algorithms in the algorithm module to generate business insights and
+    transforms review data to feed into Redshift along with algorithm generated outputs.
+
+    Major functions of SexyReview Class are:
+    * 1. Predict sentiment of reviews.
+    * 2. Extract keywords from reviews.
+    * 3. Predict influence on reviews.
+    * 4. Review document candidate selection for summarization tasks.
+    * 5. Summarize reviews.
+    * 6. Summarize keywords.
+    * 7. Find positive and negative talking points.
 
     Args:
-        ModelsAlgorithms ([type]): [description]
+        ModelsAlgorithms (object): Parent class that defines folder paths and data locations.
+
     """
 
     def __init__(self, path: Union[Path, str] = Path.cwd(), initialize_sentiment_model: bool = True,
                  initialize_summarizer_model: bool = False) -> None:
-        """__init__ [summary]
+        """__init__ SexyReview class instace initializer.
 
-        [extended_summary]
+        Depending on the use case the instace constructor either initializes sentiment model or summarizer model.
 
         Args:
-            path (Union[Path, str], optional): [description]. Defaults to Path.cwd().
-            initialize_sentiment_model (bool, optional): [description]. Defaults to True.
-            initialize_summarizer_model (bool, optional): [description]. Defaults to False.
+            path (Union[Path, str], optional): path (Union[Path,str], optional): Folder path where the output folder structure will be saved
+                                               and data will be read. Defaults to current directory(Path.cwd()).
+            initialize_sentiment_model (bool, optional): Initialize sentiment model for classification. Defaults to True.
+            initialize_summarizer_model (bool, optional): Initialize pre-trained language model for summarization. Defaults to False.
+
         """
         super().__init__(path=path)
         if initialize_sentiment_model:
@@ -1397,23 +1463,22 @@ class SexyReview(ModelsAlgorithms):
              predict_sentiment: bool = True,
              predict_influence: bool = True,
              extract_keywords: bool = True) -> pd.DataFrame:
-        """make [summary]
-
-        [extended_summary]
+        """Make performs sentiment and influence classification, keyword extraction and data transformation for Redshift ingestion.
 
         Args:
-            source (str): source code of the metadata and detail files. Must be passed. (Accepted values: [sph, bts])
-            review_data (Optional[Union[str, Path, pd.DataFrame]], optional): [description]. Defaults to None.
-            text_column_name (str, optional): [description]. Defaults to 'review_text'.
-            predict_sentiment (bool, optional): [description]. Defaults to True.
-            predict_influence (bool, optional): [description]. Defaults to True.
-            extract_keywords (bool, optional): [description]. Defaults to True.
+            source (str): source code of the metadata and detail files. (Accepted values: [sph, bts])
+            review_data (Optional[Union[str, Path, pd.DataFrame]], optional): Review dataframe or data file path. Defaults to None.
+            text_column_name (str, optional): Name of the column containing reviews. Defaults to 'review_text'.
+            predict_sentiment (bool, optional): Whether to classify sentiment. Defaults to True.
+            predict_influence (bool, optional): Whether to classify influence. Defaults to True.
+            extract_keywords (bool, optional): Whether to extract keywords. Defaults to True.
 
         Raises:
-            MeiyumeException: [description]
+            MeiyumeException: Raises exception if source or data files are incorrect.
 
         Returns:
-            pd.DataFrame: Review dataframe with keywords, sentiments and influence flag.
+            pd.DataFrame: Review dataframe with keywords, sentiment labels and influence flag.
+
         """
         if source not in ['bts', 'sph']:  # replace the list with sql source metadata table read
             raise MeiyumeException(
@@ -1514,27 +1579,29 @@ class SexyReview(ModelsAlgorithms):
 
         return self.review
 
-    def make_summary(self, source: str, review_data: Optional[Union[str, Path, DataFrame]] = None,
+    def make_summary(self, source: str, review_data: Optional[Union[str, Path, pd.DataFrame]] = None,
                      # candidate_criterion=[],
                      summarize_review: bool = True, summarize_keywords: bool = True,
                      extract_ngrams: bool = True, extract_topic: bool = True) -> pd.DataFrame:
-        """make_summary [summary]
+        """make_summary performs summarization of all reviews and keywords of a product.
 
-        [extended_summary]
+        Also performs positive/negative keyphrase generation.
 
         Args:
-            source (str): [description]
-            review_data (Optional[Union[str, Path, DataFrame]], optional): [description]. Defaults to None.
-            summarize_review (bool, optional): [description]. Defaults to True.
-            summarize_keywords (bool, optional): [description]. Defaults to True.
-            extract_ngrams (bool, optional): [description]. Defaults to True.
-            extract_topic (bool, optional): [description]. Defaults to True.
+            source (str): source code of the metadata and detail files. (Accepted values: [sph, bts])
+            review_data (Optional[Union[str, Path, pd.DataFrame]], optional): Review dataframe or data file path. Defaults to None.
+            summarize_review (bool, optional): Whether to summarize reviews. Defaults to True.
+            summarize_keywords (bool, optional): Whether to summarize keywords. Defaults to True.
+            extract_ngrams (bool, optional): Whether to extract sentiment ngrams. Defaults to True.
+            extract_topic (bool, optional): Whether to extract dominant topics. Defaults to True.
 
         Raises:
-            MeiyumeException: [description]
+            MeiyumeException: Raises exception if source or data files are incorrect.
 
         Returns:
-            pd.DataFrame: [description]
+            pd.DataFrame: Algorithm output dataframe containing positive/negative review summary,
+                          positive/negative keyword summary and positive/negative talking points.
+
         """
 
         # replace the list with sql source metadata table read
