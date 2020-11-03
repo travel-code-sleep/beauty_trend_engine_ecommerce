@@ -364,9 +364,8 @@ class Metadata(Sephora):
                         continue
 
                     try:
-                        new_f = p.find_element_by_css_selector(
+                        product_new_flag = p.find_element_by_css_selector(
                             'div[data-at="product_badges"]').text
-                        product_new_flag = 'NEW'
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -3358,7 +3357,7 @@ class DetailReview(Sephora):
 
                 item_li = []
                 self.bad_item_li = []
-                item_files = [f for f in self.current_progress_path.glob(
+                item_files = [f for f in self.detail_current_progress_path.glob(
                     "sph_prod_item_extract_progress_*")]
                 for file in item_files:
                     try:
@@ -3388,7 +3387,7 @@ class DetailReview(Sephora):
 
                 rev_li = []
                 self.bad_rev_li = []
-                review_files = [f for f in self.current_progress_path.glob(
+                review_files = [f for f in self.review_current_progress_path.glob(
                     "sph_prod_review_extract_progress_*")]
                 for file in review_files:
                     try:
