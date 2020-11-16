@@ -85,15 +85,16 @@ def run_sph_crawler(meta_df: pd.DataFrame, sph_crawler: DetailReview):
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
         if i[0] == 0:
-            fresh_start = False
-            auto_fresh_start = False
+            fresh_start = True
+            auto_fresh_start = True
         else:
             fresh_start = False
             auto_fresh_start = False
-        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=6,
+        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=10,
                             fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                             start_idx=i[0], end_idx=i[-1],  # list_of_index=i,
-                            open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
+                            open_headless=False, open_with_proxy_server=open_with_proxy_server,
+                            randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
         sph_crawler.terminate_logging()
@@ -106,12 +107,13 @@ def run_sph_crawler(meta_df: pd.DataFrame, sph_crawler: DetailReview):
 
     progress_tracker = exclude_scraped_products_from_tracker(
         sph_crawler, reset_na=True)
-    n_workers = 4
+    n_workers = 5
     trials = 4
     while progress_tracker.scraped[progress_tracker.scraped == 'N'].count() != 0:
         sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
                             fresh_start=False, auto_fresh_start=False,
-                            open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
+                            open_headless=False, open_with_proxy_server=open_with_proxy_server,
+                            randomize_proxy_usage=True,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
         if trials <= 2:

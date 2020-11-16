@@ -28,7 +28,7 @@ def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: boo
         pd.DataFrame: [description]
     """
     progress_tracker = pd.read_feather(
-        metadata_crawler.metadata_path/'sph_metadata_progress_tracker')
+        metadata_crawler.metadata_path/'sph_product_type_urls_to_extract')
 
     if reset_na:
         progress_tracker.scraped[progress_tracker.scraped == 'NA'] = 'N'
@@ -38,7 +38,7 @@ def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: boo
     progress_tracker = progress_tracker[progress_tracker.scraped != 'Y']
     progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
     progress_tracker.to_feather(
-        metadata_crawler.metadata_path/'sph_metadata_progress_tracker')
+        metadata_crawler.metadata_path/'sph_product_type_urls_to_extract')
     return progress_tracker
 
 

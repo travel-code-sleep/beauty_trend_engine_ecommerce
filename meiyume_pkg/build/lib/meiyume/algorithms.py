@@ -553,7 +553,7 @@ class SexyIngredient(ModelsAlgorithms):
         old_ing_list = db.query_database("select ingredient from r_bte_product_ingredients_f \
                             where new_flag != 'new_ingredient'").ingredient.unique().tolist()
 
-        # find new ingredients based on new products
+        # find new ingredients
         def find_new_ingredient(x):
             if x.ingredient not in old_ing_list:
                 return 'new_ingredient'

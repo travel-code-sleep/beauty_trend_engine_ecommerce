@@ -632,7 +632,8 @@ class S3FileManager(object):
             'review_summary': 'Feeds/BeautyTrendEngine/Review_Summary/Staging/',
             'image': 'Feeds/BeautyTrendEngine/Image/Staging/',
             'cleaned_pre_algorithm': 'Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/',
-            'webapp': 'Feeds/BeautyTrendEngine/WebAppData/'
+            'webapp': 'Feeds/BeautyTrendEngine/WebAppData/',
+            'webapp_test': 'Feeds/BeautyTrendEngine/WebAppDevelopmentData/Test/'
         }
 
         try:

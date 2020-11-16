@@ -15,10 +15,8 @@ meiyume/bts/crawler.py
 meiyume/crawler_runners/__init__.py
 meiyume/crawler_runners/bts_detail_review_crawler_runner.py
 meiyume/crawler_runners/bts_metadata_crawler_runner.py
-meiyume/crawler_runners/sph_detail_crawler_runner.py
 meiyume/crawler_runners/sph_detail_review_crawler_runner.py
 meiyume/crawler_runners/sph_image_crawler_runner.py
 meiyume/crawler_runners/sph_metadata_crawler_runner.py
-meiyume/crawler_runners/sph_review_crawler_runner.py
 meiyume/sph/__init__.py
 meiyume/sph/crawler.py
