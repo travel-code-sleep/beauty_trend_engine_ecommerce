@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 """ [summary]
 
 [extended_summary]
@@ -773,6 +771,7 @@ class RefreshData():
 
         def hasNumbers(inputString):
             return bool(re.search(r'\d', inputString))
+
         prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
             lambda x: x if hasNumbers(x) else '').str.replace('out of stock:', '').str.replace('nan', '')
         prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
@@ -885,4 +884,3 @@ class RefreshData():
             print('refresh job failed.')
         else:
             print('refresh job completed.')
->>>>>>> 705cdfff3ca4d2217d862f20837de19f1fec6f75

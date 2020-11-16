@@ -1633,15 +1633,6 @@ class SexyReview(ModelsAlgorithms):
                     subset=['prod_id', 'review_text', 'review_date'])
                 self.review.reset_index(inplace=True, drop=True)
             elif source == 'bts':
-<<<<<<< HEAD
-                review_files = self.output_path.glob(
-                    'with_keywords_sentiment_cleaned_bts_product_review_all_*')
-                print(list(review_files))
-                review_files = self.output_path.glob(
-                    'with_keywords_sentiment_cleaned_bts_product_review_all_*')
-                rev_li = [pd.read_feather(file) for file in review_files]
-                self.review = pd.concat(rev_li, axis=0, ignore_index=True)
-=======
                 self.review = db.query_database(
                     "select prod_id, product_name, sentiment, is_influenced, \
                         review_text, review_title, helpful_n, helpful_y, keywords\
@@ -1652,7 +1643,6 @@ class SexyReview(ModelsAlgorithms):
                 # rev_li = [pd.read_feather(file) for file in review_files]
                 # print()
                 # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
->>>>>>> 705cdfff3ca4d2217d862f20837de19f1fec6f75
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])

@@ -1624,10 +1624,6 @@ class SexyReview(ModelsAlgorithms):
                         review_text, review_title, helpful_n, helpful_y, keywords\
                     from r_bte_product_review_f \
                     where prod_id like 'sph%'")
-                # review_files = self.output_path.glob(
-                #     'with_keywords_sentiment_cleaned_sph_product_review_all_*')
-                # rev_li = [pd.read_feather(file) for file in review_files]
-                # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])
@@ -1638,11 +1634,6 @@ class SexyReview(ModelsAlgorithms):
                         review_text, review_title, helpful_n, helpful_y, keywords\
                     from r_bte_product_review_f \
                     where prod_id like 'bts%'")
-                # review_files = self.output_path.glob(
-                #     'with_keywords_sentiment_cleaned_bts_product_review_all_*')
-                # rev_li = [pd.read_feather(file) for file in review_files]
-                # print()
-                # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])
