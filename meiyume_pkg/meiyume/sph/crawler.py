@@ -364,9 +364,8 @@ class Metadata(Sephora):
                         continue
 
                     try:
-                        new_f = p.find_element_by_css_selector(
+                        product_new_flag = p.find_element_by_css_selector(
                             'div[data-at="product_badges"]').text
-                        product_new_flag = 'NEW'
                     except Exception as ex:
                         log_exception(self.logger,
                                       additional_information=f'Prod Type: {product_type}')
@@ -382,7 +381,8 @@ class Metadata(Sephora):
                         product_page = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} product_page extraction failed.\
-                                                (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                                                (page_link: {product_type_link} - page_no: {current_page})',
+                                                    'utf-8', 'ignore'))
                     try:
                         brand = p.find_element_by_css_selector(
                             'span[data-at="sku_item_brand"]').text
@@ -392,7 +392,8 @@ class Metadata(Sephora):
                         brand = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} brand extraction failed.\
-                                                (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                                                (page_link: {product_type_link} - page_no: {current_page})',
+                                                    'utf-8', 'ignore'))
                     try:
                         rating = p.find_element_by_css_selector(
                             'div[data-comp="StarRating "]').get_attribute('aria-label')
@@ -402,7 +403,8 @@ class Metadata(Sephora):
                         rating = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                      product {products.index(p)} rating extraction failed.\
-                                                (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                                                (page_link: {product_type_link} - page_no: {current_page})',
+                                                    'utf-8', 'ignore'))
                     try:
                         price = p.find_element_by_css_selector(
                             'span[data-at="sku_item_price_list"]').text
@@ -412,7 +414,8 @@ class Metadata(Sephora):
                         price = ''
                         self.logger.info(str.encode(f'Category: {cat_name} - ProductType: {product_type} -\
                                                       product {products.index(p)} price extraction failed.\
-                                                (page_link: {product_type_link} - page_no: {current_page})', 'utf-8', 'ignore'))
+                                                (page_link: {product_type_link} - page_no: {current_page})',
+                                                    'utf-8', 'ignore'))
 
                     if datetime.now().day < 15:
                         meta_date = f'{time.strftime("%Y-%m")}-01'
@@ -2074,7 +2077,7 @@ class Image(Sephora):
                     self.logger.info(str.encode(f'prod_id: {prod_id} image extraction failed.\
                                             Product may not be available for sell currently.(page: {product_page})',
                                                 'utf-8', 'ignore'))
-                    self.meta.loc[prod, 'image_scraped'] = 'NA'
+                    self.meta.loc[prod, 'image_scraped'] = "NA"
                     self.meta.to_csv(
                         self.image_path/'sph_image_progress_tracker.csv', index=None)
                     drv.quit()
@@ -2098,7 +2101,7 @@ class Image(Sephora):
                                       additional_information=f'Prod ID: {prod_id}')
                         self.logger.info(str.encode(f'prod_id: {prod_id} failed to get image sources.\
                                                     (page: {product_page})', 'utf-8', 'ignore'))
-                        self.meta.loc[prod, 'image_scraped'] = 'NA'
+                        self.meta.loc[prod, 'image_scraped'] = "NA"
                         self.meta.to_csv(
                             self.image_path/'sph_image_progress_tracker.csv', index=None)
                         drv.quit()
@@ -2109,7 +2112,7 @@ class Image(Sephora):
                 if len(images) == 0:
                     self.logger.info(str.encode(f'{prod_id} image extraction failed.\
                                                     (page: {product_page})', 'utf-8', 'ignore'))
-                    self.meta.loc[prod, 'image_scraped'] = 'NA'
+                    self.meta.loc[prod, 'image_scraped'] = "NA"
                     self.meta.to_csv(
                         self.image_path/'sph_image_progress_tracker.csv', index=None)
                     drv.quit()
@@ -2128,6 +2131,7 @@ class Image(Sephora):
 
             # download images
             image_count = 0
+            accept_alert(drv, 3)
             try:
                 for src in sources:
                     drv.get(src)
@@ -2200,7 +2204,7 @@ class Image(Sephora):
             else:
                 if Path(self.image_path/'sph_image_progress_tracker.csv').exists():
                     self.meta = pd.read_csv(
-                        self.image_path/'sph_image_progress_tracker.csv')
+                        self.image_path/'sph_image_progress_tracker.csv', na_filter=False)
                     if sum(self.meta.image_scraped == 'N') == 0:
                         if auto_fresh_start:
                             fresh()
@@ -2208,9 +2212,11 @@ class Image(Sephora):
                                 'Last Run was Completed. Starting Fresh Extraction.')
                         else:
                             self.logger.info(
-                                f'Image extraction for this cycle is complete. Please check files in path: {self.image_path}')
+                                f'Image extraction for this cycle is complete. \
+                                    Please check files in path: {self.image_path}')
                             print(
-                                f'Image extraction for this cycle is complete. Please check files in path: {self.image_path}')
+                                f'Image extraction for this cycle is complete. \
+                                    Please check files in path: {self.image_path}')
                     else:
                         self.logger.info(
                             'Continuing Image Extraction From Last Run.')
@@ -2550,6 +2556,7 @@ class DetailReview(Sephora):
         for t in prod_tabs:
             tab_names.append(t.text.lower())
 
+        accept_alert(drv, 1)
         try:
             votes = drv.find_elements_by_class_name('css-2rg6q7')[-1].text
         except Exception as ex:
@@ -2681,6 +2688,7 @@ class DetailReview(Sephora):
 
         self.scroll_down_page(drv, h2=0.4, speed=5)
         time.sleep(5)
+        accept_alert(drv, 1)
         try:
             chat_popup_button = WebDriverWait(drv, 3).until(
                 EC.presence_of_element_located((By.XPATH, '//*[@id="divToky"]/img[3]')))
@@ -2783,6 +2791,7 @@ class DetailReview(Sephora):
         # print(no_of_reviews)
         # drv.find_element_by_class_name('css-2rg6q7').click()
         if incremental and last_scraped_review_date != '':
+            accept_alert(drv, 1)
             for n in range(no_of_reviews//6):
                 if n > 400:
                     break
@@ -2844,6 +2853,7 @@ class DetailReview(Sephora):
         else:
             # print('inside get all reviews')
             # 6 because for click sephora shows 6 reviews. additional 25 no. of clicks for buffer.
+            accept_alert(drv, 1)
             for n in range(no_of_reviews//6+10):
                 '''
                 code will stop after getting 1800 reviews of one particular product
@@ -2956,6 +2966,7 @@ class DetailReview(Sephora):
                 review_title = ''
 
             try:
+                accept_alert(drv, 0.5)
                 product_variant = rev.find_element_by_class_name(
                     'css-1op1cn7').text
             except Exception as ex:
@@ -2972,6 +2983,7 @@ class DetailReview(Sephora):
                 user_rating = ''
 
             try:
+                accept_alert(drv, 0.5)
                 user_attribute = [{'_'.join(u.lower().split()[0:-1]): u.lower().split()[-1]}
                                   for u in rev.find_element_by_class_name('css-ecreye').text.split('\n')]
                 # user_attribute = []
@@ -3358,7 +3370,7 @@ class DetailReview(Sephora):
 
                 item_li = []
                 self.bad_item_li = []
-                item_files = [f for f in self.current_progress_path.glob(
+                item_files = [f for f in self.detail_current_progress_path.glob(
                     "sph_prod_item_extract_progress_*")]
                 for file in item_files:
                     try:
@@ -3388,7 +3400,7 @@ class DetailReview(Sephora):
 
                 rev_li = []
                 self.bad_rev_li = []
-                review_files = [f for f in self.current_progress_path.glob(
+                review_files = [f for f in self.review_current_progress_path.glob(
                     "sph_prod_review_extract_progress_*")]
                 for file in review_files:
                     try:

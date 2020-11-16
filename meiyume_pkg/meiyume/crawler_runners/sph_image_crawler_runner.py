@@ -28,31 +28,31 @@ def get_meta_df() -> pd.DataFrame:
     return df
 
 
-def exclude_scraped_products_from_tracker(image_crawler: Image, reset_na: bool = False) -> pd.DataFrame:
-    """exclude_scraped_products_from_tracker [summary]
+# def exclude_scraped_products_from_tracker(image_crawler: Image, reset_na: bool = False) -> pd.DataFrame:
+#     """exclude_scraped_products_from_tracker [summary]
 
-    [extended_summary]
+#     [extended_summary]
 
-    Args:
-        image_crawler (Image): [description]
-        reset_na (bool, optional): [description]. Defaults to False.
+#     Args:
+#         image_crawler (Image): [description]
+#         reset_na (bool, optional): [description]. Defaults to False.
 
-    Returns:
-        pd.DataFrame: [description]
-    """
-    progress_tracker = pd.read_csv(
-        image_crawler.image_path/'sph_image_progress_tracker.csv')
+#     Returns:
+#         pd.DataFrame: [description]
+#     """
+#     progress_tracker = pd.read_csv(
+#         image_crawler.image_path/'sph_image_progress_tracker.csv')
 
-    if reset_na:
-        progress_tracker.image_scraped[progress_tracker.image_scraped == 'NA'] = 'N'
+#     if reset_na:
+#         progress_tracker.image_scraped[progress_tracker.image_scraped == 'NA'] = 'N'
 
-    progress_tracker = progress_tracker[~progress_tracker.image_scraped.isna(
-    )]
-    progress_tracker = progress_tracker[progress_tracker.image_scraped != 'Y']
-    progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
-    progress_tracker.to_csv(
-        image_crawler.image_path/'sph_image_progress_tracker.csv', index=None)
-    return progress_tracker
+#     progress_tracker = progress_tracker[~progress_tracker.image_scraped.isna(
+#     )]
+#     progress_tracker = progress_tracker[progress_tracker.image_scraped != 'Y']
+#     progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
+#     progress_tracker.to_csv(
+#         image_crawler.image_path/'sph_image_progress_tracker.csv', index=None)
+#     return progress_tracker
 
 
 def run_image_crawler(meta_df: pd.DataFrame, image_crawler: Image):
@@ -67,15 +67,18 @@ def run_image_crawler(meta_df: pd.DataFrame, image_crawler: Image):
     for i in ranges(meta_df.shape[0], 30):
         print(i[0], i[-1])
         if i[0] == 0:
-            fresh_start = True
-            auto_fresh_start = True
+            fresh_start = False
+            auto_fresh_start = False
         else:
             fresh_start = False
             auto_fresh_start = False
         image_crawler.extract(metadata=meta_df, download=True, n_workers=6,
-                              fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
+                              fresh_start=fresh_start,
+                              auto_fresh_start=auto_fresh_start,
                               list_of_index=i,
-                              open_headless=False, open_with_proxy_server=True, randomize_proxy_usage=True)
+                              open_headless=False,
+                              open_with_proxy_server=True,
+                              randomize_proxy_usage=True)
     # Path(review_crawler.review_path/'sph_review_progress_tracker.csv').unlink()
     image_crawler.terminate_logging()
     del image_crawler

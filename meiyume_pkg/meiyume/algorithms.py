@@ -313,6 +313,26 @@ class SexyMetaDetail(ModelsAlgorithms):
                                   'product_namedetail'], axis=1, inplace=True)
         meta_detail['complete_scrape_flag'] = 'y'
 
+        df_db = db.query_database('select t.*\
+                        from (select prod_id, review_date,\
+                                     row_number() over (partition by prod_id order by review_date) as seqnum\
+                              from r_bte_product_review_f\
+                             ) t\
+                        where seqnum = 1')
+        df_db.rename(
+            columns={'review_date': 'first_review_date'}, inplace=True)
+        df_db.drop(columns='seqnum', inplace=True)
+
+        df_db = df_db[df_db.prod_id.isin(meta_detail.prod_id.tolist())]
+
+        meta_detail.set_index('prod_id', inplace=True)
+        df_db.set_index('prod_id', inplace=True)
+
+        meta_detail.drop(columns='first_review_date', inplace=True)
+
+        meta_detail = meta_detail.join(df_db, how='left')
+        meta_detail.reset_index(inplace=True)
+
         columns = ["prod_id",
                    "product_name",
                    "product_page",
@@ -530,16 +550,15 @@ class SexyIngredient(ModelsAlgorithms):
                 self.ingredient = pd.read_feather(
                     max(ingredient_files, key=os.path.getctime))
 
-        old_ing_list = self.ingredient.ingredient[self.ingredient.new_flag == ''].str.strip(
-        ).tolist()
+        old_ing_list = db.query_database("select ingredient from r_bte_product_ingredients_f \
+                            where new_flag != 'new_ingredient'").ingredient.unique().tolist()
 
-        # find new ingredients based on new products
+        # find new ingredients
         def find_new_ingredient(x):
-            if x.new_flag == 'new':
-                if x.ingredient in old_ing_list:
-                    return 'new_product'
-                else:
-                    return 'new_ingredient'
+            if x.ingredient not in old_ing_list:
+                return 'new_ingredient'
+            elif x.ingredient in old_ing_list and x.new_flag == 'new':
+                return 'new_product'
             else:
                 return x.new_flag
         self.ingredient.new_flag = self.ingredient.apply(
