@@ -701,8 +701,9 @@ class RefreshData():
         [extended_summary]
         """
         # get metadata
-        metadata = db.query_database("select prod_id, product_name, brand, category, product_type, new_flag, meta_date, low_p, high_p, \
-                              mrp, reviews, bayesian_estimate, first_review_date from r_bte_meta_detail_f")
+        metadata = db.query_database("select prod_id, product_name, brand, category, product_type, new_flag, \
+                                     meta_date, low_p, high_p, \
+                                     mrp, reviews, bayesian_estimate, first_review_date from r_bte_meta_detail_f")
         metadata['source'] = metadata.prod_id.apply(
             lambda x: 'us' if 'sph' in x else 'uk')
         metadata['meta_date'] = metadata['meta_date'].astype('datetime64')
@@ -778,14 +779,23 @@ class RefreshData():
 
         # get ingredient data
         ingredients = db.query_database("select prod_id, product_name, brand, category, product_type, \
-            ingredient, ingredient_type, new_flag, ban_flag \
+            ingredient, ingredient_type, new_flag, ban_flag, meta_date \
                 from r_bte_product_ingredients_f")
         ingredients = ingredients[ingredients.prod_id.isin(
             metadata.prod_id.tolist())]
-        ingredients.reset_index(inplace=True, drop=True)
-        ingredients.fillna('', inplace=True)
         ingredients['source'] = ingredients.prod_id.apply(
             lambda x: 'us' if 'sph' in x else 'uk')
+
+        ing = []
+        for i in dt:
+            ing.append(ingredients[(ingredients.source == i['source']) &
+                                   (ingredients.meta_date == i['meta_date'])])
+        ingredients = pd.concat(ing, axis=0)
+        ingredients.fillna('', inplace=True)
+        ingredients.drop_duplicates(
+            subset=['prod_id', 'ingredient'], inplace=True)
+
+        ingredients.reset_index(inplace=True, drop=True)
         ingredients[ingredients.columns.difference(['product_name', 'brand'])] \
             = ingredients[ingredients.columns.difference(['product_name', 'brand'])]\
             .apply(lambda x: x.astype(str).str.lower() if(x.dtype == 'object') else x)
@@ -947,7 +957,7 @@ class RefreshData():
         for col in ['item_price', 'item_size']:
             prod_page_item_df[col] = prod_page_item_df[col].astype('category')
         prod_page_item_df.drop_duplicates(
-            inplace=True, subset=['prod_id', 'item_size', 'item_name'])
+            inplace=True, subset=['meta_date', 'prod_id', 'item_size', 'item_name'])
         prod_page_item_df.reset_index(inplace=True, drop=True)
         prod_page_item_df.to_feather(self.dash_data_path/'prod_page_item_data')
 
