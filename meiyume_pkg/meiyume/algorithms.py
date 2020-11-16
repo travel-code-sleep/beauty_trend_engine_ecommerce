@@ -1270,11 +1270,11 @@ class Summarizer(ModelsAlgorithms):
                                                   summarize_batch methods. "
 
         length = len(text.split())
-        if length > 1024:
-            max_length = 1024
-        else:
-            max_length = length
-
+        # if length > 1024:
+        #     max_length = 1024
+        # else:
+        #     max_length = length
+        max_length = 512
         if length < min_length+30:
             return text
         else:
@@ -1283,7 +1283,7 @@ class Summarizer(ModelsAlgorithms):
             return summary[0]['summary_text']
 
     def generate_summary_batch(self, examples: list, model_name: str = "bart-large-cnn", min_length: int = 150,
-                               max_length: int = 1024, batch_size: int = 12) -> List:
+                               max_length: int = 512, batch_size: int = 12) -> List:
         """generate_summary_batch genereates summary of a batch of text documents at a time.
 
         Args:
@@ -1375,8 +1375,9 @@ class Summarizer(ModelsAlgorithms):
 
         return data
 
-    def summarize_batch_plus(self, data: Union[str, Path, pd.DataFrame], id_column_name: str = 'prod_id', text_column_name: str = 'text',
-                             min_length: int = 150, max_length: int = 1024, batch_size: int = 12,
+    def summarize_batch_plus(self, data: Union[str, Path, pd.DataFrame], id_column_name: str = 'prod_id',
+                             text_column_name: str = 'text',
+                             min_length: int = 150, max_length: int = 512, batch_size: int = 12,
                              summary_column_name: str = 'summary', save=False) -> pd.DataFrame:
         """summarize_batch_plus uses generate_summary_batch to summarize a huge amount of text documents in batches.
 
@@ -1639,35 +1640,28 @@ class SexyReview(ModelsAlgorithms):
         else:
             if source == 'sph':
                 self.review = db.query_database(
-                    "select prod_id, product_name, sentiment, is_influenced, \
-                        review_text, review_title, helpful_n, helpful_y, keywords\
+                    "select prod_id, product_name, sentiment, is_influenced, review_date, \
+                        review_text, review_title, helpful_n, helpful_y, keywords, meta_date \
                     from r_bte_product_review_f \
                     where prod_id like 'sph%'")
-                # review_files = self.output_path.glob(
-                #     'with_keywords_sentiment_cleaned_sph_product_review_all_*')
-                # rev_li = [pd.read_feather(file) for file in review_files]
-                # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])
                 self.review.reset_index(inplace=True, drop=True)
             elif source == 'bts':
                 self.review = db.query_database(
-                    "select prod_id, product_name, sentiment, is_influenced, \
-                        review_text, review_title, helpful_n, helpful_y, keywords\
+                    "select prod_id, product_name, sentiment, is_influenced, review_date, \
+                        review_text, review_title, helpful_n, helpful_y, keywords, meta_date \
                     from r_bte_product_review_f \
                     where prod_id like 'bts%'")
-                # review_files = self.output_path.glob(
-                #     'with_keywords_sentiment_cleaned_bts_product_review_all_*')
-                # rev_li = [pd.read_feather(file) for file in review_files]
-                # print()
-                # self.review = pd.concat(rev_li, axis=0, ignore_index=True)
                 self.review.drop_duplicates(inplace=True)
                 self.review = self.review.drop_duplicates(
                     subset=['prod_id', 'review_text', 'review_date'])
                 self.review.reset_index(inplace=True, drop=True)
 
-        meta_date = pd.to_datetime(self.review.meta_date.max()).date()
+        self.review.meta_date = self.review.meta_date.astype(str)
+        meta_date = self.review.meta_date.max()
+        print(meta_date)
         self.review = self.review[['prod_id', 'product_name', 'review_text', 'review_title', 'helpful_n',
                                    'helpful_y', 'sentiment', 'is_influenced', 'keywords']]
         self.review = self.review.replace('\n', ' ', regex=True)
