@@ -22,15 +22,6 @@
 <h1 class="title">Package <code>meiyume</code></h1>
 </header>
 <section id="section-intro">
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">try:
-    __import__(&#39;pkg_resources&#39;).declare_namespace(__name__)
-except ImportError:
-    __path__ = __import__(&#39;pkgutil&#39;).extend_path(__path__, __name__)</code></pre>
-</details>
 </section>
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
@@ -61,7 +52,7 @@ except ImportError:
 </dd>
 <dt><code class="name"><a title="meiyume.webapp_datamaker" href="webapp_datamaker.html">meiyume.webapp_datamaker</a></code></dt>
 <dd>
-<div class="desc"><p>[summary] …</p></div>
+<div class="desc"><p>Datamaker module to read Redshift database, format data as per frontend visualization requirement and push data to webapp S3 storage for use.</p></div>
 </dd>
 </dl>
 </section>

@@ -469,8 +469,9 @@ class Cleaner():
 
         return self.detail
 
-    def item_cleaner(self, data: pd.DataFrame, save: bool) -> pd.DataFrame:
+    def item_cleaner(self, data: pd.DataFrame, save: bool) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """item_cleaner cleans e-commerce product item data.
+
 
         Item cleaner generates two files, 1. Cleaned Item file and 2. Cleaned Ingredient File.
         Once the cleaned item file is generated it does not require any algorithmic processing
@@ -481,24 +482,33 @@ class Cleaner():
             save (bool): Whether to save cleaned data to disk.
 
         Returns:
-            pd.DataFrame: Cleaned Item and Ingredient data.
+            Tuple[pd.DataFrame, pd.DataFrame]: Cleaned Item and Ingredient data.
 
         """
         nlp = spacy.load('en_core_web_lg')
 
-        if self.source == 'sph':
-            meta_files = self.sph.metadata_clean_path.glob(
-                'cat_cleaned_sph_product_metadata_all*')
-        elif self.source == 'bts':
-            meta_files = self.bts.metadata_clean_path.glob(
-                'cat_cleaned_bts_product_metadata_all*')
+        # if metadata_file:
+        #     if not isinstance(metadata_file, pd.core.frame.DataFrame):
+        #         try:
+        #             meta = pd.read_feather(metadata_file)
+        #         except Exception as ex:
+        #             meta = pd.read_csv(metadata_file)
+        #     else:
+        #         meta = metadata_file
+        # else:
+        #     if self.source == 'sph':
+        #         metadata_file = max(self.sph.metadata_clean_path.glob(
+        #             'cat_cleaned_sph_product_metadata_all*'), key=os.path.getctime)
+        #     elif self.source == 'bts':
+        #         metadata_file = max(self.bts.metadata_clean_path.glob(
+        #             'cat_cleaned_bts_product_metadata_all*'), key=os.path.getctime)
+        #     print(metadata_file)
+        #     meta = pd.read_feather(metadata_file)
 
-        meta = pd.read_feather(max(meta_files, key=os.path.getctime))
-
-        new_product_list = meta.prod_id[meta.new_flag == 'new'].unique()
-        clean_product_list = meta.prod_id[meta.clean_flag == 'clean'].unique()
-        vegan_product_list = meta.prod_id[meta.product_type.apply(
-            lambda x: True if 'vegan' in x else False)].unique()
+        # new_product_list = meta.prod_id[meta.new_flag == 'new'].unique()
+        # clean_product_list = meta.prod_id[meta.clean_flag == 'clean'].unique()
+        # vegan_product_list = meta.prod_id[meta.product_type.apply(
+        #     lambda x: True if 'vegan' in x else False)].unique()
 
         self.item = data
         del data
@@ -605,8 +615,8 @@ class Cleaner():
         self.item.meta_date = pd.to_datetime(
             self.item.meta_date, infer_datetime_format=True)
 
-        self.item['clean_flag'] = self.item.prod_id.apply(
-            lambda x: 'clean' if x in clean_product_list else '')
+        # self.item['clean_flag'] = self.item.prod_id.apply(
+        #     lambda x: 'clean' if x in clean_product_list else '')
         # self.item['new_flag'] = self.item.prod_id.apply(
         #     lambda x: 'New' if x in new_product_list else '')
 
@@ -620,8 +630,8 @@ class Cleaner():
                 str: Cleaned required ingredients.
 
             """
-            if x.clean_flag == 'Clean' and x.item_ingredients is not np.nan:
-                return x.item_ingredients.split('clean at sephora')[0]+'\n'
+            if 'clean at sephora' in x.item_ingredients.lower() or 'formulated without' in x.item_ingredients.lower():
+                return x.item_ingredients.lower().split('clean at sephora')[0]+'\n'
             else:
                 return x.item_ingredients
 
@@ -630,30 +640,33 @@ class Cleaner():
                                   (')', ' '), ('\n', ','),
                                   ('%', ' percent '), ('.', ' dott '),
                                   ('/', ' slash '), ('\n', ','))
-        self.item.item_ingredients = self.item.apply(lambda x: clean_ing_sep(x), axis=1).apply(
+        self.item_ing = self.item.dropna(axis=0, subset=['item_ingredients'])
+        # self.item_ing.item_ingredients.dropna(inplace=True)
+        self.item_ing.item_ingredients = self.item_ing.apply(lambda x: clean_ing_sep(x), axis=1).apply(
             lambda x: reduce(lambda a, kv: a.replace(*kv),
-                             replace_strings_before, x)
-            if x is not np.nan else np.nan).apply(lambda x: re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', x)
-                                                  if x is not np.nan else np.nan)
-        self.item['ingredient'] = self.item.item_ingredients.apply(
+                             replace_strings_before, x)).apply(lambda x: re.sub(r"[^a-zA-Z0-9%\s,-.]+", '', x))
+        self.item_ing['ingredient'] = self.item_ing.item_ingredients.apply(
             lambda x: [text for text in nlp(x).text.split(',')]
             if x is not np.nan else np.nan)
 
-        self.ing = self.item[['prod_id', 'ingredient']]
+        self.ing = self.item_ing[['prod_id', 'ingredient']]
         self.ing = self.ing.explode('ingredient').drop_duplicates()
         self.ing.dropna(inplace=True)
 
-        if self.source == 'sph':
-            self.ing['vegan_flag'] = self.ing.prod_id.apply(
-                lambda x: 'vegan' if x in vegan_product_list else '')
-        elif self.source == 'bts':
-            self.ing['vegan_flag'] = self.ing.ingredient.apply(
-                lambda x: 'vegan' if 'vegan' in x else '')
+        del self.item_ing
+        gc.collect()
 
-        self.ing['clean_flag'] = self.ing.prod_id.apply(
-            lambda x: 'clean' if x in clean_product_list else '')
-        self.ing['new_flag'] = self.ing.prod_id.apply(
-            lambda x: 'new' if x in new_product_list else '')
+        # if self.source == 'sph':
+        #     self.ing['vegan_flag'] = self.ing.prod_id.apply(
+        #         lambda x: 'vegan' if x in vegan_product_list else '')
+        # elif self.source == 'bts':
+        #     self.ing['vegan_flag'] = self.ing.ingredient.apply(
+        #         lambda x: 'vegan' if 'vegan' in x else '')
+
+        # self.ing['clean_flag'] = self.ing.prod_id.apply(
+        #     lambda x: 'clean' if x in clean_product_list else '')
+        # self.ing['new_flag'] = self.ing.prod_id.apply(
+        #     lambda x: 'new' if x in new_product_list else '')
 
         self.ing = self.ing[~self.ing.ingredient.isin(
             ['synthetic fragrances synthetic fragrances 1 synthetic fragrances 1 12 2 \
@@ -674,7 +687,54 @@ class Cleaner():
 
         strip_strings = ('/', '.', '-', '', ' ')
         i = 0
-        while i < 5:
+        while i <= 4:
+            self.ing.ingredient = self.ing.ingredient.apply(lambda x: (' ').join(
+                [w if w not in bannedwords else ' ' for w in x.split()]).strip())
+            self.ing.ingredient = self.ing.ingredient.apply(
+                lambda x: reduce(lambda a, v: a.strip(v), strip_strings, x))
+            self.ing = self.ing[~self.ing.ingredient.isin(banned_phrases)]
+            self.ing = self.ing[self.ing.ingredient != '']
+            self.ing.ingredient = self.ing.ingredient.apply(
+                lambda x: reduce(lambda a, v: a.strip(v), strip_strings, x))
+            self.ing = self.ing[~self.ing.ingredient.str.isnumeric()]
+            self.ing = self.ing[self.ing.ingredient != '']
+            i += 1
+
+        ing_slash = self.ing[self.ing.ingredient.str.count('/') > 0]
+        ing_non_slash = self.ing[self.ing.ingredient.str.count('/') == 0]
+
+        ing_slash.ingredient = ing_slash.ingredient.str.split('/')
+        ing_slash = ing_slash.explode('ingredient').drop_duplicates()
+        ing_slash.reset_index(inplace=True, drop=True)
+        ing_slash.ingredient = ing_slash.ingredient.str.strip()
+        ing_slash = ing_slash[ing_slash.ingredient != '']
+
+        self.ing = pd.concat([ing_non_slash, ing_slash],
+                             axis=0, ignore_index=True)
+        self.ing.ingredient[(self.ing.ingredient.str.contains('%')) &
+                            (self.ing.ingredient.str.contains('\.'))] \
+            = self.ing.ingredient[(self.ing.ingredient.str.contains('%')) &
+                                  (self.ing.ingredient.str.contains('\.'))].str.replace(' \. ', '.').str.replace(' %', '%')
+
+        del ing_slash, ing_non_slash
+        gc.collect()
+
+        ing_dot = self.ing[self.ing.ingredient.str.count(' \. ') > 0]
+        ing_non_dot = self.ing[self.ing.ingredient.str.count(' \. ') == 0]
+
+        ing_dot.ingredient = ing_dot.ingredient.str.split(' \. ')
+        ing_dot = ing_dot.explode('ingredient').drop_duplicates()
+        ing_dot.reset_index(inplace=True, drop=True)
+        ing_dot.ingredient = ing_dot.ingredient.str.strip()
+        ing_dot = ing_dot[ing_dot.ingredient != '']
+
+        self.ing = pd.concat([ing_non_dot, ing_dot], axis=0, ignore_index=True)
+
+        del ing_dot, ing_non_dot
+        gc.collect()
+
+        i = 0
+        while i <= 3:
             self.ing.ingredient = self.ing.ingredient.apply(lambda x: (' ').join(
                 [w if w not in bannedwords else ' ' for w in x.split()]).strip())
             self.ing.ingredient = self.ing.ingredient.apply(
@@ -690,11 +750,21 @@ class Cleaner():
         del banned_phrases, bannedwords
         gc.collect()
 
+        self.ing = self.ing[self.ing.ingredient.str.len() > 2]
+        self.ing = self.ing[~self.ing.ingredient.apply(lambda x: True if len(x) < 5 and
+                                                       any(i in x for i in ['1', '2', '3', '4', '5', '6',
+                                                                            '7', '8', '9', '0', '%']) else False)]
+        self.ing = self.ing[~self.ing.ingredient.apply(
+            lambda x: True if len(x) <= 9 and any(i in x for i in ['.', '%', 'mg', 'ml', 'cm', 'oz', 'gram'])
+            and all(i not in x for i in ['aha', 'bha']) else False)]
+
+        self.ing = self.ing[~self.ing.ingredient.str.startswith('000')]
+
         self.ing.drop_duplicates(inplace=True)
         self.ing.reset_index(inplace=True, drop=True)
         self.ing['meta_date'] = self.item.meta_date.max()
 
-        self.item.drop(columns=['item_ingredients', 'ingredient', 'clean_flag'],
+        self.item.drop(columns=['item_ingredients'],
                        inplace=True, axis=1)
         self.item.drop_duplicates(inplace=True)
         self.item.reset_index(inplace=True, drop=True)

@@ -1,10 +1,5 @@
-""" [summary]
+"""Datamaker module to read Redshift database, format data as per frontend visualization requirement and push data to webapp S3 storage for use."""
 
-[extended_summary]
-
-Returns:
-    [type]: [description]
-"""
 from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
@@ -35,30 +30,43 @@ np.random.seed(1337)
 
 
 class RefreshData():
-    """RefreshData [summary]
-
-    [extended_summary]
-    """
+    """RefreshData class contains functions to update datafiles required by webapp basend on schedule."""
 
     def __init__(self, path='.'):
-        """__init__ [summary]
+        """__init__ initializes the class instance.
 
-        [extended_summary]
+        The initialization function creates path variables for data storage and later deletion after successfully uploading data to S3 storage.
 
         Args:
-            path (str, optional): [description]. Defaults to '.'.
+            path (str, optional): Path where the webapp data will be locally dumped before pushing to S3 storage. Defaults to '.'.
+
         """
         self.path = Path(path)
-        self.sph = Sephora(path=self.path)
-        self.bts = Boots(path=self.path)
-        self.out = ModelsAlgorithms(path=self.path)
+        # self.sph = Sephora(path=self.path)
+        # self.bts = Boots(path=self.path)
+        # self.out = ModelsAlgorithms(path=self.path)
         self.dash_data_path = Path(r'D:\Amit\Meiyume\meiyume_data\dash_data')
         self.landing_page_data = {}
 
-    def refresh_market_trend_data(self, push_file_to_S3, job_name):
-        """refresh_market_trend_data [summary]
+    def hasNumbers(self, inputString: str)->bool:
+        """hasNumbers checks whether string contains numeric characters.
 
-        [extended_summary]
+        Args:
+            inputString (str): input text
+
+        Returns:
+            bool: True if inputstring contains numeric characters.
+
+        """
+        return bool(re.search(r'\d', inputString))
+
+    def refresh_market_trend_data(self, push_file_to_S3: bool, job_name: str)->None:
+        """refresh_market_trend_data connects to Redshift tables and updates all data files to reflect latest data on market trend page.
+
+        Args:
+            push_file_to_S3 (bool): Whether to transfer updated files to S3 storage.
+            job_name (str): Name of the S3 transfer job to select correct data sotrage path on S3.
+
         """
         # Get Metadata
         metadata = db.query_database(
@@ -275,13 +283,13 @@ class RefreshData():
         del metadata, reviews, ingredients
         gc.collect()
 
-    def refresh_category_page_data(self, push_file_to_S3, job_name):
-        """refresh_category_page_data [summary]
-
-        [extended_summary]
+    def refresh_category_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+        """refresh_category_page_data connects to Redshift tables and updates all data files to reflect latest data on category insights page.
 
         Args:
-            push_file_to_S3 (bool, optional): [description]. Defaults to True.
+            push_file_to_S3 (bool): Whether to transfer updated files to S3 storage.
+            job_name (str): Name of the S3 transfer job to select correct data sotrage path on S3.
+
         """
         metadata = db.query_database(
             "select prod_id, product_name, brand, category, product_type, new_flag, meta_date, low_p, high_p,\
@@ -503,11 +511,8 @@ class RefreshData():
         cat_page_item_package_oz_df.rename(
             columns={'size_oz': 'item_size'}, inplace=True)
 
-        def hasNumbers(inputString):
-            return bool(re.search(r'\d', inputString))
-
         cat_page_item_package_oz_df = cat_page_item_package_oz_df[cat_page_item_package_oz_df.item_size.apply(
-            hasNumbers)]
+            self.hasNumbers)]
         cat_page_item_package_oz_df = cat_page_item_package_oz_df[cat_page_item_package_oz_df.item_size.str.len(
         ) < 30]
         cat_page_item_package_oz_df.item_size = cat_page_item_package_oz_df.item_size.str.replace(
@@ -695,10 +700,13 @@ class RefreshData():
                 file_path=self.dash_data_path/'category_page_reviews_by_user_attributes',
                 job_name=job_name)
 
-    def refresh_product_page_data(self, push_file_to_S3, job_name):
-        """refresh_product_page_data [summary]
+    def refresh_product_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+        """refresh_product_page_data connects to Redshift tables and updates all data files to reflect latest data on product insights page.
 
-        [extended_summary]
+        Args:
+            push_file_to_S3 (bool): Whether to transfer updated files to S3 storage.
+            job_name (str): Name of the S3 transfer job to select correct data sotrage path on S3.
+
         """
         # get metadata
         metadata = db.query_database("select prod_id, product_name, brand, category, product_type, new_flag, \
@@ -722,8 +730,8 @@ class RefreshData():
         metadata.fillna('', inplace=True)
         metadata.drop_duplicates(subset='prod_id', inplace=True)
 
-        self.landing_page_data['latest_scraped_date'] = metadata.meta_date.max().strftime(
-            "%d/%m/%Y")
+        self.landing_page_data['latest_scraped_date'] = metadata.meta_date.max(
+        )
 
         metadata[metadata.columns.difference(['product_name', 'brand'])] \
             = metadata[metadata.columns.difference(['product_name', 'brand'])]\
@@ -946,11 +954,8 @@ class RefreshData():
         prod_page_item_df.rename(
             columns={'size_oz': 'item_size'}, inplace=True)
 
-        def hasNumbers(inputString):
-            return bool(re.search(r'\d', inputString))
-
         prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
-            lambda x: x if hasNumbers(x) else '').str.replace('out of stock:', '').str.replace('nan', '')
+            lambda x: x if self.hasNumbers(x) else '').str.replace('out of stock:', '').str.replace('nan', '')
         prod_page_item_df.item_size = prod_page_item_df.item_size.apply(
             lambda x: x if len(x) < 30 else '')
         prod_page_item_df.reset_index(inplace=True, drop=True)
@@ -987,10 +992,13 @@ class RefreshData():
                 file_path=self.dash_data_path/'prod_page_ing_data',
                 job_name=job_name)
 
-    def refresh_ingredient_page_data(self, push_file_to_S3, job_name):
-        """refresh_ingredient_page_data [summary]
+    def refresh_ingredient_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+        """refresh_ingredient_page_data connects to Redshift tables and updates all data files to reflect latest data on ingredient insights page.
 
-        [extended_summary]
+        Args:
+            push_file_to_S3 (bool): Whether to transfer updated files to S3 storage.
+            job_name (str): Name of the S3 transfer job to select correct data sotrage path on S3.
+
         """
         # get ingredients
         ing_page_ing_df = db.query_database(
@@ -1035,10 +1043,13 @@ class RefreshData():
                 file_path=self.dash_data_path/'ing_page_ing_data',
                 job_name=job_name)
 
-    def refresh_landing_page_data(self, push_file_to_S3, job_name):
-        """refresh_landing_page_data [summary]
+    def refresh_landing_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+        """refresh_landing_page_data connects to Redshift tables and updates all data files to reflect latest data on trend engine landing page.
 
-        [extended_summary]
+        Args:
+            push_file_to_S3 (bool): Whether to transfer updated files to S3 storage.
+            job_name (str): Name of the S3 transfer job to select correct data sotrage path on S3.
+
         """
         image_keys = [i['Key'] for i in file_manager.get_matching_s3_keys(prefix='Feeds/BeautyTrendEngine/Image/Staging/', suffix='jpg')
                       if any(job in i['Key'].lower() for job in ['image'])]
@@ -1053,14 +1064,15 @@ class RefreshData():
                 file_path=self.dash_data_path/'landing_page_data',
                 job_name=job_name)
 
-    def make(self, push_file_to_S3=True, job_name='webapp'):
-        """make [summary]
+    def make(self, push_file_to_S3: bool = True, job_name: str = 'webapp'):
+        """make runs the data updater functions to pull latest data from Redshift DB and create updated webapp data files.
 
-        [extended_summary]
+        The updated datafiles overwrites the existing data in the S3 storage path and always reflects latest data on webpages.
 
         Args:
-            push_file_to_S3 (bool, optional): [description]. Defaults to True.
-            job_name ([type], optional): [description]. Defaults to job_name.
+            push_file_to_S3 (bool, optional): Whether to transfer updated files to S3 storage. Defaults to True.
+            job_name (str, optional): Name of the S3 transfer job to select correct data sotrage path on S3. Defaults to 'webapp'.
+
         """
         try:
             self.refresh_market_trend_data(push_file_to_S3, job_name)

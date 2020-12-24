@@ -12,8 +12,8 @@ from meiyume.utils import chunks, ranges
 # from meiyume.utils import Sephora
 warnings.simplefilter(action='ignore')
 
-open_with_proxy_server = False
-randomize_proxy_usage = False
+open_with_proxy_server = True
+randomize_proxy_usage = True
 
 
 def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: bool = False) -> pd.DataFrame:

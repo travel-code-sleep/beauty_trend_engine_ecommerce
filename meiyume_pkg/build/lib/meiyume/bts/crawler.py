@@ -1019,17 +1019,21 @@ class DetailReview(Boots):
             last_scraped_review_date = self.meta.loc[prod,
                                                      'last_scraped_review_date']
             # create webdriver
-            if randomize_proxy_usage:
-                use_proxy = np.random.choice([True, False])
-            else:
-                use_proxy = True
-            if open_with_proxy_server:
-                # print(use_proxy)
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
-                                        path=self.detail_path)
-            else:
-                drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
-                                        path=self.detail_path)
+            # if randomize_proxy_usage:
+            #     use_proxy = np.random.choice([True, True])
+            # else:
+            #     use_proxy = True
+            use_proxy = True
+            # if open_with_proxy_server:
+            #     # print(use_proxy)
+            #     drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
+            #                             path=self.detail_path)
+            # else:
+            #     drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=False,
+            #                             path=self.detail_path)
+            drv = self.open_browser(open_headless=open_headless, open_with_proxy_server=use_proxy,
+                                    path=self.detail_path)
+
             # open product page
             drv.get(product_page)
             time.sleep(15)  # 30
@@ -1236,8 +1240,8 @@ class DetailReview(Boots):
 
                 det_li = []
                 self.bad_det_li = []
-                detail_files = [f for f in self.detail_current_progress_path.glob(
-                    "bts_prod_detail_extract_progress_*")]
+                detail_files = self.detail_current_progress_path.glob(
+                    "bts_prod_detail_extract_progress_*")
                 for file in detail_files:
                     try:
                         df = pd.read_csv(file)
@@ -1256,8 +1260,8 @@ class DetailReview(Boots):
 
                 item_li = []
                 self.bad_item_li = []
-                item_files = [f for f in self.detail_current_progress_path.glob(
-                    "bts_prod_item_extract_progress_*")]
+                item_files = self.detail_current_progress_path.glob(
+                    "bts_prod_item_extract_progress_*")
                 for file in item_files:
                     try:
                         idf = pd.read_csv(file)

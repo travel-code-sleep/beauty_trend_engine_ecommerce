@@ -23,6 +23,109 @@
 </header>
 <section id="section-intro">
 <p>This script runs spider to grab Boots metadata.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;This script runs spider to grab Boots metadata.&#34;&#34;&#34;
+import gc
+import os
+import time
+import warnings
+from pathlib import Path
+
+import pandas as pd
+from meiyume.bts.crawler import Metadata
+from meiyume.utils import chunks, ranges
+
+# from meiyume.utils import Sephora
+warnings.simplefilter(action=&#39;ignore&#39;)
+
+open_with_proxy_server = False
+randomize_proxy_usage = False
+
+
+def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: bool = False) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;exclude_scraped_pages_from_tracker.
+
+    [extended_summary]
+
+    Args:
+        metadata_crawler (Metadata): [description]
+
+    Returns:
+        pd.DataFrame: [description]
+    &#34;&#34;&#34;
+    progress_tracker = pd.read_feather(
+        metadata_crawler.metadata_path/&#39;bts_metadata_progress_tracker&#39;)
+
+    if reset_na:
+        progress_tracker.scraped[progress_tracker.scraped == &#39;NA&#39;] = &#39;N&#39;
+
+    progress_tracker = progress_tracker[~progress_tracker.scraped.isna(
+    )]
+    progress_tracker = progress_tracker[progress_tracker.scraped != &#39;Y&#39;]
+    progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
+    progress_tracker.to_feather(
+        metadata_crawler.metadata_path/&#39;bts_metadata_progress_tracker&#39;)
+    return progress_tracker
+
+
+def run_metdata_crawler(metadata_crawler: Metadata) -&gt; None:
+    &#34;&#34;&#34;run_metdata_crawler
+
+    [extended_summary]
+
+    Args:
+        metadata_crawler (Metadata): [description]
+    &#34;&#34;&#34;
+    metadata_crawler.extract(download=True, fresh_start=True, auto_fresh_start=True,
+                             n_workers=8, open_headless=False,
+                             open_with_proxy_server=open_with_proxy_server,
+                             randomize_proxy_usage=randomize_proxy_usage,
+                             compile_progress_files=False, clean=False, delete_progress=False)
+
+    progess_tracker = exclude_scraped_pages_from_tracker(
+        metadata_crawler, reset_na=True)
+    n_workers = 3
+    trials = 5
+    while progess_tracker.scraped[progess_tracker.scraped == &#39;N&#39;].count() != 0:
+        metadata_crawler.extract(download=True, fresh_start=False, auto_fresh_start=False,
+                                 n_workers=n_workers, open_headless=False,
+                                 open_with_proxy_server=open_with_proxy_server,
+                                 randomize_proxy_usage=randomize_proxy_usage,
+                                 compile_progress_files=False, clean=False, delete_progress=False)
+
+        if trials &lt;= 2:
+            reset_na = True
+        else:
+            reset_na = False
+        progress_tracker = exclude_scraped_pages_from_tracker(
+            metadata_crawler, reset_na=reset_na)
+
+        trials -= 1
+        if trials == 0:
+            break
+    metadata_crawler.extract(download=False, fresh_start=False, auto_fresh_start=False,
+                             compile_progress_files=True, clean=True, delete_progress=True)
+    metadata_crawler.terminate_logging()
+    del metadata_crawler
+    gc.collect()
+
+
+if __name__ == &#34;__main__&#34;:
+    metadata_crawler = Metadata(
+        path=&#34;D:/Amit/Meiyume/meiyume_data/spider_runner&#34;)
+
+    gecko_log_path = metadata_crawler.metadata_path/&#39;service/geckodriver.log&#39;
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()
+
+    run_metdata_crawler(metadata_crawler)
+
+    if gecko_log_path.exists():
+        gecko_log_path.unlink()</code></pre>
+</details>
 </section>
 <section>
 </section>
@@ -47,6 +150,35 @@
 <dt><code>pd.DataFrame</code></dt>
 <dd>[description]</dd>
 </dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def exclude_scraped_pages_from_tracker(metadata_crawler: Metadata, reset_na: bool = False) -&gt; pd.DataFrame:
+    &#34;&#34;&#34;exclude_scraped_pages_from_tracker.
+
+    [extended_summary]
+
+    Args:
+        metadata_crawler (Metadata): [description]
+
+    Returns:
+        pd.DataFrame: [description]
+    &#34;&#34;&#34;
+    progress_tracker = pd.read_feather(
+        metadata_crawler.metadata_path/&#39;bts_metadata_progress_tracker&#39;)
+
+    if reset_na:
+        progress_tracker.scraped[progress_tracker.scraped == &#39;NA&#39;] = &#39;N&#39;
+
+    progress_tracker = progress_tracker[~progress_tracker.scraped.isna(
+    )]
+    progress_tracker = progress_tracker[progress_tracker.scraped != &#39;Y&#39;]
+    progress_tracker = progress_tracker.sample(frac=1).reset_index(drop=True)
+    progress_tracker.to_feather(
+        metadata_crawler.metadata_path/&#39;bts_metadata_progress_tracker&#39;)
+    return progress_tracker</code></pre>
+</details>
 </dd>
 <dt id="meiyume.crawler_runners.bts_metadata_crawler_runner.run_metdata_crawler"><code class="name flex">
 <span>def <span class="ident">run_metdata_crawler</span></span>(<span>metadata_crawler: <a title="meiyume.bts.crawler.Metadata" href="../bts/crawler.html#meiyume.bts.crawler.Metadata">Metadata</a>) ‑> NoneType</span>
@@ -59,6 +191,51 @@
 <dt><strong><code>metadata_crawler</code></strong> :&ensp;<code>Metadata</code></dt>
 <dd>[description]</dd>
 </dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def run_metdata_crawler(metadata_crawler: Metadata) -&gt; None:
+    &#34;&#34;&#34;run_metdata_crawler
+
+    [extended_summary]
+
+    Args:
+        metadata_crawler (Metadata): [description]
+    &#34;&#34;&#34;
+    metadata_crawler.extract(download=True, fresh_start=True, auto_fresh_start=True,
+                             n_workers=8, open_headless=False,
+                             open_with_proxy_server=open_with_proxy_server,
+                             randomize_proxy_usage=randomize_proxy_usage,
+                             compile_progress_files=False, clean=False, delete_progress=False)
+
+    progess_tracker = exclude_scraped_pages_from_tracker(
+        metadata_crawler, reset_na=True)
+    n_workers = 3
+    trials = 5
+    while progess_tracker.scraped[progess_tracker.scraped == &#39;N&#39;].count() != 0:
+        metadata_crawler.extract(download=True, fresh_start=False, auto_fresh_start=False,
+                                 n_workers=n_workers, open_headless=False,
+                                 open_with_proxy_server=open_with_proxy_server,
+                                 randomize_proxy_usage=randomize_proxy_usage,
+                                 compile_progress_files=False, clean=False, delete_progress=False)
+
+        if trials &lt;= 2:
+            reset_na = True
+        else:
+            reset_na = False
+        progress_tracker = exclude_scraped_pages_from_tracker(
+            metadata_crawler, reset_na=reset_na)
+
+        trials -= 1
+        if trials == 0:
+            break
+    metadata_crawler.extract(download=False, fresh_start=False, auto_fresh_start=False,
+                             compile_progress_files=True, clean=True, delete_progress=True)
+    metadata_crawler.terminate_logging()
+    del metadata_crawler
+    gc.collect()</code></pre>
+</details>
 </dd>
 </dl>
 </section>

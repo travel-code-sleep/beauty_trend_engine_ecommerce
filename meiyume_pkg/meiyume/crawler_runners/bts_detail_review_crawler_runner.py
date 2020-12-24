@@ -15,6 +15,7 @@ warnings.simplefilter(action='ignore')
 db = RedShiftReader()
 
 open_with_proxy_server = True
+randomize_proxy_usage = False
 
 
 def get_metadata_with_last_scraped_review_date(meta_df: pd.DataFrame) -> pd.DataFrame:
@@ -93,7 +94,8 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
         bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=4,
                             fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                             start_idx=i[0], end_idx=i[-1],  # list_of_index=i,
-                            open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
+                            open_headless=False, open_with_proxy_server=open_with_proxy_server,
+                            randomize_proxy_usage=randomize_proxy_usage,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
         bts_crawler.terminate_logging()
@@ -111,7 +113,8 @@ def run_bts_crawler(meta_df: pd.DataFrame, bts_crawler: DetailReview):
     while progress_tracker.scraped[progress_tracker.scraped == 'N'].count() != 0:
         bts_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=n_workers,
                             fresh_start=False, auto_fresh_start=False,
-                            open_headless=False, open_with_proxy_server=open_with_proxy_server, randomize_proxy_usage=True,
+                            open_headless=False, open_with_proxy_server=open_with_proxy_server,
+                            randomize_proxy_usage=randomize_proxy_usage,
                             compile_progress_files=False, clean=False, delete_progress=False)
 
         if trials <= 2:

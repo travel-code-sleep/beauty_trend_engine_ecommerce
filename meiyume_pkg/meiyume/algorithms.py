@@ -480,7 +480,8 @@ class SexyIngredient(ModelsAlgorithms):
         super().__init__(path=path)
 
     def make(self, source: str, meta_detail_data: Optional[Union[Path, str, pd.DataFrame]] = None,
-             ingredient_data: Optional[Union[Path, str, pd.DataFrame]] = None) -> pd.DataFrame:
+             ingredient_data: Optional[Union[Path, str, pd.DataFrame]] = None,
+             push_file_to_S3: bool = True) -> pd.DataFrame:
         """make defines and runs ingredient classifier, tagger, identifier and data transformations.
 
         Args:
@@ -505,20 +506,25 @@ class SexyIngredient(ModelsAlgorithms):
                 try:
                     meta_rank = pd.read_feather(meta_detail_data)
                 except Exception as ex:
-                    meta_rank = pd.read_csv(meta_detail_data)
+                    meta_rank = pd.read_csv(meta_detail_data, sep='~')
             else:
                 meta_rank = meta_detail_data
         else:
             if source == 'sph':
-                meta_detail_files = self.output_path.glob(
-                    'ranked_cleaned_sph_product_meta_detail_all*')
-                meta_rank = pd.read_feather(
-                    max(meta_detail_files, key=os.path.getctime))
+                meta_detail_file = max(self.output_path.glob(
+                    'ranked_cleaned_sph_product_meta_detail_all*'), key=os.path.getctime)
             elif source == 'bts':
-                meta_detail_files = self.output_path.glob(
-                    'ranked_cleaned_bts_product_meta_detail_all*')
-                meta_rank = pd.read_feather(
-                    max(meta_detail_files, key=os.path.getctime))
+                meta_detail_file = max(self.output_path.glob(
+                    'ranked_cleaned_bts_product_meta_detail_all*'), key=os.path.getctime)
+            print(meta_detail_file)
+            meta_rank = pd.read_feather(meta_detail_file)
+
+        new_product_list = meta_rank.prod_id[meta_rank.new_flag == 'new'].unique(
+        )
+        clean_product_list = meta_rank.prod_id[meta_rank.clean_flag == 'clean'].unique(
+        )
+        vegan_product_list = meta_rank.prod_id[meta_rank.product_type.apply(
+            lambda x: True if 'vegan' in x else False)].unique()
 
         if ingredient_data:
             if not isinstance(ingredient_data, pd.core.frame.DataFrame):
@@ -535,27 +541,40 @@ class SexyIngredient(ModelsAlgorithms):
                 #                            prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_sph_product_ingredient_all')][-1]
                 # self.ingredient = file_manager.read_feather_s3(
                 #     ingredient_file_key)
-                ingredient_files = self.sph.detail_clean_path.glob(
-                    'cleaned_sph_product_ingredient_all*')
-                self.ingredient = pd.read_feather(
-                    max(ingredient_files, key=os.path.getctime))
+                ingredient_file = max(self.sph.detail_clean_path.glob(
+                    'cleaned_sph_product_ingredient_all*'), key=os.path.getctime)
             elif source == 'bts':
                 # ingredient_file_key = [i['Key'] for i in
                 #                        file_manager.get_matching_s3_keys(
                 #                            prefix='Feeds/BeautyTrendEngine/CleanedData/PreAlgorithm/cleaned_bts_product_ingredient_all')][-1]
                 # self.ingredient = file_manager.read_feather_s3(
                 #     ingredient_file_key)
-                ingredient_files = self.bts.detail_clean_path.glob(
-                    'cleaned_bts_product_ingredient_all*')
-                self.ingredient = pd.read_feather(
-                    max(ingredient_files, key=os.path.getctime))
+                ingredient_file = max(self.bts.detail_clean_path.glob(
+                    'cleaned_bts_product_ingredient_all*'), key=os.path.getctime)
+            print(ingredient_file)
+            self.ingredient = pd.read_feather(ingredient_file)
 
-        old_ing_list = db.query_database("select ingredient from r_bte_product_ingredients_f \
-                            where new_flag != 'new_ingredient'").ingredient.unique().tolist()
+        if source == 'sph':
+            self.ingredient['vegan_flag'] = self.ingredient.prod_id.apply(
+                lambda x: 'vegan' if x in vegan_product_list else '')
+        elif source == 'bts':
+            self.ingredient['vegan_flag'] = self.ingredient.ingredient.apply(
+                lambda x: 'vegan' if 'vegan' in x else '')
+
+        self.ingredient['clean_flag'] = self.ingredient.prod_id.apply(
+            lambda x: 'clean' if x in clean_product_list else '')
+        self.ingredient['new_flag'] = self.ingredient.prod_id.apply(
+            lambda x: 'new' if x in new_product_list else '')
+
+        meta_date = meta_rank.meta_date.astype(str).values[0]
+        old_ing_list = db.query_database(f"select ingredient \
+                                   from r_bte_product_ingredients_f \
+                                   where new_flag != 'new_ingredient' \
+                                   and meta_date < '{meta_date}'").ingredient.unique().tolist()
 
         # find new ingredients
         def find_new_ingredient(x):
-            if x.ingredient not in old_ing_list:
+            if x.ingredient not in old_ing_list and x.new_flag == 'new':
                 return 'new_ingredient'
             elif x.ingredient in old_ing_list and x.new_flag == 'new':
                 return 'new_product'
@@ -608,7 +627,7 @@ class SexyIngredient(ModelsAlgorithms):
         self.ingredient.set_index('prod_id', inplace=True)
 
         self.ingredient = self.ingredient.join(
-            meta_rank, how='left', rsuffix='_meta')
+            meta_rank, how='left', rsuffix='_meta', on='prod_id')
         self.ingredient.reset_index(inplace=True)
 
         banned_ingredients = pd.read_csv(
@@ -649,20 +668,22 @@ class SexyIngredient(ModelsAlgorithms):
         filename = f'ranked_cleaned_{source}_product_ingredient_all_{pd.to_datetime(self.ingredient.meta_date.max()).date()}'
         self.ingredient.to_feather(self.output_path/filename)
 
-        self.ingredient.fillna('', inplace=True)
-        self.ingredient = self.ingredient[self.ingredient.ingredient != '']
-        self.ingredient = self.ingredient[self.ingredient.ingredient.str.len(
-        ) < 200]
-        self.ingredient.reset_index(inplace=True, drop=True)
-        self.ingredient = self.ingredient.replace('\n', ' ', regex=True)
-        self.ingredient = self.ingredient.replace('~', ' ', regex=True)
+        if push_file_to_S3:
+            self.ingredient.fillna('', inplace=True)
+            self.ingredient = self.ingredient[self.ingredient.ingredient != '']
+            self.ingredient = self.ingredient[self.ingredient.ingredient.str.len(
+            ) < 100]
+            self.ingredient.reset_index(inplace=True, drop=True)
+            self.ingredient = self.ingredient.replace('\n', ' ', regex=True)
+            self.ingredient = self.ingredient.replace('~', ' ', regex=True)
 
-        filename = filename + '.csv'
-        self.ingredient.to_csv(self.output_path/filename, index=None, sep='~')
+            filename = filename + '.csv'
+            self.ingredient.to_csv(
+                self.output_path/filename, index=None, sep='~')
 
-        file_manager.push_file_s3(file_path=self.output_path /
-                                  filename, job_name='ingredient')
-        Path(self.output_path/filename).unlink()
+            file_manager.push_file_s3(file_path=self.output_path /
+                                      filename, job_name='ingredient')
+            Path(self.output_path/filename).unlink()
         return self.ingredient
 
 
