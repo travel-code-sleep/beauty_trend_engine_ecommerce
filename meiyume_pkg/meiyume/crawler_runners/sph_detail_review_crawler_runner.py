@@ -161,6 +161,8 @@ if __name__ == "__main__":
         del meta_detail
         gc.collect()
 
+        time.sleep(120)
+
         sexy_ing = SexyIngredient(
             path='D:/Amit/Meiyume/meiyume_data/spider_runner')
         ing = sexy_ing.make(source='sph')
