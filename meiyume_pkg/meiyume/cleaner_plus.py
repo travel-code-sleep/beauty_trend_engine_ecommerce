@@ -64,10 +64,8 @@ class Cleaner():
             data (Union[str, Path, pd.DataFrame]): Uncleaned data file path or dataframe.
             save (bool, optional): Whether to save the cleaned data to disk. Defaults to True.
             logs (bool, optional): Whether to generate logs during cleaning action. Defaults to False.
-            source (Optional[str], optional): The website code from which the data is extracted.
-                                              Defaults to None.(Current accepted values: [sph, bts])
-            definition (Optional[str], optional): The type of data. Defaults to None.(Accepted values: [Metadata, detail,
-                                                  item, review])
+            source (Optional[str], optional): The website code from which the data is extracted. Defaults to None.(Current accepted values: [sph, bts])
+            definition (Optional[str], optional): The type of data. Defaults to None.(Accepted values: [Metadata, detail, item, review])
 
         Raises:
             MeiyumeException: Raises exception if source or data files are incorrect.
@@ -400,25 +398,28 @@ class Cleaner():
 
         if self.source == 'sph':
             # convert votes to numbers
-            # self.detail.votes.fillna('0.0', inplace=True)
-            # self.detail.votes = self.detail.votes.apply(lambda x: x.split()[0])
-            # self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
-            #                                             if 'k' in x else float(x.replace('m', ''))*1000000)
-            self.detail.votes = ''
+            self.detail.votes.fillna('0.0', inplace=True)
+            self.detail.votes = self.detail.votes.apply(lambda x: x.split()[0])
+            self.detail.votes = self.detail.votes.apply(lambda x: float(x.replace('k', ''))*1000
+                                                        if 'k' in x else float(x.replace('m', ''))*1000000)
+            # self.detail.votes = ''
 
-            # split sephora rating distribution
-            def split_rating_dist(x):
-                if x is not np.nan:
-                    ratings = literal_eval(x)
-                    return int(ratings[1]), int(ratings[3]), int(ratings[5]),\
-                        int(ratings[7]), int(ratings[9])
-                else:
-                    return (0 for i in range(5))
+            # # split sephora rating distribution
+            # def split_rating_dist(x):
+            #     if x is not np.nan:
+            #         ratings = literal_eval(x)
+            #         return int(ratings[1]), int(ratings[3]), int(ratings[5]),\
+            #             int(ratings[7]), int(ratings[9])
+            #     else:
+            #         return (0 for i in range(5))
 
-            self.detail['five_star'], self.detail['four_star'], self.detail['three_star'],\
-                self.detail['two_star'],  self.detail['one_star'] = \
-                zip(*self.detail.rating_dist.map(split_rating_dist))
+            # self.detail['five_star'], self.detail['four_star'], self.detail['three_star'],\
+            #     self.detail['two_star'],  self.detail['one_star'] = \
+            #     zip(*self.detail.rating_dist.map(split_rating_dist))
             self.detail.drop('rating_dist', axis=1, inplace=True)
+            self.detail['five_star'], self.detail['four_star'], self.detail['three_star'],\
+                self.detail['two_star'],  self.detail['one_star'] = (
+                    '', '', '', '', '')
 
             # clean sephora would recommend
             self.detail.would_recommend = self.detail.would_recommend.astype(str).str.replace(
@@ -601,6 +602,15 @@ class Cleaner():
                 'size', '').str.replace('•', '').str.strip()
             self.item['size_oz'], self.item['size_ml_gm'] = zip(
                 *self.item.item_size.apply(get_item_size))
+
+            self.item.size_oz = self.item.size_oz.str.replace('out of stock:', '',
+                                                              regex=True).str.replace(
+                'nan', '', regex=True).apply(
+                lambda x: x.split('oz')[0]+'oz' if x is not '' and ' oz' in x else x).apply(
+                    lambda x: x if ' oz' in x else '')
+            self.item.size_ml_gm = self.item.size_ml_gm.apply(
+                lambda x: x.split('ml')[0]+'ml' if x is not '' and ' ml' in x else x).apply(
+                lambda x: x.split('g')[0]+'g' if x is not '' and ' g' in x else x)
 
             self.item.drop('item_size', inplace=True, axis=1)
 
@@ -843,11 +853,12 @@ class Cleaner():
             required.
             '''
             # separate helpful and not helpful
-            self.review['helpful_n'], self.review['helpful_y'] = zip(
-                *self.review.helpful.astype(str).str.replace(' ',
-                                                             '').str.split('helpful',
-                                                                           expand=True).loc[:, 1:2].values)
-
+            # self.review['helpful_n'], self.review['helpful_y'] = zip(
+            #     *self.review.helpful.astype(str).str.replace(' ',
+            #                                                  '').str.split('helpful',
+            #                                                                expand=True).loc[:, 1:2].values)
+            self.review['helpful_n'], self.review['helpful_y'] = zip(*self.review.helpful.str.replace(
+                '[', '').str.replace(']', '').str.split(',', expand=True).values)
             hlp_regex = re.compile('[a-zA-Z()]')
             self.review.helpful_y = self.review.helpful_y.apply(
                 lambda x: hlp_regex.sub('', str(x)))  # .astype(float)
@@ -869,12 +880,12 @@ class Cleaner():
                 else:
                     age = np.nan
 
-                if x.get('eye_color') is not None:
-                    eye_c = x.get('eye_color')
+                if x.get('eyes') is not None:
+                    eye_c = x.get('eyes')
                 else:
                     eye_c = np.nan
-                if x.get('hair_color') is not None:
-                    hair_c = x.get('hair_color')
+                if x.get('hair') is not None:  # hair_color
+                    hair_c = x.get('hair')
                 else:
                     hair_c = np.nan
 
@@ -883,8 +894,8 @@ class Cleaner():
                 else:
                     skintn = np.nan
 
-                if x.get('skin_type') is not None:
-                    skinty = x.get('skin_type')
+                if x.get('skin') is not None:  # skin_type
+                    skinty = x.get('skin')
                 else:
                     skinty = np.nan
 
@@ -913,6 +924,8 @@ class Cleaner():
                 lambda x: rating_regex.sub('', x)).astype(float)
         # self.review.review_rating = self.review.review_rating.astype(int)
         # convert to pd datetime
+        self.review = self.review[~self.review.review_date.isna()]
+        self.review = self.review[self.review.review_date != 'none']
         self.review.review_date = pd.to_datetime(
             self.review.review_date, infer_datetime_format=True)
         # clean and convert recommendation

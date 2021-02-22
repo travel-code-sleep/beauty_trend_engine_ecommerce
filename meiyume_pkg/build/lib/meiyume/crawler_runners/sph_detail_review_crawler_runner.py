@@ -90,7 +90,7 @@ def run_sph_crawler(meta_df: pd.DataFrame, sph_crawler: DetailReview):
         else:
             fresh_start = False
             auto_fresh_start = False
-        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=6,
+        sph_crawler.extract(metadata=meta_df, download=True, incremental=True, n_workers=8,
                             fresh_start=fresh_start, auto_fresh_start=auto_fresh_start,
                             start_idx=i[0], end_idx=i[-1],  # list_of_index=i,
                             open_headless=False, open_with_proxy_server=open_with_proxy_server,
@@ -160,6 +160,8 @@ if __name__ == "__main__":
 
         del meta_detail
         gc.collect()
+
+        time.sleep(120)
 
         sexy_ing = SexyIngredient(
             path='D:/Amit/Meiyume/meiyume_data/spider_runner')

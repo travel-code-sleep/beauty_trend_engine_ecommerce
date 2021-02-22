@@ -244,11 +244,38 @@ class SexyMetaDetail(ModelsAlgorithms):
         meta.set_index('prod_id', inplace=True)
         detail.set_index('prod_id', inplace=True)
         meta_detail = meta.join(detail, how='inner', rsuffix='detail')
-        meta_detail[['rating', 'reviews', 'would_recommend_percentage', 'five_star', 'four_star', 'three_star',
-                                          'two_star', 'one_star']] = meta_detail[['rating', 'reviews',
-                                                                                  'would_recommend_percentage',
-                                                                                  'five_star', 'four_star', 'three_star',
-                                                                                  'two_star', 'one_star']].apply(pd.to_numeric)
+
+        meta_detail.drop(columns=["five_star",
+                                  "four_star",
+                                  "three_star",
+                                  "two_star",
+                                  "one_star", ], inplace=True)
+
+        rating_db = db.query_database(
+            'select prod_id, review_rating from r_bte_product_review_f')
+        dff = pd.DataFrame(rating_db.groupby(
+            'prod_id').review_rating.value_counts())
+        dff.columns = ['rating_count']
+        dff.reset_index(inplace=True)
+        dff = dff[dff.review_rating != '']
+        dff.review_rating = dff.review_rating.astype(float).astype(str)
+        dff = dff.pivot_table(index='prod_id', columns='review_rating',
+                              values='rating_count', fill_value=0, aggfunc='sum')
+        dff.columns = ['one_star', 'two_star',
+                       'three_star', 'four_star', 'five_star']
+        dff.reset_index(inplace=True)
+        dff.set_index('prod_id', inplace=True)
+
+        meta_detail = meta_detail.join(dff, how='left')
+
+        meta_detail[['rating', 'reviews', 'would_recommend_percentage',
+                     'one_star', 'two_star',
+                     'three_star', 'four_star', 'five_star']
+                    ] = meta_detail[['rating', 'reviews',
+                                     'would_recommend_percentage',
+                                     'one_star', 'two_star',
+                                     'three_star', 'four_star', 'five_star']
+                                    ].apply(pd.to_numeric)
         meta_detail.reset_index(inplace=True)
 
         review_conf = meta_detail.groupby(by=['category', 'product_type'])[
@@ -331,6 +358,10 @@ class SexyMetaDetail(ModelsAlgorithms):
         meta_detail.drop(columns='first_review_date', inplace=True)
 
         meta_detail = meta_detail.join(df_db, how='left')
+
+        del rating_db, df_db, dff
+        gc.collect()
+
         meta_detail.reset_index(inplace=True)
 
         columns = ["prod_id",
@@ -363,7 +394,8 @@ class SexyMetaDetail(ModelsAlgorithms):
                    "bayesian_estimate",
                    "pstv_to_ngtv_stars",
                    "pstv_to_total_stars",
-                   "first_review_date"
+                   "first_review_date",
+                   'highlights'
                    ]
         meta_detail = meta_detail[columns]
         # meta_detail.product_name = meta_detail.product_name.apply(
