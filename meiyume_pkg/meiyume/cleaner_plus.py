@@ -857,7 +857,7 @@ class Cleaner():
             #     *self.review.helpful.astype(str).str.replace(' ',
             #                                                  '').str.split('helpful',
             #                                                                expand=True).loc[:, 1:2].values)
-            self.review['helpful_n'], self.review['helpful_y'] = zip(*self.review.helpful.str.replace(
+            self.review['helpful_y'], self.review['helpful_n'] = zip(*self.review.helpful.str.replace(
                 '[', '').str.replace(']', '').str.split(',', expand=True).values)
             hlp_regex = re.compile('[a-zA-Z()]')
             self.review.helpful_y = self.review.helpful_y.apply(

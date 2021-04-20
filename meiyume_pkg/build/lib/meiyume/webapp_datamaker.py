@@ -48,8 +48,8 @@ class RefreshData():
         self.dash_data_path = Path(r'D:\Amit\Meiyume\meiyume_data\dash_data')
         self.landing_page_data = {}
 
-    def hasNumbers(self, inputString: str)->bool:
-        """hasNumbers checks whether string contains numeric characters.
+    def hasNumbers(self, inputString: str) -> bool:
+        """HasNumbers checks whether string contains numeric characters.
 
         Args:
             inputString (str): input text
@@ -60,7 +60,7 @@ class RefreshData():
         """
         return bool(re.search(r'\d', inputString))
 
-    def refresh_market_trend_data(self, push_file_to_S3: bool, job_name: str)->None:
+    def refresh_market_trend_data(self, push_file_to_S3: bool, job_name: str) -> None:
         """refresh_market_trend_data connects to Redshift tables and updates all data files to reflect latest data on market trend page.
 
         Args:
@@ -283,7 +283,7 @@ class RefreshData():
         del metadata, reviews, ingredients
         gc.collect()
 
-    def refresh_category_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+    def refresh_category_page_data(self, push_file_to_S3: bool, job_name: str) -> None:
         """refresh_category_page_data connects to Redshift tables and updates all data files to reflect latest data on category insights page.
 
         Args:
@@ -700,7 +700,7 @@ class RefreshData():
                 file_path=self.dash_data_path/'category_page_reviews_by_user_attributes',
                 job_name=job_name)
 
-    def refresh_product_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+    def refresh_product_page_data(self, push_file_to_S3: bool, job_name: str) -> None:
         """refresh_product_page_data connects to Redshift tables and updates all data files to reflect latest data on product insights page.
 
         Args:
@@ -992,7 +992,7 @@ class RefreshData():
                 file_path=self.dash_data_path/'prod_page_ing_data',
                 job_name=job_name)
 
-    def refresh_ingredient_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+    def refresh_ingredient_page_data(self, push_file_to_S3: bool, job_name: str) -> None:
         """refresh_ingredient_page_data connects to Redshift tables and updates all data files to reflect latest data on ingredient insights page.
 
         Args:
@@ -1043,7 +1043,7 @@ class RefreshData():
                 file_path=self.dash_data_path/'ing_page_ing_data',
                 job_name=job_name)
 
-    def refresh_landing_page_data(self, push_file_to_S3: bool, job_name: str)->None:
+    def refresh_landing_page_data(self, push_file_to_S3: bool, job_name: str) -> None:
         """refresh_landing_page_data connects to Redshift tables and updates all data files to reflect latest data on trend engine landing page.
 
         Args:
@@ -1065,7 +1065,7 @@ class RefreshData():
                 job_name=job_name)
 
     def make(self, push_file_to_S3: bool = True, job_name: str = 'webapp'):
-        """make runs the data updater functions to pull latest data from Redshift DB and create updated webapp data files.
+        """Make runs the data updater functions to pull latest data from Redshift DB and create updated webapp data files.
 
         The updated datafiles overwrites the existing data in the S3 storage path and always reflects latest data on webpages.
 
