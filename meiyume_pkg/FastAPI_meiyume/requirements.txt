@@ -3,4 +3,4 @@ fastapi==0.65.2
 pandas==1.2.2
 python-dotenv==0.15.0
 uvicorn==0.13.4
-pyarrow==3.0.0
+pyarrow==14.0.1
